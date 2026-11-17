@@ -88,6 +88,130 @@ async def test_otel_sampled_writes_trace(service_client, mockserver):
     assert any('stopwatch_name' in entry for entry in trace_logs), 'Trace spans must be written when sampled flag is 1'
 
 
+@pytest.mark.parametrize(
+    'headers,enable_sampling,expected_sampled',
+    [
+        pytest.param(UNSAMPLED_HEADERS, False, False, id='unsampled'),
+        pytest.param(SAMPLED_HEADERS, False, True, id='sampled'),
+        pytest.param(UNSAMPLED_HEADERS, True, True, id='sampled-in-handler'),
+    ],
+)
+async def test_response_diagnostics_follow_final_sampling(
+    service_client,
+    mockserver,
+    dynamic_config,
+    headers,
+    enable_sampling,
+    expected_sampled,
+):
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def upstream(request):
+        return mockserver.make_response()
+
+    dynamic_config.set(USERVER_LOG_REQUEST=True)
+    await service_client.update_server_state()
+    body = 'response payload'
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            headers=headers,
+            params={
+                'response_body': body,
+                'track_response_logging': 'true',
+                'enable_sampling': str(enable_sampling).lower(),
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.text == body
+    trace_id = headers['traceparent'].split('-')[1]
+    assert capture.select(trace_id=trace_id, text='echo-no-body handler called')
+    formatter_logs = capture.select(trace_id=trace_id, text='response body formatter called')
+    assert len(formatter_logs) == int(expected_sampled)
+    spans = capture.select(trace_id=trace_id, stopwatch_name='GET /echo-no-body')
+    assert len(spans) == int(expected_sampled)
+    if expected_sampled:
+        assert spans[0]['body'] == body
+
+
+async def test_error_response_diagnostics_use_final_log_level(service_client, mockserver, dynamic_config):
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def upstream(request):
+        return mockserver.make_response()
+
+    dynamic_config.set(USERVER_LOG_REQUEST=True)
+    await service_client.update_server_state()
+    body = 'error response payload'
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            headers=SAMPLED_HEADERS,
+            params={
+                'response_body': body,
+                'local_log_level': 'warning',
+                'response_status': '500',
+            },
+        )
+
+    assert response.status_code == 500
+    assert response.text == body
+    spans = capture.select(trace_id=SAMPLED_TRACE_ID, stopwatch_name='GET /echo-no-body')
+    assert len(spans) == 1
+    assert spans[0]['level'] == 'ERROR'
+    assert spans[0]['meta_code'] == '500'
+    assert spans[0]['error'] == '1'
+    assert spans[0]['body'] == body
+
+
+@pytest.mark.parametrize(
+    'headers,enable_sampling,expected_sampled',
+    [
+        pytest.param(UNSAMPLED_HEADERS, False, False, id='unsampled'),
+        pytest.param(SAMPLED_HEADERS, False, True, id='sampled'),
+        pytest.param(UNSAMPLED_HEADERS, True, True, id='sampled-in-handler'),
+    ],
+)
+async def test_deadline_diagnostics_preserve_timeout_response(
+    service_client,
+    mockserver,
+    dynamic_config,
+    headers,
+    enable_sampling,
+    expected_sampled,
+):
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def upstream(request):
+        return mockserver.make_response()
+
+    dynamic_config.set(USERVER_LOG_REQUEST=True, USERVER_DEADLINE_PROPAGATION_ENABLED=True)
+    await service_client.update_server_state()
+    body = 'response before deadline propagation'
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            headers={**headers, 'X-YaTaxi-Client-TimeoutMs': '60000'},
+            params={
+                'response_body': body,
+                'track_response_logging': 'true',
+                'enable_sampling': str(enable_sampling).lower(),
+                'expire_deadline': 'true',
+            },
+        )
+
+    assert response.status_code == 498
+    assert response.headers['X-YaTaxi-Deadline-Expired'] == '1'
+    assert response.text != body
+    trace_id = headers['traceparent'].split('-')[1]
+    formatter_logs = capture.select(trace_id=trace_id, text='response body formatter called')
+    assert len(formatter_logs) == 2 * int(expected_sampled)
+    spans = capture.select(trace_id=trace_id, stopwatch_name='GET /echo-no-body')
+    assert len(spans) == int(expected_sampled)
+    if expected_sampled:
+        assert spans[0]['level'] == 'WARNING'
+        assert spans[0]['dp_original_body'] == body
+        assert spans[0]['body'] == response.text
+
+
 async def test_otel_tracestate_propagated_when_unsampled(service_client, mockserver):
     outgoing_tracestate = None
 

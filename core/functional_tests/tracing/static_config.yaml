@@ -5,6 +5,7 @@ components_manager:
             path: /echo-no-body
             method: GET
             task_processor: main-task-processor
+            response_data_size_log_limit: 128
 
         http-client:
         http-client-core:

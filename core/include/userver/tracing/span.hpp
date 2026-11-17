@@ -255,8 +255,8 @@ public:
     /// Get name the Span was created with
     std::string_view GetName() const noexcept;
 
-    /// @returns true if this span would be logged with the current local and
-    /// global span log levels to the default logger.
+    /// @returns true if this span is sampled and the current log levels allow
+    /// it to be written to the default logger.
     bool ShouldLogDefault() const noexcept;
 
     /// @returns true if this span is sampled. Defaults to true for root spans

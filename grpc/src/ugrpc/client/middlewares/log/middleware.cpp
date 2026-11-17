@@ -170,32 +170,37 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStat
                 logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
             }
         } else {
-            const auto& state = context.GetState(utils::impl::InternalTag{});
-            auto error_details = MakeErrorDetailsForLogging(status, state.GetEndpoint(), state.GetAuthType());
-            logging::LogExtra extra{
-                {ugrpc::impl::kTypeTag, "error_status"},
-                {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},
-                {tracing::kErrorMessage, std::move(error_details)}
-            };
-            logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
+            logger.Log(logging::Level::kWarning, [&](auto& log_helper) {
+                const auto& state = context.GetState(utils::impl::InternalTag{});
+                auto error_details = MakeErrorDetailsForLogging(status, state.GetEndpoint(), state.GetAuthType());
+                logging::LogExtra extra{
+                    {ugrpc::impl::kTypeTag, "error_status"},
+                    {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},
+                    {tracing::kErrorMessage, std::move(error_details)}
+                };
+                log_helper << "gRPC error" << std::move(extra);
+            });
         }
     } else {
         // Special case completion
-        const auto completion_type = result.error();
-        logging::LogExtra extra{
-            {ugrpc::impl::kTypeTag, "special_case_completion"},
-            {"completion_type", ToString(completion_type)},
-            {tracing::kErrorMessage,
-             fmt::format(
-                 "Call is interrupted before it was finished and response with status code was received, reason='{}'",
-                 GetSpecialCaseCompletionTypeDescription(completion_type)
-             )}
-        };
-        // Present when a response arrived but could not be parsed.
-        if (const auto response_size = context.GetLatestResponseSizeBytes()) {
-            extra.Extend(ugrpc::impl::kMessageMarshalledLenTag, *response_size);
-        }
-        logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
+        logger.Log(logging::Level::kWarning, [&](auto& log_helper) {
+            const auto completion_type = result.error();
+            logging::LogExtra extra{
+                {ugrpc::impl::kTypeTag, "special_case_completion"},
+                {"completion_type", ToString(completion_type)},
+                {tracing::kErrorMessage,
+                 fmt::format(
+                     "Call is interrupted before it was finished and response with status code was received, "
+                     "reason='{}'",
+                     GetSpecialCaseCompletionTypeDescription(completion_type)
+                 )}
+            };
+            // Present when a response arrived but could not be parsed.
+            if (const auto response_size = context.GetLatestResponseSizeBytes()) {
+                extra.Extend(ugrpc::impl::kMessageMarshalledLenTag, *response_size);
+            }
+            log_helper << "gRPC error" << std::move(extra);
+        });
     }
 }
 

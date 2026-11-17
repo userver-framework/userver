@@ -922,9 +922,11 @@ UTEST_F(Span, IsSampledFalseExplicitlyInherited) {
     tracing::Span root("root");
     root.SetSampled(false);
     EXPECT_FALSE(root.IsSampled());
+    EXPECT_FALSE(root.ShouldLogDefault());
 
     const tracing::Span child("child");
     EXPECT_FALSE(child.IsSampled());
+    EXPECT_EQ(child.GetParentId(), root.GetSpanId());
 }
 
 UTEST_F(Span, IsSampledNotRetroactiveForExistingChild) {

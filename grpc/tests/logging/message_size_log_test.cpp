@@ -7,6 +7,8 @@
 
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
@@ -73,15 +75,24 @@ public:
     }
 };
 
+class UnsampledSpanMiddleware final : public ugrpc::client::MiddlewareBase {
+public:
+    void PreStartCall(ugrpc::client::MiddlewareCallContext& context) const override {
+        context.GetSpan().SetSampled(false);
+    }
+};
+
 std::shared_ptr<ugrpc::server::middlewares::log::Middleware> MakeServerLogMiddleware() {
     ugrpc::server::middlewares::log::Settings settings;
     settings.msg_log_level = logging::Level::kInfo;
     return std::make_shared<ugrpc::server::middlewares::log::Middleware>(settings);
 }
 
-std::shared_ptr<ugrpc::client::middlewares::log::Middleware> MakeClientLogMiddleware() {
+std::shared_ptr<ugrpc::client::middlewares::log::Middleware> MakeClientLogMiddleware(
+    logging::Level log_level = logging::Level::kInfo
+) {
     ugrpc::client::middlewares::log::Settings settings;
-    settings.log_level = logging::Level::kInfo;
+    settings.log_level = log_level;
     settings.msg_log_level = logging::Level::kInfo;
     return std::make_shared<ugrpc::client::middlewares::log::Middleware>(settings);
 }
@@ -107,6 +118,28 @@ public:
 };
 
 class ClientLogMessageLenTest : public utest::LogCaptureFixture<ClientLogMessageLenFixture> {};
+
+class ClientUnsampledErrorLogFixture : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
+public:
+    ClientUnsampledErrorLogFixture()
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>({
+              .client_middlewares = {std::make_shared<UnsampledSpanMiddleware>(), MakeClientLogMiddleware()},
+          })
+    {}
+};
+
+class ClientUnsampledErrorLogTest : public utest::LogCaptureFixture<ClientUnsampledErrorLogFixture> {};
+
+class ClientFilteredErrorLogFixture : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
+public:
+    ClientFilteredErrorLogFixture()
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>({
+              .client_middlewares = {MakeClientLogMiddleware(logging::Level::kError)},
+          })
+    {}
+};
+
+class ClientFilteredErrorLogTest : public utest::LogCaptureFixture<ClientFilteredErrorLogFixture> {};
 
 class UnparsableResponseLogFixture
     : public ugrpc::tests::ServiceWithClientFixture<tests::UnparsableResponseGenericService, ClientType> {
@@ -175,6 +208,33 @@ UTEST_F(ClientLogMessageLenTest, UnaryRequestAndResponseLensAreTheSizesOnTheWire
     EXPECT_EQ(request_log.GetTag(kMarshalledLenTag), std::to_string(MakeRequest().ByteSizeLong()));
     const auto response_log = GetSingleLog(GetLogCapture().Filter(kResponseLogText));
     EXPECT_EQ(response_log.GetTag(kMarshalledLenTag), std::to_string(MakeResponse().ByteSizeLong()));
+}
+
+UTEST_F(ClientUnsampledErrorLogTest, LogsRpcErrorOnUnsampledSpan) {
+    EXPECT_CALL(GetService(), SayHello).WillOnce([](auto&&...) {
+        return tests::UnitTestServiceGmock::SayHelloResult{
+            grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "mocked status"}
+        };
+    });
+
+    UEXPECT_THROW(GetClient().SayHello(MakeRequest()), ugrpc::client::InvalidArgumentError);
+
+    const auto error_log = GetSingleLog(GetLogCapture().Filter(kErrorLogText));
+    EXPECT_EQ(error_log.GetTag(kTypeTag), "error_status");
+    EXPECT_EQ(error_log.GetTag("grpc_code"), "INVALID_ARGUMENT");
+    EXPECT_THAT(error_log.GetTag(tracing::kErrorMessage), testing::HasSubstr("mocked status"));
+}
+
+UTEST_F(ClientFilteredErrorLogTest, MiddlewareThresholdSuppressesWarning) {
+    EXPECT_CALL(GetService(), SayHello).WillOnce([](auto&&...) {
+        return tests::UnitTestServiceGmock::SayHelloResult{
+            grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "mocked status"}
+        };
+    });
+
+    UEXPECT_THROW(GetClient().SayHello(MakeRequest()), ugrpc::client::InvalidArgumentError);
+
+    EXPECT_TRUE(GetLogCapture().Filter(kErrorLogText).empty());
 }
 
 UTEST_F(ClientLogMessageLenTest, StreamingRequestAndResponseLensAreLogged) {

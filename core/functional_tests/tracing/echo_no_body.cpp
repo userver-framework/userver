@@ -11,10 +11,15 @@
 #include <userver/engine/future.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/http/url.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
+#include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_status.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/from_string.hpp>
@@ -62,7 +67,33 @@ public:
         } else {
             make_request();
         }
-        return {};
+
+        auto& span = tracing::Span::CurrentSpan();
+        if (request.GetArg("enable_sampling") == "true") {
+            span.SetSampled(true);
+        }
+        if (request.GetArg("local_log_level") == "warning") {
+            span.SetLocalLogLevel(logging::Level::kWarning);
+        }
+        if (request.GetArg("response_status") == "500") {
+            request.GetHttpResponse().SetStatus(server::http::HttpStatus::kInternalServerError);
+        }
+        if (request.GetArg("expire_deadline") == "true") {
+            server::request::MarkTaskInheritedDeadlineExpired();
+        }
+        return request.GetArg("response_body");
+    }
+
+    std::string GetResponseDataForLogging(
+        const server::http::HttpRequest& request,
+        server::request::RequestContext& context,
+        const std::string& response_data
+    ) const override {
+        // Let sampling tests observe formatter calls even when no span is emitted.
+        if (request.GetArg("track_response_logging") == "true") {
+            LOG_INFO() << "response body formatter called";
+        }
+        return HttpHandlerBase::GetResponseDataForLogging(request, context, response_data);
     }
 
     static yaml_config::Schema GetStaticConfigSchema() {

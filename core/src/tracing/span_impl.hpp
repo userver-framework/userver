@@ -79,7 +79,10 @@ public:
 
 private:
     static std::string_view GetParentIdForLogging(const Span::Impl* parent);
-    bool ShouldLog() const;
+
+    bool ShouldLogAtLevel() const;
+
+    bool ShouldLogDefault() const;
 
     const std::string name_;
     const bool is_no_log_span_;
