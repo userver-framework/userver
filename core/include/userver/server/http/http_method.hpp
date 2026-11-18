@@ -27,6 +27,7 @@ enum class HttpMethod {
     kPatch,
     kConnect,
     kOptions,
+    kTrace,
     kUnknown,
 };
 
