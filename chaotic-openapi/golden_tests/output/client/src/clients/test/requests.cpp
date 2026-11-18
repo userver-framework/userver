@@ -8,6 +8,7 @@
 #include <userver/utils/trivial_map.hpp>
 #include <userver/http/url.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/chaotic/openapi/form.hpp>
 
 namespace clients::test {
@@ -28,6 +29,8 @@ openapi::WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, 
 openapi::WriteParameter<openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(request.array, sink);
 
 http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
+
+http_request.method(USERVER_NAMESPACE::clients::http::HttpMethod::kPost);
 
 sink.Flush();
 

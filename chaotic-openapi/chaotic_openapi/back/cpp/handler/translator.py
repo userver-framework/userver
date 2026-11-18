@@ -1,5 +1,6 @@
 from chaotic_openapi.back.cpp.common import types as common_types
 from chaotic_openapi.back.cpp.common.translator import BaseTranslator
+from chaotic_openapi.back.cpp.handler import renderer
 from chaotic_openapi.back.cpp.handler.types import ServerSpec
 from chaotic_openapi.front import model
 
@@ -22,4 +23,4 @@ class HandlerTranslator(BaseTranslator):
         return op.x_handler_codegen
 
     def validate_operation(self, op: common_types.Operation) -> None:
-        pass
+        self._claim_generated_name(op, 'handler component', renderer.component_name(op))
