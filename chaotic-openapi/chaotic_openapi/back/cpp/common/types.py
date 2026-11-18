@@ -8,6 +8,13 @@ from chaotic.back.cpp import types as cpp_types
 from chaotic_openapi.back.cpp.client import middleware
 
 
+def resolve_ref(schema: cpp_types.CppType) -> cpp_types.CppType:
+    """Follow the `$ref` chain down to the referenced type."""
+    while isinstance(schema, cpp_types.CppRef):
+        schema = schema.orig_cpp_type
+    return schema
+
+
 @dataclasses.dataclass
 class Security:
     auth_type: str
@@ -133,6 +140,13 @@ class Body:
             return self.cpp_name()
         assert self.schema is not None
         return self.schema.cpp_user_name()
+
+    def fields(self) -> dict[str, cpp_types.CppStructField]:
+        """Fields of a form body, with `$ref` resolved."""
+        assert self.schema is not None
+        schema = resolve_ref(self.schema)
+        assert isinstance(schema, cpp_types.CppStruct), schema
+        return schema.fields
 
 
 @dataclasses.dataclass
