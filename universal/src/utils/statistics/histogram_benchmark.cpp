@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <benchmark/benchmark.h>
+#include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/rand.hpp>
