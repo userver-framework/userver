@@ -92,11 +92,10 @@ void ConfigureRuntime() {
     RegisterEventEngineFactory();
 
     if (!grpc_event_engine::experimental::UseEventEngineListener() ||
-        !grpc_event_engine::experimental::EventEngineSupportsFd() ||
         grpc_event_engine::experimental::UseEventEngineClient() || grpc_core::IsEventEngineDnsEnabled())
     {
         throw std::runtime_error(
-            "grpc-event-engine requires event_engine_listener and POSIX FD support with event_engine_client and "
+            "grpc-event-engine requires event_engine_listener with event_engine_client and "
             "event_engine_dns disabled; remove conflicting GRPC_EXPERIMENTS overrides"
         );
     }

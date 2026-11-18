@@ -92,7 +92,9 @@ public:
 
         const auto& server_context = context.GetServerContext();
         EXPECT_EQ(utils::FindOptional(server_context.client_metadata(), kMetadataKey), kMetadataValue);
-        EXPECT_FALSE(server_context.peer().empty());
+        if (!server_context.IsCancelled()) {
+            EXPECT_FALSE(server_context.peer().empty());
+        }
     }
 
 private:

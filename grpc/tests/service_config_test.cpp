@@ -8,6 +8,7 @@
 #include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 
@@ -62,13 +63,13 @@ UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
     // upon creation, but when the name resolution process returns no service
     // config from DNS. We need to trigger the name resolution, and the easiest
     // way is to attempt to connect. TryWaitForConnected does exactly that.
-    // It doesn't matter whether we connect or not - we only need the name
-    // resolution process to execute.
-    std::ignore = ugrpc::client::TryWaitForConnected(
+    // Name resolution is asynchronous, so wait until the channel is connected:
+    // by then the resolver result, and thus the service config, is applied.
+    ASSERT_TRUE(ugrpc::client::TryWaitForConnected(
         client,
-        engine::Deadline::FromDuration(std::chrono::milliseconds{50}),
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
         engine::current_task::GetTaskProcessor()
-    );
+    ));
 
     // test that service_config was passed to gRPC Core
     const auto stub_state = data.GetStubState();

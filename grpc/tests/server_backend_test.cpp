@@ -9,6 +9,7 @@
 #include <grpcpp/support/server_callback.h>
 #include <grpcpp/support/slice.h>
 #include <grpcpp/support/status.h>
+#include <grpcpp/version_info.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
@@ -101,6 +102,9 @@ private:
         captured_response_ = response;
     }
     grpc::internal::ServerReactor* reactor() override { return reactor_; }
+#if GRPC_CPP_VERSION_MAJOR > 1 || (GRPC_CPP_VERSION_MAJOR == 1 && GRPC_CPP_VERSION_MINOR >= 63)
+    grpc_call* call() override { return nullptr; }
+#endif
     void CallOnDone() override {}
 
     TestWriteReactor* reactor_{nullptr};

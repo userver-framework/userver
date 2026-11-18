@@ -63,7 +63,8 @@ struct ListenerFixture {
             std::move(factory)
         );
         UINVARIANT(result.ok(), result.status().ToString());
-        listener = std::move(*result);
+        // PosixEventEngine always creates listeners with FD support.
+        listener.reset(static_cast<gee::PosixListenerWithFdSupport*>(result->release()));
     }
 
     ~ListenerFixture() {

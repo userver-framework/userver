@@ -266,7 +266,7 @@ y_absl::StatusOr<int> PosixEngineListenerImpl::Bind(
     }
 
     try {
-        if (const auto wildcard_port = grpc_event_engine::experimental::ResolvedAddressIsWildcard(res_addr)) {
+        if (const auto wildcard_port = grpc_event_engine::experimental::MaybeGetWildcardPortFromAddress(res_addr)) {
             return ListenerContainerAddWildcardAddresses(acceptors_, options_, *wildcard_port);
         }
         const bool v4_mapped = grpc_event_engine::experimental::ResolvedAddressToV4Mapped(res_addr, &addr6_v4mapped);

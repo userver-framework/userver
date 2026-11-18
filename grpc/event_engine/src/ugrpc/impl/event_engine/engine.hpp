@@ -41,7 +41,7 @@ public:
     bool Cancel(TaskHandle handle) override;
     bool IsWorkerThread() override;
 
-    y_absl::StatusOr<std::unique_ptr<grpc_event_engine::experimental::PosixListenerWithFdSupport>> CreatePosixListener(
+    y_absl::StatusOr<std::unique_ptr<grpc_event_engine::experimental::EventEngine::Listener>> CreatePosixListener(
         PosixAcceptCallback on_accept,
         y_absl::AnyInvocable<void(y_absl::Status)> on_shutdown,
         const grpc_event_engine::experimental::EndpointConfig& config,
@@ -53,7 +53,7 @@ public:
         const grpc_event_engine::experimental::EndpointConfig& config,
         std::unique_ptr<grpc_event_engine::experimental::MemoryAllocatorFactory> memory_allocator_factory
     ) override;
-    std::unique_ptr<grpc_event_engine::experimental::PosixEndpointWithFdSupport> CreatePosixEndpointFromFd(
+    std::unique_ptr<grpc_event_engine::experimental::EventEngine::Endpoint> CreatePosixEndpointFromFd(
         int fd,
         const grpc_event_engine::experimental::EndpointConfig& config,
         grpc_event_engine::experimental::MemoryAllocator allocator

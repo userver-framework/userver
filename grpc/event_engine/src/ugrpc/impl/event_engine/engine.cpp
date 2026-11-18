@@ -156,7 +156,7 @@ PosixEventEngine::TaskHandle PosixEventEngine::RunAfter(Duration when, AnyInvoca
 bool PosixEventEngine::Cancel(TaskHandle handle) { return impl_->timer_manager.TimerCancel(handle); }
 bool PosixEventEngine::IsWorkerThread() { utils::AbortWithStacktrace("unimplemented"); }
 
-y_absl::StatusOr<std::unique_ptr<grpc_event_engine::experimental::PosixListenerWithFdSupport>>
+y_absl::StatusOr<std::unique_ptr<grpc_event_engine::experimental::EventEngine::Listener>>
 PosixEventEngine::CreatePosixListener(
     PosixAcceptCallback on_accept,
     y_absl::AnyInvocable<void(y_absl::Status)> on_shutdown,
@@ -172,7 +172,7 @@ PosixEventEngine::CreatePosixListener(
         return y_absl::InvalidArgumentError("Provide on_accept, on_shutdown and a memory allocator factory");
     }
     try {
-        std::unique_ptr<grpc_event_engine::experimental::PosixListenerWithFdSupport> listener = std::make_unique<
+        std::unique_ptr<grpc_event_engine::experimental::EventEngine::Listener> listener = std::make_unique<
             event_engine::PosixEngineListener>(
             std::move(on_accept),
             std::move(on_shutdown),
@@ -192,8 +192,7 @@ y_absl::StatusOr<std::unique_ptr<grpc_event_engine::experimental::EventEngine::L
     CreateListener(grpc_event_engine::experimental::EventEngine::Listener::AcceptCallback, y_absl::AnyInvocable<void(y_absl::Status)>, const grpc_event_engine::experimental::EndpointConfig&, std::unique_ptr<grpc_event_engine::experimental::MemoryAllocatorFactory>) {
     utils::AbortWithStacktrace("unimplemented");
 }
-std::unique_ptr<grpc_event_engine::experimental::PosixEndpointWithFdSupport>
-PosixEventEngine::CreatePosixEndpointFromFd(
+std::unique_ptr<grpc_event_engine::experimental::EventEngine::Endpoint> PosixEventEngine::CreatePosixEndpointFromFd(
     int,
     const grpc_event_engine::experimental::EndpointConfig&,
     grpc_event_engine::experimental::MemoryAllocator
