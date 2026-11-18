@@ -10,6 +10,7 @@ import struct
 
 import pytest
 from pytest_userver import chaos
+import pytest_userver.service
 
 logger = logging.getLogger(__name__)
 sys_random = random.SystemRandom()
@@ -162,6 +163,7 @@ def _dns_mock_stats(dns_mock):
 
 
 @pytest.fixture
+@pytest_userver.service.dependency
 async def _gate_started(for_dns_gate_port, dns_info, dns_mock):
     gate_config = chaos.GateRoute(
         name='udp proxy',
@@ -172,11 +174,6 @@ async def _gate_started(for_dns_gate_port, dns_info, dns_mock):
     )
     async with chaos.UdpGate(gate_config) as proxy:
         yield proxy
-
-
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
 
 
 @pytest.fixture(name='gate')

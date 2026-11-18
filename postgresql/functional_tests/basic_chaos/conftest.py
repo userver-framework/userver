@@ -1,6 +1,5 @@
 import pytest
 from pytest_userver import chaos
-import pytest_userver.config
 import pytest_userver.service
 
 from testsuite.databases.pgsql import connection
@@ -51,7 +50,6 @@ def _userver_config_testsuite(userver_config_testsuite):
 
 
 @pytest.fixture(scope='session')
-@pytest_userver.config.patch
 def userver_pg_config(pgsql_local, _gate_started):
     def _hook_db_config(config_yaml, config_vars):
         host, port = _gate_started.get_sockname_for_clients()

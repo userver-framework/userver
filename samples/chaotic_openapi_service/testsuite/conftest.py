@@ -2,10 +2,10 @@ import json
 import pathlib
 
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
-USERVER_CONFIG_HOOKS = ['userver_config_client', 'userver_config_secure_client']
 SERVICE_SOURCE_DIR = pathlib.Path(__file__).parent.parent
 
 
@@ -16,6 +16,7 @@ def service_secdist_path():
 
 # /// [URL]
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_client(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
@@ -38,6 +39,7 @@ def service_env():
 
 # /// [digest-client-url]
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_secure_client(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

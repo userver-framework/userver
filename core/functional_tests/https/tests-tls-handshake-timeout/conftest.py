@@ -2,14 +2,15 @@ import ssl
 
 import aiohttp
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.core']
-USERVER_CONFIG_HOOKS = ['userver_config_tls_handshake']
 
 KEEPALIVE_TIMEOUT_SECONDS = 1
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_tls_handshake(service_source_dir):
     def patch_config(config_yaml, config_vars) -> None:
         components = config_yaml['components_manager']['components']

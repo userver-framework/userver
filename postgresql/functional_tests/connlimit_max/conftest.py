@@ -13,8 +13,3 @@ def pgsql_local(service_source_dir, pgsql_local_create):
         [service_source_dir.joinpath('schemas/postgresql')],
     )
     return pgsql_local_create(list(databases.values()))
-
-
-@pytest.fixture
-def extra_client_deps():
-    pass

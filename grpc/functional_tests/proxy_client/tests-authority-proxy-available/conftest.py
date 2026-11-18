@@ -1,10 +1,9 @@
 import pathlib
 
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
-
-USERVER_CONFIG_HOOKS = ['static_servicemesh_settings']
 
 
 @pytest.fixture(scope='session')
@@ -13,6 +12,7 @@ def grpc_proxy_endpoint(get_free_port):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def static_servicemesh_settings(testsuite_get_source_path):
     tests_dir = testsuite_get_source_path(pathlib.Path(__file__).parent)
     service_mesh_file = tests_dir / 'static' / 'service_mesh_settings.yaml'

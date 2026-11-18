@@ -4,7 +4,6 @@ import aiohttp
 import pytest
 
 pytest_plugins = ['pytest_userver.plugins.core']
-USERVER_CONFIG_HOOKS = ['userver_config_secdist']
 
 
 @pytest.fixture(scope='session')

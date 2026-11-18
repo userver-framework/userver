@@ -3,7 +3,7 @@ import logging
 
 import pytest
 from pytest_userver import chaos
-import pytest_userver.config
+import pytest_userver.service
 
 import samples.greeter_pb2_grpc as greeter_pb2_grpc
 
@@ -19,6 +19,7 @@ def _uservice_grpc_server_port(choose_free_port) -> int:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.service.dependency
 async def _gate_started(uservice_grpc_server_port):
     gate_config = chaos.GateRoute(
         name='grpc tcp proxy',
@@ -44,11 +45,6 @@ async def _gate_ready(service_client, _gate_started):
     return _gate_started
 
 
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
-
-
 @pytest.fixture(scope='session')
 def grpc_service_endpoint(_gate_started) -> str:
     """Endpoint used by `grpc_channel`. This is the client-facing endpoint of chaos proxy."""
@@ -65,7 +61,6 @@ def grpc_client(grpc_channel, service_client, gate):
 
 # Overrides userver fixture.
 @pytest.fixture(scope='session')
-@pytest_userver.config.patch
 def userver_config_grpc_endpoint(uservice_grpc_server_port):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']

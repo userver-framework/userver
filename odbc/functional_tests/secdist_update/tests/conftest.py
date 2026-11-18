@@ -5,7 +5,6 @@ import pytest
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = ['pytest_userver.plugins.postgresql']
-USERVER_CONFIG_HOOKS = ['userver_config_secdist']
 
 
 @pytest.fixture(name='pgsql_local', scope='session')

@@ -2,6 +2,7 @@ import json
 
 import pytest
 from pytest_userver import chaos
+import pytest_userver.service
 
 from testsuite.databases.pgsql import discover
 
@@ -18,6 +19,7 @@ def _pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.service.dependency
 async def _gate_started(pgsql_local):
     gate_config = chaos.GateRoute(
         name='odbc postgres proxy',
@@ -26,11 +28,6 @@ async def _gate_started(pgsql_local):
     )
     async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
-
-
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
 
 
 @pytest.fixture(scope='session')

@@ -1,5 +1,6 @@
 import pytest
 from pytest_userver import chaos
+import pytest_userver.service
 
 from testsuite.databases.mongo import connection
 
@@ -28,6 +29,7 @@ def mongodb_settings():
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.service.dependency
 async def _gate_started(mongo_connection_info: connection.ConnectionInfo):
     gate_config = chaos.GateRoute(
         name='mongo proxy',
@@ -36,11 +38,6 @@ async def _gate_started(mongo_connection_info: connection.ConnectionInfo):
     )
     async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
-
-
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
 
 
 @pytest.fixture(scope='session')

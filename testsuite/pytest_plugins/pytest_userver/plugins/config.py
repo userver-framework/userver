@@ -12,9 +12,9 @@ import pathlib
 import string
 import subprocess
 import types
-from typing import Any
 from collections.abc import Callable
 from collections.abc import Mapping
+from typing import Any
 from typing import TypeAlias
 
 import pytest
@@ -40,17 +40,7 @@ from pytest_userver import fixture_markers
 ## @snippet grpc/functional_tests/basic_server/tests-tls/conftest.py Prepare service config
 ##
 ## @hideinitializer
-USERVER_CONFIG_HOOKS = [
-    'userver_config_substitutions',
-    'userver_config_http_server',
-    'userver_config_http_client',
-    'userver_config_logging',
-    'userver_config_logging_otlp',
-    'userver_config_testsuite',
-    'userver_config_secdist',
-    'userver_config_testsuite_middleware',
-    'userver_config_deadlock_detector',
-]
+USERVER_CONFIG_HOOKS = []
 
 ServiceConfigPatch: TypeAlias = Callable[[dict, dict], None]
 
@@ -440,6 +430,7 @@ def _service_config_substitution_vars(request, mockserver_info) -> Mapping[str, 
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_substitutions(_service_config_substitution_vars) -> ServiceConfigPatch:
     """
     Replaces substitution vars in all strings within `config_vars` using
@@ -487,6 +478,7 @@ def userver_config_substitutions(_service_config_substitution_vars) -> ServiceCo
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_http_server(service_port, monitor_port, choose_free_port) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -562,6 +554,7 @@ def allowed_url_prefixes(
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_http_client(
     allowed_url_prefixes,
 ) -> ServiceConfigPatch:
@@ -615,6 +608,7 @@ def userver_log_level(pytestconfig, userver_default_log_level) -> str:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_logging(userver_log_level, _service_logfile_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -646,6 +640,7 @@ def userver_config_logging(userver_log_level, _service_logfile_path) -> ServiceC
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_logging_otlp() -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -664,6 +659,7 @@ def userver_config_logging_otlp() -> ServiceConfigPatch:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -726,6 +722,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatc
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_secdist(service_secdist_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -758,6 +755,7 @@ def userver_config_secdist(service_secdist_path) -> ServiceConfigPatch:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bool) -> ServiceConfigPatch:
     def patch_config(config_yaml, config_vars):
         if not userver_testsuite_middleware_enabled:
@@ -784,6 +782,7 @@ def userver_testsuite_middleware_enabled() -> bool:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_deadlock_detector(userver_deadlock_detector_mode: str) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.

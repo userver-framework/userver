@@ -4,13 +4,13 @@ import logging
 import grpc
 import pytest
 from pytest_userver import chaos
+import pytest_userver.config
+import pytest_userver.service
 from service import GreeterService
 
 logger = logging.getLogger(__name__)
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
-
-USERVER_CONFIG_HOOKS = ['prepare_service_config']
 
 
 # port for TcpChaos -> client
@@ -43,6 +43,7 @@ def grpc_service_port_local(_gate_started) -> int:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def prepare_service_config(grpc_service_port_local):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
@@ -51,12 +52,8 @@ def prepare_service_config(grpc_service_port_local):
     return patch_config
 
 
-@pytest.fixture
-def extra_client_deps(gate):
-    pass
-
-
 @pytest.fixture(name='gate')
+@pytest_userver.service.dependency
 async def _gate_ready(_gate_started, greeter_mock):
     await _gate_started.to_server_pass()
     await _gate_started.to_client_pass()

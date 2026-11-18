@@ -1,13 +1,13 @@
 import pytest
+import pytest_userver.config
 
 import samples.greeter_pb2_grpc as greeter_services
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
-USERVER_CONFIG_HOOKS = ['config_echo_url']
-
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def config_echo_url(mockserver_info):
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

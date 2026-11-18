@@ -1,11 +1,9 @@
 import json
 
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.postgresql']
-
-
-USERVER_CONFIG_HOOKS = ['userver_pg_broken']
 
 
 @pytest.fixture(scope='session')
@@ -30,6 +28,7 @@ def broken_secdist(service_tmpdir):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_pg_broken(broken_secdist):
     def _hook_db_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

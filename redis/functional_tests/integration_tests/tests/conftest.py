@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+import pytest_userver.service
 
 pytest_plugins = ['pytest_userver.plugins.redis']
 
@@ -43,7 +44,8 @@ def service_env(redis_sentinels, redis_cluster_nodes, redis_cluster_replicas, re
 
 
 @pytest.fixture
-def extra_client_deps(redis_cluster_store, redis_standalone_store):
+@pytest_userver.service.dependency
+def _redis_extra_deps(redis_cluster_store, redis_standalone_store):
     # `redis_store` is autodetected by pytest_userver.plugins.service.auto_client_deps fixture
     pass
     # /// [Sample pytest redis configuration]

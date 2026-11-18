@@ -10,9 +10,9 @@ import pytest
 from testsuite import logcapture
 from testsuite.logcapture import __tracebackhide__  # noqa
 
+import pytest_userver.config
 from ..utils import tskv
 
-USERVER_CONFIG_HOOKS = ['_userver_config_logs_capture']
 DEFAULT_PORT = 2211
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,7 @@ async def userver_log_capture(pytestconfig, userver_log_level) -> logcapture.Cap
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def _userver_config_logs_capture(userver_log_capture):
     socknames = userver_log_capture.getsocknames()
     assert socknames

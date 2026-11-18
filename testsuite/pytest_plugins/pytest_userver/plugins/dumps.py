@@ -4,7 +4,7 @@ import shutil
 
 import pytest
 
-USERVER_CONFIG_HOOKS = ['_userver_config_dumps']
+import pytest_userver.config
 
 
 @pytest.fixture(scope='session')
@@ -67,6 +67,7 @@ def cleanup_userver_dumps(userver_dumps_root, request):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def _userver_config_dumps(pytestconfig, userver_dumps_root):
     def patch_config(_config, config_vars) -> None:
         config_vars['userver-dumps-root'] = str(userver_dumps_root)

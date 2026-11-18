@@ -7,16 +7,16 @@ import re
 
 import pytest
 
+import pytest_userver.config
+
 pytest_plugins = [
     'testsuite.databases.mongo.pytest_plugin',
     'pytest_userver.plugins.core',
 ]
 
 
-USERVER_CONFIG_HOOKS = ['userver_mongo_config']
-
-
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_mongo_config(mongo_connection_info):
     """
     Returns a function that adjusts the static configuration file for

@@ -1,8 +1,7 @@
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
-
-USERVER_CONFIG_HOOKS = ['static_servicemesh_settings']
 
 
 @pytest.fixture(scope='session')
@@ -11,6 +10,7 @@ def grpc_proxy_endpoint(get_free_port):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def static_servicemesh_settings(grpc_mockserver_endpoint):
     def hook(config, config_vars):
         components_cfg = config['components_manager']['components']

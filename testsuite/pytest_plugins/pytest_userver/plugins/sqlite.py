@@ -1,11 +1,12 @@
 import pytest
 
-pytest_plugins = ['pytest_userver.plugins.core']
+import pytest_userver.config
 
-USERVER_CONFIG_HOOKS = ['userver_sqlite_config']
+pytest_plugins = ['pytest_userver.plugins.core']
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_sqlite_config(tmp_path_factory):
     """
     Returns a function that adjusts the SQLite static configuration file for the testsuite.

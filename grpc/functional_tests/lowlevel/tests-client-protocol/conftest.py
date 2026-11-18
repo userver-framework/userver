@@ -8,14 +8,13 @@ from typing import Any
 
 import http2
 import pytest
+import pytest_userver.config
 
 import testsuite.utils.net as net_utils
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
 ]
-
-USERVER_CONFIG_HOOKS = ['userver_config_http2_server_endpoint']
 
 
 @pytest.fixture(scope='session')
@@ -54,6 +53,7 @@ async def grpc_server() -> AsyncGenerator[http2.GrpcServer, None]:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_http2_server_endpoint(
     grpc_server: http2.GrpcServer,
 ) -> Callable[[Any, Any], None]:

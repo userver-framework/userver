@@ -1,6 +1,7 @@
 import pathlib
 
 import pytest
+import pytest_userver.config
 
 from testsuite.databases.pgsql import discover
 
@@ -8,8 +9,6 @@ pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql',
 ]
-
-USERVER_CONFIG_HOOKS = ['benchmark_config_hook']
 
 
 @pytest.fixture(scope='session')
@@ -22,6 +21,7 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def benchmark_config_hook(service_source_dir):
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

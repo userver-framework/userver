@@ -11,9 +11,9 @@ import pytest
 
 from testsuite.environment import utils as env_utils
 
-pytest_plugins = ['pytest_userver.plugins.core']
+import pytest_userver.config
 
-USERVER_CONFIG_HOOKS = ['userver_config_scylla']
+pytest_plugins = ['pytest_userver.plugins.core']
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +118,7 @@ def scylla(_scylla_tcp_ready, scylla_connection_info) -> ConnectionInfo:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_scylla(scylla_connection_info, _scylla_tcp_ready):
     """@ingroup userver_testsuite_fixtures"""
     contact_points = scylla_connection_info.contact_points()

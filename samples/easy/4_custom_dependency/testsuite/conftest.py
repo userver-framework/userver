@@ -1,13 +1,13 @@
 import pytest
+import pytest_userver.config
 
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = ['pytest_userver.plugins.postgresql']
 
-USERVER_CONFIG_HOOKS = ['userver_actions_service']
-
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_actions_service(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

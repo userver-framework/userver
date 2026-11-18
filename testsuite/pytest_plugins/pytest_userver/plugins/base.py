@@ -10,7 +10,7 @@ import pytest
 
 import testsuite.plugins.network
 
-USERVER_CONFIG_HOOKS = ['userver_base_prepare_service_config']
+import pytest_userver.config
 
 
 def pytest_addoption(parser) -> None:
@@ -231,6 +231,7 @@ def _is_port_free(port_num: int, family: int, address: str) -> bool:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_base_prepare_service_config(congestion_control_fake_mode):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']

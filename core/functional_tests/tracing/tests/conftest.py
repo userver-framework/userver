@@ -1,11 +1,11 @@
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
-USERVER_CONFIG_HOOKS = ['config_echo_url']
-
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def config_echo_url(mockserver_info):
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

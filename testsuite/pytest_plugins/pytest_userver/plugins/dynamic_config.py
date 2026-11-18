@@ -12,12 +12,8 @@ import pathlib
 import pytest
 
 from pytest_userver import dynconf
+import pytest_userver.config
 
-USERVER_CONFIG_HOOKS = [
-    'userver_config_dynconf_cache',
-    'userver_config_dynconf_fallback',
-    'userver_config_dynconf_url',
-]
 USERVER_CACHE_CONTROL_HOOKS = {
     'dynamic-config-client-updater': '_userver_dynconfig_cache_control',
 }
@@ -213,6 +209,7 @@ def _dynamic_config_defaults_storage() -> _ConfigDefaults:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_dynconf_cache(service_tmpdir):
     """
     Returns a function that adjusts the static configuration file for
@@ -241,6 +238,7 @@ def userver_config_dynconf_cache(service_tmpdir):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_dynconf_fallback(config_service_defaults):
     """
     Returns a function that adjusts the static configuration file for
@@ -277,6 +275,7 @@ def userver_config_dynconf_fallback(config_service_defaults):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_dynconf_url(mockserver_info):
     """
     Returns a function that adjusts the static configuration file for

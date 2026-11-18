@@ -5,7 +5,7 @@ Testpoints support for the server.
 # pylint: disable=redefined-outer-name
 import pytest
 
-USERVER_CONFIG_HOOKS = ['userver_config_testpoint']
+import pytest_userver.config
 
 
 class BaseError(Exception):
@@ -48,6 +48,7 @@ def testpoint_checker_factory(testpoint_control):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_testpoint(mockserver_info):
     """
     Returns a function that adjusts the static configuration file for

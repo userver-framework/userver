@@ -2,11 +2,13 @@ import logging
 
 import pytest
 from pytest_userver import chaos
+import pytest_userver.service
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope='module')
+@pytest_userver.service.dependency
 async def _gate_started(for_client_gate_port, mockserver_info):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
@@ -23,11 +25,6 @@ async def _gate_started(for_client_gate_port, mockserver_info):
     )
     async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
-
-
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
 
 
 @pytest.fixture(name='gate')

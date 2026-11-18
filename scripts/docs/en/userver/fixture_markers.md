@@ -123,10 +123,22 @@ static config and config variables; a service-dependency fixture performs its
 setup when requested before service startup.
 
 Legacy config-hook lists and
-@ref pytest_userver.plugins.service.extra_client_deps remain supported. This API
-does not require bulk migration of existing fixtures. In particular, an override
-of a fixture registered **only through a legacy hook list** is not an example of
-marker inheritance: legacy registration and marker discovery are distinct.
+@ref pytest_userver.plugins.service.extra_client_deps remain supported. Legacy
+`USERVER_CONFIG_HOOKS` run before all marked config patches, including the
+built-in userver patches. Hooks passed through `uservice_oneshot(config_hooks=...)`
+run last.
+
+To run a custom patch after the built-in HTTP client, logging, or other config
+patches, apply @ref pytest_userver.config.patch below its `@pytest.fixture`
+decorator and remove its name from `USERVER_CONFIG_HOOKS`. Keep the fixture
+session-scoped and define it in a conftest that covers the affected tests.
+Within that conftest, define marked fixtures in their required execution order.
+
+An override of a fixture registered **only through a legacy hook list** does not
+inherit a marker: legacy registration and marker discovery are distinct. Overrides
+of built-in marked fixtures inherit their markers and keep their original
+positions; do not also list those overrides in `USERVER_CONFIG_HOOKS`, which would
+apply them twice.
 
 ## API reference
 
