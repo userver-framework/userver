@@ -98,8 +98,15 @@ def camel_case(string: str) -> str:
 def read_items(args) -> list[SqlQuery]:
     items: list[SqlQuery] = []
     for filename in args.files:
-        with open(filename, 'r') as file:
-            content = file.read()
+        basename = os.path.basename(filename)
+        if basename.startswith('_'):
+            continue
+
+        loader = jinja2.FileSystemLoader(os.path.dirname(filename))
+        env = jinja2.Environment(loader=loader)
+        tpl = env.get_template(basename)
+        content = tpl.render()
+
         name = pathlib.Path(filename).stem  # TODO: CamelCase
         items.append(
             SqlQuery(
