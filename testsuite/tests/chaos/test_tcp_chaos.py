@@ -134,8 +134,10 @@ async def test_basic(tcp_client, gate, server_connection):
     await _assert_data_from_to(server_connection, tcp_client)
 
     assert gate.connections_count() == 1
+    assert not gate.sockets_closed_event.is_set()
     await gate.sockets_close()
     assert gate.connections_count() == 0
+    assert gate.sockets_closed_event.is_set()
 
 
 async def test_gate(gate):
@@ -537,6 +539,8 @@ async def test_to_client_limit_bytes(
     server_connection,
     tcp_server,
 ):
+    closed_event = gate.sockets_closed_event
+    assert not closed_event.is_set()
     await gate.to_client_limit_bytes(12)
     tcp_client2 = await make_client()
     server_connection2 = await tcp_server.accept()
@@ -548,6 +552,7 @@ async def test_to_client_limit_bytes(
     await server_connection.sendall(b'hello')
     data = await tcp_client.recv(10)
     assert data == b'hello'
+    assert not closed_event.is_set()
 
     await server_connection2.sendall(b'die now')
     data = await tcp_client2.recv(10)
@@ -557,12 +562,15 @@ async def test_to_client_limit_bytes(
     await _assert_connection_dead(tcp_client)
     await _assert_connection_dead(server_connection2)
     await _assert_connection_dead(tcp_client2)
+    assert closed_event.is_set()
+    closed_event.clear()
 
     # Check that limit is reset after closing socket
     tcp_client3 = await make_client()
     server_connection3 = await tcp_server.accept()
     await _assert_data_from_to(tcp_client3, server_connection3)
     assert gate.connections_count() == 1
+    assert not closed_event.is_set()
 
     await server_connection3.sendall(b'XXXX die now')
     data = await tcp_client3.recv(12)
@@ -570,6 +578,8 @@ async def test_to_client_limit_bytes(
 
     await _assert_connection_dead(server_connection3)
     await _assert_connection_dead(tcp_client3)
+    assert gate.sockets_closed_event is closed_event
+    assert closed_event.is_set()
 
 
 async def test_to_server_limit_bytes(

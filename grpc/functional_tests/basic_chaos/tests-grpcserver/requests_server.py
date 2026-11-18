@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import grpc
+import pytest
 
 import samples.greeter_pb2 as greeter_pb2
 
@@ -16,23 +17,30 @@ ALL_CASES = [
 ]
 
 OK_RETRIES_COUNT = 10
+RPC_TIMEOUT_SECONDS = 10.0
+RPC_COMPLETION_TIMEOUT_SECONDS = 15.0
+# A complete request/response must not fit within any tested byte limit.
+FAULT_PADDING = 'x' * 1024
 
 
-async def _say_hello(grpc_client, gate):
-    request = greeter_pb2.GreetingRequest(name='Python')
-    response = await grpc_client.SayHello(request, wait_for_ready=True)
-    assert response.greeting == 'Hello, Python!'
+async def _say_hello(grpc_client, gate, *, padding=''):
+    name = f'Python{padding}'
+    request = greeter_pb2.GreetingRequest(name=name)
+    response = await grpc_client.SayHello(request, timeout=RPC_TIMEOUT_SECONDS, wait_for_ready=True)
+    assert response.greeting == f'Hello, {name}!'
     assert gate.connections_count() > 0
 
 
-async def _say_hello_response_stream(grpc_client, gate):
-    request = greeter_pb2.GreetingRequest(name='Python')
+async def _say_hello_response_stream(grpc_client, gate, *, padding=''):
+    name = f'Python{padding}'
+    request = greeter_pb2.GreetingRequest(name=name)
     reference = '!'
     async for response in grpc_client.SayHelloResponseStream(
         request,
+        timeout=RPC_TIMEOUT_SECONDS,
         wait_for_ready=True,
     ):
-        assert response.greeting == f'Hello, Python{reference}'
+        assert response.greeting == f'Hello, {name}{reference}'
         reference += '!'
     assert gate.connections_count() > 0
 
@@ -46,27 +54,31 @@ async def _prepare_requests(names, sleep=1):
         yield req
 
 
-async def _say_hello_request_stream(grpc_client, gate):
+async def _say_hello_request_stream(grpc_client, gate, *, padding=''):
+    name = f'Python{padding}'
     stream = await grpc_client.SayHelloRequestStream(
-        _prepare_requests(['Python', '!', '!', '!'], 1),
+        _prepare_requests([name, '!', '!', '!'], 1),
+        timeout=RPC_TIMEOUT_SECONDS,
         wait_for_ready=True,
     )
-    assert stream.greeting == 'Hello, Python!!!'
+    assert stream.greeting == f'Hello, {name}!!!'
     assert gate.connections_count() > 0
 
 
-async def _say_hello_streams(grpc_client, gate):
+async def _say_hello_streams(grpc_client, gate, *, padding=''):
+    name = f'Python{padding}'
     reference = ''
     async for response in grpc_client.SayHelloStreams(
-        _prepare_requests(['Python', '!', '!', '!'], 1),
+        _prepare_requests([name, '!', '!', '!'], 1),
+        timeout=RPC_TIMEOUT_SECONDS,
         wait_for_ready=True,
     ):
-        assert response.greeting == f'Hello, Python{reference}'
+        assert response.greeting == f'Hello, {name}{reference}'
         reference += '!'
     assert gate.connections_count() > 0
 
 
-async def _say_hello_indept_streams(grpc_client, gate):
+async def _say_hello_indept_streams(grpc_client, gate, *, padding=''):
     expected_responses = [
         'Hello, Python',
         'Hello, C++',
@@ -78,14 +90,14 @@ async def _say_hello_indept_streams(grpc_client, gate):
         'Hello, core',
         'Hello, anonymous',
         'Hello, user',
-        'If this message has arrived, then everything works',
+        f'If{padding} this message has arrived, then everything works',
     ]
 
     index = 0
     async for response in grpc_client.SayHelloIndependentStreams(
         _prepare_requests(
             [
-                'If',
+                f'If{padding}',
                 ' ',
                 'this',
                 ' ',
@@ -103,6 +115,7 @@ async def _say_hello_indept_streams(grpc_client, gate):
             ],
             0.1,
         ),
+        timeout=RPC_TIMEOUT_SECONDS,
         wait_for_ready=True,
     ):
         assert response.greeting == expected_responses[index]
@@ -124,7 +137,7 @@ async def check_ok_for(case, grpc_client, gate):
         try:
             await asyncio.wait_for(
                 _REQUESTS[case](grpc_client, gate),
-                timeout=10.0,
+                timeout=RPC_COMPLETION_TIMEOUT_SECONDS,
             )
             logging.info(f'OK at "{case}" (attempt {i})')
             return
@@ -135,17 +148,27 @@ async def check_ok_for(case, grpc_client, gate):
     assert False, f'{case}: all attempts failed'
 
 
-async def check_unavailable_for(case, grpc_client, gate):
-    try:
+async def prepare_for_fault(grpc_client, gate):
+    await close_connection(gate)
+    await check_ok_for('say_hello', grpc_client, gate)
+    gate.sockets_closed_event.clear()
+
+
+async def check_failure_for(case, grpc_client, gate):
+    with pytest.raises(grpc.RpcError) as exc_info:
         await asyncio.wait_for(
-            _REQUESTS[case](grpc_client, gate),
-            timeout=10.0,
+            _REQUESTS[case](grpc_client, gate, padding=FAULT_PADDING),
+            timeout=RPC_COMPLETION_TIMEOUT_SECONDS,
         )
-        assert False, 'Server must return UNAVAILABLE'
-    except asyncio.TimeoutError:
-        assert False, 'Client channel not ready by timeout'
-    except grpc.RpcError as error:
-        assert grpc.StatusCode.UNAVAILABLE == error.code()
+    # Reconnects can hit the byte limit during the HTTP/2 handshake, so
+    # wait_for_ready may keep the RPC queued until its deadline.
+    assert exc_info.value.code() in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED)
+    assert gate.sockets_closed_event.is_set(), 'Byte limit did not close any connections'
+
+
+async def check_recovery_for(case, grpc_client, gate):
+    await close_connection(gate)
+    await check_ok_for(case, grpc_client, gate)
 
 
 async def close_connection(gate):

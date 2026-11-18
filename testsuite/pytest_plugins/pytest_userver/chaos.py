@@ -520,6 +520,7 @@ class BaseGate:
         self._accept_tasks: list[asyncio.Task[None]] = []
 
         self._sockets: set[_SocketsPaired] = set()
+        self._sockets_closed_event = asyncio.Event()
 
     async def __aenter__(self) -> BaseGate:
         self.start()
@@ -604,6 +605,16 @@ class BaseGate:
         for x in list(self._sockets)[0:count]:
             await x.shutdown()
         self._collect_garbage()
+        self._sockets_closed_event.set()
+
+    @property
+    def sockets_closed_event(self) -> asyncio.Event:
+        """
+        Event set after @ref pytest_userver.chaos.BaseGate.sockets_close completes.
+
+        The event is initially unset and remains set until explicitly cleared.
+        """
+        return self._sockets_closed_event
 
     def get_sockname_for_clients(self) -> Address:
         """

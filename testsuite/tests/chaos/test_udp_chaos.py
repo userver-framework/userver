@@ -121,8 +121,10 @@ async def test_basic(udp_server, udp_client_factory, gate):
     await _assert_data_to_client(udp_server, udp_client)
 
     assert gate.is_connected()
+    assert not gate.sockets_closed_event.is_set()
     await gate.sockets_close()
     assert not gate.is_connected()
+    assert gate.sockets_closed_event.is_set()
 
 
 async def test_to_client_udp_message_queue(udp_server, udp_client_factory):
