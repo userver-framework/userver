@@ -1,5 +1,6 @@
 #include <userver/ydb/topic.hpp>
 
+#include <exception>
 #include <variant>
 
 #include <userver/engine/async.hpp>
@@ -7,6 +8,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
 #include <ydb/impl/config.hpp>
@@ -16,6 +19,16 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
+
+namespace impl {
+
+struct TopicProducerStatistics final {
+    utils::statistics::RateCounter messages_queued{0};
+    utils::statistics::RateCounter buffer_timeouts{0};
+    utils::statistics::RateCounter write_errors{0};
+};
+
+}  // namespace impl
 
 namespace {
 
@@ -225,13 +238,27 @@ std::optional<NYdb::NTopic::TContinuationToken> TopicSimpleWriteSession::WaitFor
 }
 
 TopicProducer::TopicProducer(std::shared_ptr<NYdb::NTopic::IProducer> producer)
-    : producer_(std::move(producer))
+    : producer_(std::move(producer)),
+      statistics_(std::make_shared<impl::TopicProducerStatistics>())
 {
     UASSERT(producer_);
 }
 
 NYdb::NTopic::TWriteResult TopicProducer::Write(NYdb::NTopic::TWriteMessage&& message) {
-    return producer_->Write(std::move(message));
+    try {
+        auto result = producer_->Write(std::move(message));
+        if (result.IsQueued()) {
+            ++statistics_->messages_queued;
+        } else if (result.IsTimeout()) {
+            ++statistics_->buffer_timeouts;
+        } else {
+            ++statistics_->write_errors;
+        }
+        return result;
+    } catch (const std::exception&) {
+        ++statistics_->write_errors;
+        throw;
+    }
 }
 
 NYdb::NTopic::TFlushResult TopicProducer::Flush(engine::Deadline deadline) {
@@ -243,6 +270,19 @@ NYdb::NTopic::TCloseResult TopicProducer::Close(std::chrono::milliseconds timeou
 NYdb::NTopic::IProducer& TopicProducer::GetNativeTopicProducer() USERVER_IMPL_LIFETIME_BOUND {
     UASSERT(producer_);
     return *producer_;
+}
+
+void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer) {
+    const auto& statistics = *producer.statistics_;
+    const auto messages_queued = statistics.messages_queued.Load();
+    const auto buffer_timeouts = statistics.buffer_timeouts.Load();
+    const auto write_errors = statistics.write_errors.Load();
+
+    // Count completed attempts; pending Write calls have no outcome yet.
+    writer["write-attempts"] = messages_queued + buffer_timeouts + write_errors;
+    writer["messages-queued"] = messages_queued;
+    writer["buffer-timeouts"] = buffer_timeouts;
+    writer["write-errors"] = write_errors;
 }
 
 TopicClient::TopicClient(std::shared_ptr<impl::Driver> driver, [[maybe_unused]] impl::TopicSettings settings)

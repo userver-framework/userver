@@ -17,6 +17,7 @@
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +25,7 @@ namespace ydb {
 
 namespace impl {
 class Driver;
+struct TopicProducerStatistics;
 struct TopicSettings;
 }  // namespace impl
 
@@ -244,7 +246,14 @@ public:
 
 private:
     std::shared_ptr<NYdb::NTopic::IProducer> producer_;
+    std::shared_ptr<impl::TopicProducerStatistics> statistics_;
+
+    friend void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer);
 };
+
+/// @brief Export local write counters shared by producer copies.
+/// Counts completed wrapper calls only; queue acceptance does not mean delivery.
+void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer);
 
 /// @ingroup userver_clients
 ///
