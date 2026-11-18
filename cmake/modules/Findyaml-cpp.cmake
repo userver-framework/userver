@@ -13,3 +13,7 @@ _userver_module_find_include(NAMES yaml-cpp/yaml.h yaml-cpp/node.h PATH_SUFFIXES
 _userver_module_find_library(NAMES yaml-cpp PATH_SUFFIXES lib)
 
 _userver_module_end()
+
+if(NOT TARGET yaml-cpp::yaml-cpp)
+    add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+endif()
