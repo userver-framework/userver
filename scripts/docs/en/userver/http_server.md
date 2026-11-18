@@ -15,7 +15,7 @@
 
 * HTTP 1.1/1.0 support;
 * HTTPS;
-* @ref scripts/docs/en/userver/tutorial/websocket_service.md "WebSocket";
+* @ref scripts/docs/en/userver/tutorial/websocket_service.md "WebSocket", over HTTP/1.1 and over HTTP/2.0 (RFC 8441);
 * Body decompression with "Content-Encoding: gzip";
 * HTTP pipelining;
 * Custom authorization @ref scripts/docs/en/userver/tutorial/auth_postgres.md ;
@@ -79,8 +79,31 @@ components_manager:
                         max_concurrent_streams: 100
                         max_frame_size: 16384
                         initial_window_size: 65536
+                        enable_connect_protocol: false
 ```
 You can set some options specific to `HTTP/2.0` in the `http2-session` section. See docs for these options in components::Server
+
+### WebSockets over HTTP/2.0
+
+With `enable_connect_protocol: true` the server advertises
+`SETTINGS_ENABLE_CONNECT_PROTOCOL` and accepts websockets bootstrapped with the
+extended `CONNECT` method of
+[RFC 8441](https://datatracker.ietf.org/doc/html/rfc8441), as Chrome, Firefox,
+.NET `ClientWebSocket`, HAProxy and Envoy do.
+
+Such a request carries `:method: CONNECT` and `:protocol: websocket` instead of
+the `Upgrade`/`Connection` headers of HTTP/1.1, and is answered with a plain
+`200` rather than `101`. It is routed as a `GET`, so
+@ref server::handlers::WebsocketHandlerBase handlers need no changes and no
+extra registration: the same handler serves both transports. Use
+@ref server::http::HttpRequest::IsWebsocketExtendedConnect() if a
+@ref server::handlers::WebsocketHandlerBase::HandleHandshake() implementation
+has to tell them apart.
+
+Unlike the HTTP/1.1 upgrade, which takes the whole connection over, the
+websocket lives inside a single HTTP/2.0 stream, so ordinary requests keep being
+served on the same connection. Note that each live websocket occupies a stream
+slot of `max_concurrent_streams` for its whole lifetime.
 
 
 ## Components
