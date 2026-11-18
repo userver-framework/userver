@@ -31,3 +31,14 @@ async def test_bad_content_type(service_client):
     response = await service_client.post('/v1/multipart', data='{}')
     assert response.status == 400
     assert response.content == b"Expected 'multipart/form-data' content type"
+
+
+async def test_empty_body_is_rejected_by_the_handler(service_client):
+    response = await service_client.post(
+        '/v1/multipart',
+        data=b'',
+        headers={'Content-Type': 'multipart/form-data; boundary=zzz'},
+    )
+
+    assert response.status == 400
+    assert response.content == b'Expecting PNG image format'

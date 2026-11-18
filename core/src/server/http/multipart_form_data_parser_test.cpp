@@ -242,6 +242,31 @@ TEST(MultipartFormDataParser, ParseEmptyForm) {
     EXPECT_TRUE(form_data_args.empty());
 }
 
+TEST(MultipartFormDataParser, ParseEmptyBody) {
+    namespace sh = server::http;
+    const std::string content_type = "multipart/form-data; boundary=zzz";
+
+    sh::FormDataArgs form_data_args;
+    ASSERT_TRUE(ParseMultipartFormData(content_type, "", form_data_args));
+    EXPECT_TRUE(form_data_args.empty());
+
+    ASSERT_TRUE(ParseMultipartFormData(content_type, "", form_data_args, true));
+    EXPECT_TRUE(form_data_args.empty());
+
+    ASSERT_TRUE(ParseMultipartFormData(content_type, "", form_data_args, false));
+    EXPECT_TRUE(form_data_args.empty());
+}
+
+TEST(MultipartFormDataParser, ParseEmptyBodyLeniencyIsNarrow) {
+    namespace sh = server::http;
+    const std::string content_type = "multipart/form-data; boundary=zzz";
+
+    sh::FormDataArgs form_data_args;
+    EXPECT_FALSE(ParseMultipartFormData("multipart/form-data", "", form_data_args));
+    EXPECT_FALSE(ParseMultipartFormData(content_type, "\r\n", form_data_args));
+    EXPECT_FALSE(ParseMultipartFormData(content_type, "--zzz\r\n", form_data_args));
+}
+
 void DoParseEmptyData(std::string_view body) {
     namespace sh = server::http;
     const std::string content_type = "multipart/form-data; Boundary=zzz";
