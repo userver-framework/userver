@@ -21,28 +21,21 @@ using SecretKey = utils::NonLoggable<class SecretKeyTag, std::string>;
 class EncryptedWriter final : public Writer {
 public:
     /// @brief Creates a new dump file and opens it
-    /// @param options how to apply permissions to the temporary dump file
+    /// @param perms final permissions to set on the dump file
     /// @throws `Error` on a filesystem error
     EncryptedWriter(
         std::string filename,
         const SecretKey& secret_key,
         std::filesystem::perms perms,
-        tracing::ScopeTime& scope,
-        std::filesystem::perm_options options = std::filesystem::perm_options::replace
+        tracing::ScopeTime& scope
     );
 
     /// @overload
-    /// Accepts `boost::filesystem::perms`.
+    /// Accepts `boost::filesystem::perms`; permission option flags are ignored.
     /// @deprecated use the std::filesystem overload
     template <fs::blocking::impl::LegacyPermissions Permissions>
     EncryptedWriter(std::string filename, const SecretKey& secret_key, Permissions perms, tracing::ScopeTime& scope)
-        : dump::EncryptedWriter(
-              std::move(filename),
-              secret_key,
-              fs::blocking::impl::ToStdPermissions(perms),
-              scope,
-              fs::blocking::impl::ToStdPermOptions(perms)
-          )
+        : dump::EncryptedWriter(std::move(filename), secret_key, fs::blocking::impl::ToStdPermissions(perms), scope)
     {}
 
     ~EncryptedWriter() override;
@@ -79,23 +72,14 @@ class EncryptedOperationsFactory final : public OperationsFactory {
 public:
     /// @brief Creates a factory that encrypts dumps with the specified key and writes them with the specified
     /// permissions.
-    /// @param options how to apply permissions to each temporary dump file
-    EncryptedOperationsFactory(
-        SecretKey&& secret_key,
-        std::filesystem::perms perms,
-        std::filesystem::perm_options options = std::filesystem::perm_options::replace
-    );
+    EncryptedOperationsFactory(SecretKey&& secret_key, std::filesystem::perms perms);
 
     /// @overload
-    /// Accepts `boost::filesystem::perms`.
+    /// Accepts `boost::filesystem::perms`; permission option flags are ignored.
     /// @deprecated use the std::filesystem overload
     template <fs::blocking::impl::LegacyPermissions Permissions>
     EncryptedOperationsFactory(SecretKey&& secret_key, Permissions perms)
-        : dump::EncryptedOperationsFactory(
-              std::move(secret_key),
-              fs::blocking::impl::ToStdPermissions(perms),
-              fs::blocking::impl::ToStdPermOptions(perms)
-          )
+        : dump::EncryptedOperationsFactory(std::move(secret_key), fs::blocking::impl::ToStdPermissions(perms))
     {}
 
     std::unique_ptr<Reader> CreateReader(std::string full_path) override;
@@ -105,7 +89,6 @@ public:
 private:
     const SecretKey secret_key_;
     const std::filesystem::perms perms_;
-    const std::filesystem::perm_options options_;
 };
 
 }  // namespace dump

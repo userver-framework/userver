@@ -54,20 +54,18 @@ EncryptedWriter::EncryptedWriter(
     std::string filename,
     const SecretKey& secret_key,
     std::filesystem::perms perms,
-    tracing::ScopeTime& scope,
-    std::filesystem::perm_options options
+    tracing::ScopeTime& scope
 )
     : impl_(std::move(filename), &scope)
 {
     IV iv{crypto::GenerateRandomBlock(kIvSize)};
     impl_->encryption.SetKeyWithIV(GetBytes(secret_key), secret_key.GetUnderlying().size(), GetBytes(iv), iv.size());
 
-    // Create empty file with the passed perms and reopen it
-    // because CryptoPP is not able to pass perms
+    // Open the sink before applying final permissions so read-only dumps remain writable through the open descriptor.
     const auto& temp_filename = impl_->GetTempFilename();
     fs::blocking::RewriteFileContents(temp_filename, "");
     auto sink = std::make_unique<::CryptoPP::FileSink>(temp_filename.c_str());
-    fs::blocking::Chmod(temp_filename, perms, options);
+    fs::blocking::Chmod(temp_filename, perms, std::filesystem::perm_options::replace);
 
     // 1. IV
     sink->Put(reinterpret_cast<unsigned char*>(iv.GetUnderlying().data()), iv.size());
@@ -183,14 +181,9 @@ void EncryptedReader::Finish() {
     throw Error(fmt::format("Unexpected extra data at the end of encrypted dump file \"{}\"", impl_->filename));
 }
 
-EncryptedOperationsFactory::EncryptedOperationsFactory(
-    SecretKey&& secret_key,
-    std::filesystem::perms perms,
-    std::filesystem::perm_options options
-)
+EncryptedOperationsFactory::EncryptedOperationsFactory(SecretKey&& secret_key, std::filesystem::perms perms)
     : secret_key_(std::move(secret_key)),
-      perms_(perms),
-      options_(options)
+      perms_(perms)
 {}
 
 std::unique_ptr<Reader> EncryptedOperationsFactory::CreateReader(std::string full_path) {
@@ -198,7 +191,7 @@ std::unique_ptr<Reader> EncryptedOperationsFactory::CreateReader(std::string ful
 }
 
 std::unique_ptr<Writer> EncryptedOperationsFactory::CreateWriter(std::string full_path, tracing::ScopeTime& scope) {
-    return std::make_unique<EncryptedWriter>(std::move(full_path), secret_key_, perms_, scope, options_);
+    return std::make_unique<EncryptedWriter>(std::move(full_path), secret_key_, perms_, scope);
 }
 
 }  // namespace dump

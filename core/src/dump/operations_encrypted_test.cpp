@@ -13,26 +13,21 @@ namespace {
 
 const dump::SecretKey kTestKey{"12345678901234567890123456789012"};
 
-enum class LegacyPermissions {
-    perms_mask = 07777,
-    add_perms = 0x1000,
-    remove_perms = 0x2000,
-    symlink_perms = 0x4000,
-    kRemoveOwnerWrite = 0200 | remove_perms,
-};
-
 }  // namespace
 
-UTEST(DumpEncFile, LegacyPermissionOptions) {
+UTEST(DumpEncFile, FactoryEmptyDump) {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = dir.GetPath() + "/file";
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::EncryptedOperationsFactory factory(dump::SecretKey{kTestKey}, LegacyPermissions::kRemoveOwnerWrite);
+    dump::EncryptedOperationsFactory factory(dump::SecretKey{kTestKey}, std::filesystem::perms::owner_read);
 
     auto writer = factory.CreateWriter(path, scope_time);
     writer->Finish();
 
     EXPECT_EQ(std::filesystem::status(path).permissions(), std::filesystem::perms::owner_read);
+    auto reader = factory.CreateReader(path);
+    EXPECT_TRUE(dump::ReadUnsafeAtMost(*reader, 1).empty());
+    UEXPECT_NO_THROW(reader->Finish());
 }
 
 UTEST(DumpEncFile, Smoke) {
@@ -42,9 +37,11 @@ UTEST(DumpEncFile, Smoke) {
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
     dump::EncryptedWriter w(path, kTestKey, std::filesystem::perms::owner_read, scope_time);
 
+    EXPECT_EQ(std::filesystem::status(path + ".tmp").permissions(), std::filesystem::perms::owner_read);
     w.Write(1);
     UEXPECT_NO_THROW(w.Finish());
 
+    EXPECT_EQ(std::filesystem::status(path).permissions(), std::filesystem::perms::owner_read);
     auto size = std::filesystem::file_size(path);
     EXPECT_EQ(size, 33);
 

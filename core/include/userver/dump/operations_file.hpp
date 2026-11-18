@@ -22,29 +22,16 @@ namespace dump {
 class FileWriter final : public Writer {
 public:
     /// @brief Creates a new dump file and opens it
-    /// @param perms permissions to set, add or remove
-    /// @param options how to apply permissions when finalizing the dump
-    /// @note With `std::filesystem::perm_options::remove`, the temporary file starts
-    /// with mode `0600` (subject to umask), then @ref dump::FileWriter::Finish removes the specified bits.
+    /// @param perms final permissions to set when finalizing the dump
     /// @throws `Error` on a filesystem error
-    explicit FileWriter(
-        std::string path,
-        std::filesystem::perms perms,
-        tracing::ScopeTime& scope,
-        std::filesystem::perm_options options = std::filesystem::perm_options::replace
-    );
+    explicit FileWriter(std::string path, std::filesystem::perms perms, tracing::ScopeTime& scope);
 
     /// @overload
-    /// Accepts `boost::filesystem::perms`.
+    /// Accepts `boost::filesystem::perms`; permission option flags are ignored.
     /// @deprecated use the std::filesystem overload
     template <fs::blocking::impl::LegacyPermissions Permissions>
     explicit FileWriter(std::string path, Permissions perms, tracing::ScopeTime& scope)
-        : dump::FileWriter(
-              std::move(path),
-              fs::blocking::impl::ToStdPermissions(perms),
-              scope,
-              fs::blocking::impl::ToStdPermOptions(perms)
-          )
+        : dump::FileWriter(std::move(path), fs::blocking::impl::ToStdPermissions(perms), scope)
     {}
 
     void Finish() override;
@@ -56,7 +43,6 @@ private:
     std::string final_path_;
     std::string path_;
     std::filesystem::perms perms_;
-    std::filesystem::perm_options options_;
     utils::StreamingCpuRelax cpu_relax_;
 };
 
@@ -82,21 +68,14 @@ private:
 class FileOperationsFactory final : public OperationsFactory {
 public:
     /// @brief Creates a factory that writes dumps with the specified permissions.
-    /// @param options how to apply permissions when finalizing each dump; see @ref dump::FileWriter
-    explicit FileOperationsFactory(
-        std::filesystem::perms perms,
-        std::filesystem::perm_options options = std::filesystem::perm_options::replace
-    );
+    explicit FileOperationsFactory(std::filesystem::perms perms);
 
     /// @overload
-    /// Accepts `boost::filesystem::perms`.
+    /// Accepts `boost::filesystem::perms`; permission option flags are ignored.
     /// @deprecated use the std::filesystem overload
     template <fs::blocking::impl::LegacyPermissions Permissions>
     explicit FileOperationsFactory(Permissions perms)
-        : dump::FileOperationsFactory(
-              fs::blocking::impl::ToStdPermissions(perms),
-              fs::blocking::impl::ToStdPermOptions(perms)
-          )
+        : dump::FileOperationsFactory(fs::blocking::impl::ToStdPermissions(perms))
     {}
 
     std::unique_ptr<Reader> CreateReader(std::string full_path) override;
@@ -105,7 +84,6 @@ public:
 
 private:
     const std::filesystem::perms perms_;
-    const std::filesystem::perm_options options_;
 };
 
 }  // namespace dump
