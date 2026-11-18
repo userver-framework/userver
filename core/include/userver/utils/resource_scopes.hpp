@@ -231,6 +231,7 @@ struct ResourceScopeStorageHolder {
 };
 
 template <typename Wrapped>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class UniqueWithResourceScopes final : private ResourceScopeStorageHolder, public Wrapped {
 public:
     template <typename... Args>
