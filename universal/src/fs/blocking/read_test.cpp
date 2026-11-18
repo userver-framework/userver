@@ -1,12 +1,14 @@
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <variant>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem/directory.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
@@ -20,29 +22,34 @@ class TestReadRecursiveFilesInfoWithData : public ::testing::Test {
 protected:
     void SetUp() override {
         tmp_dir_ = TempDirectory::Create(
-            boost::filesystem::temp_directory_path().string(),
+            std::filesystem::temp_directory_path().string(),
             "userver-test-fs-blocking-read-recursive"
         );
-        dir_path_ = boost::filesystem::absolute(tmp_dir_.GetPath());
+        dir_path_ = std::filesystem::absolute(tmp_dir_.GetPath());
         dir_path_str_ = dir_path_.string();
     }
 
     void TearDown() override {
-        for (auto iter = boost::filesystem::recursive_directory_iterator(tmp_dir_.GetPath());
-             iter != boost::filesystem::recursive_directory_iterator();
+        for (auto iter = std::filesystem::recursive_directory_iterator(tmp_dir_.GetPath());
+             iter != std::filesystem::recursive_directory_iterator();
              ++iter)
         {
-            boost::filesystem::permissions(iter->path(), boost::filesystem::add_perms | boost::filesystem::owner_read);
+            std::filesystem::permissions(
+                iter->path(),
+                std::filesystem::perms::owner_read,
+                std::filesystem::perm_options::add
+            );
         }
         std::move(tmp_dir_).Remove();
     }
 
-    const boost::filesystem::path& GetDirPath() const { return dir_path_; }
+    const std::filesystem::path& GetDirPath() const { return dir_path_; }
+
     const std::string& GetDirPathStr() const { return dir_path_str_; }
 
 private:
     TempDirectory tmp_dir_;
-    boost::filesystem::path dir_path_;
+    std::filesystem::path dir_path_;
     std::string dir_path_str_;
 };
 
@@ -77,10 +84,10 @@ std::string ToString(const FileInfoWithDataMap& file_info_with_data_map) {
     return ostr.str();
 }
 
-void CreateTestFiles(const boost::filesystem::path& dir_path, const FileInfoWithDataMap& files_to_create) {
+void CreateTestFiles(const std::filesystem::path& dir_path, const FileInfoWithDataMap& files_to_create) {
     for (const auto& [path_str, info] : files_to_create) {
-        const auto file_path = dir_path / path_str;
-        boost::filesystem::create_directories(file_path.parent_path());
+        const auto file_path = dir_path / std::filesystem::path{path_str}.relative_path();
+        std::filesystem::create_directories(file_path.parent_path());
         std::ofstream output_file(file_path.string());
         output_file << std::get<std::string>(info->data_or_path);
     }
@@ -133,9 +140,9 @@ FileInfoWithDataConstPtr CreateFileInfo(std::string data, std::string ext) {
 
 TEST_F(TestReadRecursiveFilesInfoWithData, NormalRead) {
     const FileInfoWithDataMap existing_files{
-        {"/.file_1.abc", CreateFileInfo("/.file_1.abc content", ".abc")},
+        {"/.hidden.txt", CreateFileInfo("/.hidden.txt content", ".txt")},
         {"/file_2.def", CreateFileInfo("/file_2.def content", ".def")},
-        {"/subdir1/.file_3", CreateFileInfo("/subdir1/.file_3 content", ".file_3")},
+        {"/subdir1/.gitignore", CreateFileInfo("/subdir1/.gitignore content", ".gitignore")},
         {"/subdir2/subsubdir1/file_4.x.y.z", CreateFileInfo("/subdir2/subsubdir1/file_4.x.y.z content", ".z")}
     };
     CreateTestFiles(GetDirPath(), existing_files);
@@ -156,15 +163,41 @@ TEST_F(TestReadRecursiveFilesInfoWithData, NormalRead) {
     }
 }
 
+TEST_F(TestReadRecursiveFilesInfoWithData, HiddenFilesWithoutCaching) {
+    const FileInfoWithDataMap existing_files{
+        {"/.hidden.txt", CreateFileInfo("hidden contents", ".txt")},
+        {"/subdir/.gitignore", CreateFileInfo("ignored files", ".gitignore")}
+    };
+    CreateTestFiles(GetDirPath(), existing_files);
+
+    const auto
+        read_result = ReadRecursiveFilesInfoWithData(GetDirPathStr(), SettingsReadFile::kNone, /*max_size_to_cache=*/0);
+    ASSERT_EQ(read_result.size(), existing_files.size());
+
+    for (const auto& [path, expected] : existing_files) {
+        SCOPED_TRACE(path);
+        const auto it = read_result.find(path);
+        ASSERT_NE(it, read_result.end());
+        ASSERT_TRUE(it->second);
+        ASSERT_TRUE(std::holds_alternative<std::filesystem::path>(it->second->data_or_path));
+        EXPECT_EQ(
+            std::get<std::filesystem::path>(it->second->data_or_path),
+            GetDirPath() / std::filesystem::path{path}.relative_path()
+        );
+        EXPECT_EQ(it->second->extension, expected->extension);
+    }
+}
+
 TEST_F(TestReadRecursiveFilesInfoWithData, ReadWithException) {
     const FileInfoWithDataMap existing_files{
         {"/file_1.abc", CreateFileInfo("/file_1.abc content", ".abc")},
         {"/file_2.def", CreateFileInfo("/file_2.def content", ".def")}
     };
     CreateTestFiles(GetDirPath(), existing_files);
-    boost::filesystem::permissions(
+    std::filesystem::permissions(
         GetDirPath() / "file_1.abc",
-        boost::filesystem::remove_perms | boost::filesystem::owner_read
+        std::filesystem::perms::owner_read,
+        std::filesystem::perm_options::remove
     );
 
     // fails to read the content of 'file_1.abc' due to the lack of a read permission
@@ -203,10 +236,7 @@ TEST_F(TestReadRecursiveFilesInfoWithData, MaxSizeToCache) {
     const auto large_it = read_result.find("/large.txt");
     ASSERT_NE(large_it, read_result.end());
     ASSERT_TRUE(std::holds_alternative<std::filesystem::path>(large_it->second->data_or_path));
-    EXPECT_EQ(
-        std::filesystem::absolute(std::filesystem::path{large_path.string()}),
-        std::get<std::filesystem::path>(large_it->second->data_or_path)
-    );
+    EXPECT_EQ(std::filesystem::absolute(large_path), std::get<std::filesystem::path>(large_it->second->data_or_path));
     EXPECT_EQ(large_it->second->extension, ".txt");
 }
 

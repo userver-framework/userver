@@ -6,16 +6,13 @@
 #include <fstream>
 #include <sstream>
 
-#include <boost/filesystem/directory.hpp>
-#include <boost/filesystem/operations.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace fs::blocking {
 
 namespace {
 
-bool IsHiddenFile(const boost::filesystem::path& path) {
+bool IsHiddenFile(const std::filesystem::path& path) {
     auto name = path.filename().native();
     UASSERT(!name.empty());
     return name != ".." && name != "." && name[0] == '.';
@@ -34,10 +31,10 @@ std::string ReadFileContents(utils::zstring_view path) {
     return buffer.str();
 }
 
-bool FileExists(utils::zstring_view path) { return boost::filesystem::exists(path.c_str()); }
+bool FileExists(utils::zstring_view path) { return std::filesystem::exists(path.c_str()); }
 
-boost::filesystem::file_type GetFileType(utils::zstring_view path) {
-    return boost::filesystem::status(path.c_str()).type();
+std::filesystem::file_type GetFileType(utils::zstring_view path) {
+    return std::filesystem::status(path.c_str()).type();
 }
 
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
@@ -46,12 +43,12 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     std::size_t max_size_to_cache
 ) {
     FileInfoWithDataMap data{};
-    for (auto it = boost::filesystem::recursive_directory_iterator(path.c_str());
-         it != boost::filesystem::recursive_directory_iterator();
+    for (auto it = std::filesystem::recursive_directory_iterator(path.c_str());
+         it != std::filesystem::recursive_directory_iterator();
          ++it)
     {
         // only files
-        if (it->status().type() != boost::filesystem::regular_file) {
+        if (it->status().type() != std::filesystem::file_type::regular) {
             continue;
         }
         if ((flags & SettingsReadFile::kSkipHidden) && IsHiddenFile(it->path())) {
@@ -59,9 +56,12 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
         }
         FileInfoWithData info{};
         info.extension = it->path().extension().string();
-        const auto file_size = boost::filesystem::file_size(it->path());
+        if (info.extension.empty() && IsHiddenFile(it->path())) {
+            info.extension = it->path().filename().string();
+        }
+        const auto file_size = std::filesystem::file_size(it->path());
         if (file_size > max_size_to_cache) {
-            info.data_or_path = std::filesystem::absolute(std::filesystem::path{it->path().string()});
+            info.data_or_path = std::filesystem::absolute(it->path());
         } else {
             info.data_or_path = ReadFileContents(it->path().string());
         }

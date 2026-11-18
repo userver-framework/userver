@@ -2,11 +2,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
 #include <string>
 
 #include <fmt/format.h>
-
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/alerts/source.hpp>
 #include <userver/compiler/demangle.hpp>
@@ -354,9 +353,9 @@ void DynamicConfig::Impl::WriteFsCache(const dynamic_config::DocsMap& docs_map) 
     const tracing::Span span("dynamic_config_fs_cache_write");
     try {
         const auto contents = formats::json::ToString(docs_map.AsJson());
-        using perms = boost::filesystem::perms;
+        using perms = std::filesystem::perms;
         auto mode = perms::owner_read | perms::owner_write | perms::group_read | perms::others_read;
-        fs::CreateDirectories(fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
+        fs::CreateDirectories(fs_task_processor_, std::filesystem::path(fs_cache_path_).parent_path().string());
         fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_, contents, mode);
 
         LOG_INFO() << "Successfully wrote dynamic_config to FS cache";

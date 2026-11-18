@@ -62,7 +62,7 @@ PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortCo
     config.address = value["address"].As<std::string>("::");
     config.unix_socket_path = value["unix-socket"].As<std::string>("");
     config.unix_socket_perms = static_cast<
-        boost::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
+        std::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
     config.listen_socket_fd = value["listen-socket-fd"].As<std::optional<int>>();
 
     SingleSocketSource source;

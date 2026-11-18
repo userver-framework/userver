@@ -1,5 +1,8 @@
 #include <userver/dump/operations_file.hpp>
 
+#include <filesystem>
+#include <string_view>
+
 #include <userver/dump/unsafe.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
@@ -25,7 +28,7 @@ UTEST(DumpOperationsFile, WriteReadRaw) {
     std::size_t total_length = 0;
 
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read, scope_time);
+    dump::FileWriter writer(path, std::filesystem::perms::owner_read, scope_time);
     for (std::size_t i = 0; i <= kMaxLength; ++i) {
         WriteStringViewUnsafe(writer, std::string(i, 'a'));
         total_length += i;
@@ -46,7 +49,7 @@ UTEST(DumpOperationsFile, EmptyDump) {
     const auto path = DumpFilePath(dir);
 
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read, scope_time);
+    dump::FileWriter writer(path, std::filesystem::perms::owner_read, scope_time);
     writer.Finish();
 
     EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
@@ -55,12 +58,42 @@ UTEST(DumpOperationsFile, EmptyDump) {
     reader.Finish();
 }
 
+UTEST(DumpOperationsFile, ReadOnlyWithAddPermissions) {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = DumpFilePath(dir);
+
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    dump::FileWriter writer(path, std::filesystem::perms::owner_read, scope_time, std::filesystem::perm_options::add);
+    WriteStringViewUnsafe(writer, "read-only dump");
+    writer.Finish();
+
+    EXPECT_EQ(std::filesystem::status(path).permissions(), std::filesystem::perms::owner_read);
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "read-only dump");
+}
+
+UTEST(DumpOperationsFile, ReadAfterRemovingWritePermission) {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = DumpFilePath(dir);
+    constexpr std::string_view kContents = "read-only dump";
+
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    dump::FileWriter
+        writer(path, std::filesystem::perms::owner_write, scope_time, std::filesystem::perm_options::remove);
+    WriteStringViewUnsafe(writer, kContents);
+    writer.Finish();
+
+    EXPECT_EQ(std::filesystem::status(path).permissions(), std::filesystem::perms::owner_read);
+    dump::FileReader reader(path);
+    EXPECT_EQ(ReadStringViewUnsafe(reader, kContents.size()), kContents);
+    reader.Finish();
+}
+
 UTEST(DumpOperationsFile, EmptyStringDump) {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = DumpFilePath(dir);
 
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read, scope_time);
+    dump::FileWriter writer(path, std::filesystem::perms::owner_read, scope_time);
     WriteStringViewUnsafe(writer, {});
     writer.Finish();
 

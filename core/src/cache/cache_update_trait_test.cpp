@@ -1,15 +1,23 @@
 #include <userver/cache/cache_update_trait.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <exception>
+#include <filesystem>
+#include <functional>
 #include <iomanip>
 #include <optional>
+#include <ostream>
+#include <string>
+#include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include <fmt/format.h>
 #include <gmock/gmock.h>
-#include <boost/filesystem.hpp>
 #include <boost/pfr/io_fields.hpp>
 
 #include <cache/internal_helpers_test.hpp>
@@ -590,7 +598,7 @@ UTEST(CacheUpdateTrait, WriteDumps) {
     );
     EXPECT_EQ(write_and_count_dumps(), 3);
 
-    boost::filesystem::remove_all(env.dump_root.GetPath());
+    std::filesystem::remove_all(env.dump_root.GetPath());
     EXPECT_EQ(write_and_count_dumps(), 1);
 }
 

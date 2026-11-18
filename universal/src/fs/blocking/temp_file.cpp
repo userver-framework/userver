@@ -1,8 +1,9 @@
 #include <userver/fs/blocking/temp_file.hpp>
 
+#include <cstdlib>
+#include <filesystem>
+#include <stdexcept>
 #include <utility>
-
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -15,11 +16,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs::blocking {
 
-TempFile TempFile::Create() { return Create(boost::filesystem::temp_directory_path().string(), "userver-"); }
+TempFile TempFile::Create() { return Create(std::filesystem::temp_directory_path().string(), "userver-"); }
 
 TempFile TempFile::Create(std::string_view parent_path, std::string_view name_prefix) {
     UASSERT(!parent_path.empty());
-    CreateDirectories(parent_path, boost::filesystem::perms::owner_all);
+    CreateDirectories(parent_path, std::filesystem::perms::owner_all);
     auto path = utils::StrCat(parent_path, "/", name_prefix, "XXXXXX");
     FileDescriptor{utils::CheckSyscall(::mkstemp(path.data()), "creating a unique file by pattern '{}'", path)}.Close();
     LOG_DEBUG() << "Created a temporary file: " << path;
@@ -29,8 +30,8 @@ TempFile TempFile::Create(std::string_view parent_path, std::string_view name_pr
 TempFile::TempFile(std::string&& path)
     : path_(std::move(path))
 {
-    UASSERT(boost::filesystem::exists(path_));
-    UASSERT(!boost::filesystem::is_directory(path_));
+    UASSERT(std::filesystem::exists(path_));
+    UASSERT(!std::filesystem::is_directory(path_));
 }
 
 TempFile::TempFile(TempFile&& other) noexcept : path_(std::exchange(other.path_, {})) {}

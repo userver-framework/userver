@@ -110,6 +110,26 @@ UTEST_MT(FsCacheClient, DetectsNewFile, 3) {
     WaitUntilCached(cache, "/created.txt", "fresh");
 }
 
+UTEST_MT(FsCacheClient, SkipsHiddenFiles, 3) {
+    utils::datetime::MockNowSet({});
+
+    const auto dir = fs::blocking::TempDirectory::Create();
+    fs::blocking::RewriteFileContents(dir.GetPath() + "/.gitignore", "initial");
+
+    const fs::FsCacheClient cache{UpdatingSettings(dir.GetPath())};
+    EXPECT_FALSE(cache.TryGetFile("/.gitignore"));
+    WaitUntilWatcherReady(cache, dir.GetPath());
+
+    fs::blocking::RewriteFileContents(dir.GetPath() + "/.gitignore", "updated");
+    fs::blocking::RewriteFileContents(dir.GetPath() + "/.hidden.txt", "created");
+
+    // Wait for an update queued after the hidden files, rather than checking their absence immediately.
+    fs::blocking::RewriteFileContents(dir.GetPath() + "/watcher-ready.txt", "updated");
+    WaitUntilCached(cache, "/watcher-ready.txt", "updated");
+    EXPECT_FALSE(cache.TryGetFile("/.gitignore"));
+    EXPECT_FALSE(cache.TryGetFile("/.hidden.txt"));
+}
+
 UTEST_MT(FsCacheClient, DetectsFileDelete, 3) {
     utils::datetime::MockNowSet({});
 

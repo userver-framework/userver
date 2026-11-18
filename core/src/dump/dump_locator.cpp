@@ -1,10 +1,10 @@
 #include <dump/dump_locator.hpp>
 
 #include <algorithm>
+#include <filesystem>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
-#include <boost/filesystem.hpp>
 
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
@@ -31,7 +31,7 @@ DumpLocator::DumpLocator(Config static_config)
 DumpFileStats DumpLocator::RegisterNewDump(TimePoint update_time) {
     std::string dump_path = GenerateDumpPath(update_time);
 
-    if (boost::filesystem::exists(dump_path)) {
+    if (std::filesystem::exists(dump_path)) {
         throw std::runtime_error(
             fmt::format("{}: could not dump to \"{}\", because the file already exists", config_.name, dump_path)
         );
@@ -77,16 +77,16 @@ bool DumpLocator::BumpDumpTime(TimePoint old_update_time, TimePoint new_update_t
     const std::string new_name = GenerateDumpPath({new_update_time});
 
     try {
-        if (!boost::filesystem::is_regular_file(old_name)) {
+        if (!std::filesystem::is_regular_file(old_name)) {
             LOG_WARNING()
                 << config_.name << ": the previous dump \"" << old_name
                 << "\" has suddenly disappeared. A new dump will be created.";
             return false;
         }
-        boost::filesystem::rename(old_name, new_name);
+        std::filesystem::rename(old_name, new_name);
         LOG_INFO() << config_.name << ": renamed dump \"" << old_name << "\" to \"" << new_name << "\"";
         return true;
-    } catch (const boost::filesystem::filesystem_error& ex) {
+    } catch (const std::filesystem::filesystem_error& ex) {
         LOG_ERROR()
             << config_.name << ": error while trying to rename dump \"" << old_name << " to \"" << new_name
             << "\". Reason: " << ex;
@@ -99,13 +99,13 @@ void DumpLocator::Cleanup() {
     std::vector<DumpFileStats> dumps;
 
     try {
-        if (!boost::filesystem::exists(config_.dump_directory)) {
+        if (!std::filesystem::exists(config_.dump_directory)) {
             LOG_INFO() << "Dump directory \"" << config_.dump_directory << "\" does not exist";
             return;
         }
 
-        for (const auto& file : boost::filesystem::directory_iterator{config_.dump_directory}) {
-            if (!boost::filesystem::is_regular_file(file.status())) {
+        for (const auto& file : std::filesystem::directory_iterator{config_.dump_directory}) {
+            if (!std::filesystem::is_regular_file(file.status())) {
                 continue;
             }
 
@@ -113,7 +113,7 @@ void DumpLocator::Cleanup() {
 
             if (utils::regex_match(filename, tmp_filename_regex_)) {
                 LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string() << "\"";
-                boost::filesystem::remove(file);
+                std::filesystem::remove(file.path());
                 continue;
             }
 
@@ -129,7 +129,7 @@ void DumpLocator::Cleanup() {
             // without losing dumps.
             if (dump->update_time < min_update_time) {
                 LOG_DEBUG() << config_.name << ": removing an expired dump, path=\"" << file.path().string() << "\"";
-                boost::filesystem::remove(file);
+                std::filesystem::remove(file.path());
                 continue;
             }
 
@@ -142,7 +142,7 @@ void DumpLocator::Cleanup() {
 
         for (size_t i = config_.max_dump_count; i < dumps.size(); ++i) {
             LOG_DEBUG() << config_.name << ": removing an excessive dump \"" << dumps[i].full_path << "\"";
-            boost::filesystem::remove(dumps[i].full_path);
+            std::filesystem::remove(dumps[i].full_path);
         }
     } catch (const std::exception& ex) {
         LOG_ERROR() << config_.name << ": error while cleaning up old dumps. Cause: " << ex;
@@ -150,7 +150,7 @@ void DumpLocator::Cleanup() {
 }
 
 std::optional<DumpFileStats> DumpLocator::ParseDumpName(std::string full_path) const {
-    const auto filename = boost::filesystem::path{full_path}.filename().string();
+    const auto filename = std::filesystem::path{full_path}.filename().string();
 
     utils::match_results regex;
     if (utils::regex_match(filename, regex, filename_regex_)) {
@@ -179,13 +179,13 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDumpImpl() const {
     std::optional<DumpFileStats> best_dump;
 
     try {
-        if (!boost::filesystem::exists(config_.dump_directory)) {
+        if (!std::filesystem::exists(config_.dump_directory)) {
             LOG_DEBUG() << "Dump directory \"" << config_.dump_directory << "\" does not exist";
             return {};
         }
 
-        for (const auto& file : boost::filesystem::directory_iterator{config_.dump_directory}) {
-            if (!boost::filesystem::is_regular_file(file.status())) {
+        for (const auto& file : std::filesystem::directory_iterator{config_.dump_directory}) {
+            if (!std::filesystem::is_regular_file(file.status())) {
                 continue;
             }
 

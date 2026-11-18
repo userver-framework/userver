@@ -2,12 +2,11 @@
 
 #include <algorithm>
 #include <exception>
+#include <filesystem>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
-
-#include <boost/filesystem/operations.hpp>
 
 #include <logging/impl/fd_sink.hpp>
 #include <logging/impl/file_sink.hpp>
@@ -39,8 +38,8 @@ void LogAndThrow(std::string msg) {
 
 void CreateLogDirectory(const std::string& logger_name, const std::string& file_path) {
     try {
-        const auto dirname = boost::filesystem::path(file_path).parent_path();
-        boost::filesystem::create_directories(dirname);
+        const auto dirname = std::filesystem::path(file_path).parent_path();
+        std::filesystem::create_directories(dirname);
     } catch (const std::exception& e) {
         LogAndThrow("Failed to create directory for log file of logger '" + logger_name + "': " + e.what());
     }
@@ -48,8 +47,8 @@ void CreateLogDirectory(const std::string& logger_name, const std::string& file_
 
 void RemoveOldFile(const std::string& logger_name, const std::string& file_path) {
     try {
-        const auto path = boost::filesystem::path(file_path);
-        boost::filesystem::remove(path);
+        const auto path = std::filesystem::path(file_path);
+        std::filesystem::remove(path);
     } catch (const std::exception& e) {
         LogAndThrow("Failed to remove old log file of logger '" + logger_name + "': " + e.what());
     }

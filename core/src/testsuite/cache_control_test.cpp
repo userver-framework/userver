@@ -2,6 +2,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
+#include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -9,7 +12,6 @@
 #include <vector>
 
 #include <gmock/gmock.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
@@ -153,12 +155,12 @@ UTEST(CacheControl, Smoke) {
 
     EXPECT_EQ(test_cache->Get(), "foo");
 
-    boost::filesystem::remove_all(env.dump_root.GetPath());
+    std::filesystem::remove_all(env.dump_root.GetPath());
     dump::CreateDumps({kDumpToRead}, env.dump_root, kCacheName);
     env.dump_control.ReadCacheDumps({kCacheName});
     EXPECT_EQ(test_cache->Get(), kDumpToRead);
 
-    boost::filesystem::remove_all(env.dump_root.GetPath());
+    std::filesystem::remove_all(env.dump_root.GetPath());
     env.cache_control.ResetCaches(
         cache::UpdateType::kFull,
         {kCacheName},

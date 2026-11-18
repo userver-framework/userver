@@ -96,7 +96,7 @@ void WriteToStream(const T& value, StringBuilder& sw) {
         static_assert(
             !meta::IsRecursiveRange<T>,
             "Trying to log a recursive range, which can be dangerous. "
-            "(boost::filesystem::path?) Please implement WriteToStream for your type"
+            "(std::filesystem::path?) Please implement WriteToStream for your type"
         );
         impl::WriteToStreamArray(value, sw);
     } else if constexpr (common::impl::HasSerialize<Value, T>) {

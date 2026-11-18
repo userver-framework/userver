@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstdint>
+#include <filesystem>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -11,7 +13,6 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
 #include <userver/utils/strong_typedef.hpp>
@@ -77,8 +78,8 @@ TEST(Meta, IsRange) {
     static_assert(meta::IsRange<std::vector<int>&>);
     static_assert(meta::IsRange<const std::vector<int>&>);
     static_assert(meta::IsRange<MyRange>);
-    static_assert(meta::IsRange<boost::filesystem::path>);
-    static_assert(meta::IsRange<boost::filesystem::directory_iterator>);
+    static_assert(meta::IsRange<std::filesystem::path>);
+    static_assert(meta::IsRange<std::filesystem::directory_iterator>);
 
     static_assert(!meta::IsRange<const MyRange>);
     static_assert(!meta::IsRange<void>);
@@ -126,11 +127,11 @@ TEST(Meta, RangeValueType) {
     static_assert(std::is_same_v<meta::RangeValueType<const std::vector<bool>>, bool>);
     static_assert(std::is_same_v<meta::RangeValueType<std::map<int, int>>, std::pair<const int, int>>);
     static_assert(std::is_same_v<meta::RangeValueType<int[5]>, int>);
-    static_assert(std::is_same_v<meta::RangeValueType<boost::filesystem::path>, boost::filesystem::path>);
+    static_assert(std::is_same_v<meta::RangeValueType<std::filesystem::path>, std::filesystem::path>);
 }
 
 TEST(Meta, IsRecursiveRange) {
-    static_assert(meta::IsRecursiveRange<boost::filesystem::path>);
+    static_assert(meta::IsRecursiveRange<std::filesystem::path>);
 
     static_assert(!meta::IsRecursiveRange<bool>);
     static_assert(!meta::IsRecursiveRange<std::vector<std::vector<std::vector<int>>>>);

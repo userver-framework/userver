@@ -5,11 +5,11 @@
 /// @ingroup userver_universal
 
 #include <cstddef>
+#include <filesystem>
 #include <limits>
 
 #include <userver/fs/file_info_with_data.hpp>
 #include <userver/fs/settings_read_file.hpp>
-#include <userver/utils/boost_filesystem_file_status.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +39,7 @@ bool FileExists(utils::zstring_view path);
 /// @brief Get file type returned by stat(2) synchronously.
 /// @param path file path
 /// @throws std::runtime_error if something goes wrong
-boost::filesystem::file_type GetFileType(utils::zstring_view path);
+std::filesystem::file_type GetFileType(utils::zstring_view path);
 
 /// @brief Returns files from recursively traversed directory
 /// @param path to directory to traverse recursively

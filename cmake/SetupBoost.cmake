@@ -10,15 +10,11 @@ option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installe
 )
 
 set(BOOST_VERSION 1.89.0)
-set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE
-    atomic
-    program_options
-    filesystem
-    locale
-    iostreams
-    context
-    coroutine
-)
+set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE atomic program_options locale iostreams context coroutine)
+if(USERVER_BUILD_TESTS)
+    list(APPEND BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE filesystem)
+endif()
+
 set(BOOST_INCLUDE_LIBRARIES
     ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE}
     coroutine2

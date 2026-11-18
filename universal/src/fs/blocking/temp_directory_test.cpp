@@ -1,9 +1,10 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 
+#include <filesystem>
+#include <stdexcept>
 #include <utility>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/fs/blocking/write.hpp>
 
@@ -20,9 +21,9 @@ TEST(TempDirectory, CreateDestroy) {
     {
         const auto dir = fs::blocking::TempDirectory::Create();
         path = dir.GetPath();
-        EXPECT_TRUE(boost::filesystem::exists(path));
+        EXPECT_TRUE(std::filesystem::exists(path));
     }
-    EXPECT_FALSE(boost::filesystem::exists(path));
+    EXPECT_FALSE(std::filesystem::exists(path));
 }
 
 TEST(TempDirectory, DestroysInStackUnwinding) {
@@ -33,7 +34,7 @@ TEST(TempDirectory, DestroysInStackUnwinding) {
         throw std::runtime_error("test");
     } catch (const std::runtime_error& ex) {
         EXPECT_EQ(ex.what(), std::string{"test"});
-        EXPECT_FALSE(boost::filesystem::exists(path));
+        EXPECT_FALSE(std::filesystem::exists(path));
         return;
     }
     FAIL();
@@ -42,9 +43,9 @@ TEST(TempDirectory, DestroysInStackUnwinding) {
 TEST(TempDirectory, Permissions) {
     const auto dir = fs::blocking::TempDirectory::Create();
 
-    const auto status = boost::filesystem::status(dir.GetPath());
-    EXPECT_EQ(status.type(), boost::filesystem::directory_file);
-    EXPECT_EQ(status.permissions(), boost::filesystem::perms::owner_all);
+    const auto status = std::filesystem::status(dir.GetPath());
+    EXPECT_EQ(status.type(), std::filesystem::file_type::directory);
+    EXPECT_EQ(status.permissions(), std::filesystem::perms::owner_all);
 }
 
 TEST(TempDirectory, EarlyRemove) {
@@ -55,7 +56,7 @@ TEST(TempDirectory, EarlyRemove) {
     fs::blocking::RewriteFileContents(path + "/file", "blah");
 
     EXPECT_NO_THROW(std::move(dir).Remove());
-    EXPECT_FALSE(boost::filesystem::exists(path));
+    EXPECT_FALSE(std::filesystem::exists(path));
 }
 
 TEST(TempDirectory, DoubleRemove) {
@@ -71,7 +72,7 @@ TEST(TempDirectory, CustomPath) {
 
     const auto child = fs::blocking::TempDirectory::Create(root + "/foo", "bar");
     EXPECT_TRUE(StartsWith(child.GetPath(), root + "/foo/bar"));
-    EXPECT_EQ(boost::filesystem::status(root + "/foo").permissions(), boost::filesystem::perms::owner_all);
+    EXPECT_EQ(std::filesystem::status(root + "/foo").permissions(), std::filesystem::perms::owner_all);
 }
 
 USERVER_NAMESPACE_END

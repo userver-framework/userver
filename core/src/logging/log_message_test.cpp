@@ -1,16 +1,17 @@
 #include <logging/log_message_test.hpp>
 
 #include <algorithm>
+#include <filesystem>
 #include <map>
 #include <numeric>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <boost/filesystem/path.hpp>
 
 #include <logging/logging_test.hpp>
 #include <logging/rate_limit.hpp>
@@ -496,7 +497,7 @@ TEST_F(LoggingTest, MapOverflow) {
     EXPECT_THAT(LoggedText(), testing::HasSubstr("1017: 1017, 1018: 1018, ...8981 more]"));
 }
 
-TEST_F(LoggingTest, FilesystemPath) { EXPECT_EQ(ToStringViaLogging(boost::filesystem::path("a/b/c")), R"("a/b/c")"); }
+TEST_F(LoggingTest, FilesystemPath) { EXPECT_EQ(ToStringViaLogging(std::filesystem::path("a/b/c")), R"("a/b/c")"); }
 
 TEST_F(LoggingTest, StringEscaping) {
     const std::vector<std::string> range{"", "A", "\"", "\\", "\n"};

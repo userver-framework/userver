@@ -241,7 +241,7 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
-    PRIVATE Boost::filesystem Boost::program_options OpenSSL::SSL OpenSSL::Crypto re2::re2
+    PRIVATE Boost::program_options OpenSSL::SSL OpenSSL::Crypto re2::re2
 )
 if(BOOST_CPM)
     # Boost from CPM
@@ -331,7 +331,7 @@ if(USERVER_BUILD_TESTS)
     target_link_libraries(
         ${PROJECT_NAME}-unittest
         PUBLIC ${PROJECT_NAME}
-        PRIVATE Boost::program_options ${PROJECT_NAME}-utest
+        PRIVATE Boost::filesystem Boost::program_options ${PROJECT_NAME}-utest
     )
     if(NOT USERVER_FEATURE_SIMD_BASE64)
         target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE USERVER_NO_SIMD_BASE64)

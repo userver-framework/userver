@@ -8,14 +8,14 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 #include <fmt/format.h>
-#include <boost/filesystem.hpp>
 #include <boost/pfr/core.hpp>
-#include <boost/system/error_code.hpp>
 
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
@@ -54,7 +54,7 @@ bool IsProcStatMatchesName(std::string_view data, std::string_view name) {
            data.substr(pos + 2, name.size()) == name && data[pos + 2 + name.size()] == ')';
 }
 
-bool IsAllDigits(const boost::filesystem::path& path) {
+bool IsAllDigits(const std::filesystem::path& path) {
     return std::ranges::all_of(path.native(), [](char c) { return c >= '0' && c <= '9'; });
 }
 
@@ -155,11 +155,11 @@ SystemStats GetSystemStatisticsByProcPath(std::string_view path) {
     }
 
     {
-        boost::system::error_code ec;
-        boost::filesystem::directory_iterator it{fmt::format("{}/fd", path), ec};
+        std::error_code ec;
+        std::filesystem::directory_iterator it{fmt::format("{}/fd", path), ec};
         if (!ec) {
             stats.open_files = 0;
-            while (!ec && it != boost::filesystem::directory_iterator{}) {
+            while (!ec && it != std::filesystem::directory_iterator{}) {
                 ++*stats.open_files;
                 it.increment(ec);
             }
@@ -176,20 +176,20 @@ SystemStats GetSystemStatisticsByProcPath(std::string_view path) {
 }
 
 SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
-    boost::system::error_code ec;
-    boost::filesystem::directory_iterator it("/proc", ec);
+    std::error_code ec;
+    std::filesystem::directory_iterator it("/proc", ec);
     if (ec) {
         LOG_LIMITED_DEBUG() << "Could not collect stats for " << name << ": " << ec.message();
         return {};
     }
 
     SystemStats cumulative;
-    for (; !ec && it != boost::filesystem::directory_iterator{}; it.increment(ec)) {
+    for (; !ec && it != std::filesystem::directory_iterator{}; it.increment(ec)) {
         const auto directory_entry_status = it->status(ec);
         if (ec) {
             continue;
         }
-        if (!boost::filesystem::is_directory(directory_entry_status)) {
+        if (!std::filesystem::is_directory(directory_entry_status)) {
             continue;
         }
         if (!IsAllDigits(it->path().filename())) {
@@ -206,7 +206,7 @@ SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
         auto exe_symlink = it->path() / "exe";
 
         if (IsProcStatMatchesName(stat_data, name) ||
-            boost::filesystem::read_symlink(exe_symlink, ec).filename().native() == name)
+            std::filesystem::read_symlink(exe_symlink, ec).filename().native() == name)
         {
             Merge(cumulative, GetSystemStatisticsByProcPath(it->path().native()));
         }
@@ -234,11 +234,11 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
     }
 
     {
-        boost::system::error_code ec;
-        boost::filesystem::directory_iterator it{"/dev/fd", ec};
+        std::error_code ec;
+        std::filesystem::directory_iterator it{"/dev/fd", ec};
         if (!ec) {
             stats.open_files = 0;
-            while (!ec && it != boost::filesystem::directory_iterator{}) {
+            while (!ec && it != std::filesystem::directory_iterator{}) {
                 ++*stats.open_files;
                 it.increment(ec);
             }

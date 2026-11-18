@@ -3,7 +3,12 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+#include <cstdlib>
+#include <optional>
+#include <stdexcept>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -14,7 +19,7 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #else
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #endif
 
 #include <gmock/gmock.h>
@@ -217,7 +222,7 @@ UTEST(Subprocess, CheckLogClosesFds) {
 
     std::string self(buf);
 #else
-    auto self = boost::filesystem::read_symlink("/proc/self/exe").native();
+    auto self = std::filesystem::read_symlink("/proc/self/exe").native();
 #endif
 
     auto future = starter.Exec(

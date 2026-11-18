@@ -1,7 +1,8 @@
 #include <userver/dump/dumper.hpp>
 
+#include <filesystem>
+
 #include <fmt/format.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/components/component.hpp>
 #include <userver/components/component_base.hpp>
@@ -419,7 +420,7 @@ void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,
     auto writer = dump_data.rw_factory->CreateWriter(dump_path, scope);
     dump_data.dumpable.GetAndWrite(*writer);
     writer->Finish();
-    const auto dump_size = boost::filesystem::file_size(dump_path);
+    const auto dump_size = std::filesystem::file_size(dump_path);
 
     LOG_INFO() << Name() << ": a new dump has been written at \"" << dump_path << '"';
 

@@ -1,6 +1,9 @@
 #include <userver/utest/utest.hpp>
 
-#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task.hpp>
@@ -11,7 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using perms = boost::filesystem::perms;
+using perms = std::filesystem::perms;
 
 UTEST(AsyncFs, RewriteFileContentsAtomically) {
     const auto file = fs::blocking::TempFile::Create();

@@ -3,10 +3,12 @@
 /// @file userver/fs/write.hpp
 /// @brief filesystem write functions
 
+#include <filesystem>
 #include <string>
+#include <string_view>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/fs/blocking/impl/permissions.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +23,15 @@ namespace fs {
 /// @param perms permissions to set for the created directories
 /// @throws std::runtime_error if there was an error while
 /// creating directories
-void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, boost::filesystem::perms perms);
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, std::filesystem::perms perms);
+
+/// @overload
+/// Accepts `boost::filesystem::perms`.
+/// @deprecated use the std::filesystem overload
+template <blocking::impl::LegacyPermissions Permissions>
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, Permissions perms) {
+    fs::CreateDirectories(async_tp, path, blocking::impl::ToStdPermissions(perms));
+}
 
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path);
 /// @}
@@ -60,20 +70,56 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source, const st
 /// @param path file path to rewrite
 /// @param contents new file contents
 /// @param perms new file permissions
+/// @param options how to apply permissions
 /// @throws std::runtime_error
 void RewriteFileContentsAtomically(
     engine::TaskProcessor& async_tp,
     const std::string& path,
     std::string_view contents,
-    boost::filesystem::perms perms
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options = std::filesystem::perm_options::replace
 );
 
+/// @overload
+/// Accepts `boost::filesystem::perms` with combined permission and operation flags.
+/// @deprecated use the std::filesystem overload
+template <blocking::impl::LegacyPermissions Permissions>
+void RewriteFileContentsAtomically(
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    std::string_view contents,
+    Permissions perms
+) {
+    fs::RewriteFileContentsAtomically(
+        async_tp,
+        path,
+        contents,
+        blocking::impl::ToStdPermissions(perms),
+        blocking::impl::ToStdPermOptions(perms)
+    );
+}
+
 /// @brief Change file mode
+/// @pre The path must not be a symlink.
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path file path to chmod
 /// @param perms new file permissions
+/// @param options how to apply permissions
 /// @throws std::runtime_error
-void Chmod(engine::TaskProcessor& async_tp, const std::string& path, boost::filesystem::perms perms);
+void Chmod(
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options = std::filesystem::perm_options::replace
+);
+
+/// @overload
+/// Accepts `boost::filesystem::perms` with combined permission and operation flags.
+/// @deprecated use the std::filesystem overload
+template <blocking::impl::LegacyPermissions Permissions>
+void Chmod(engine::TaskProcessor& async_tp, const std::string& path, Permissions perms) {
+    fs::Chmod(async_tp, path, blocking::impl::ToStdPermissions(perms), blocking::impl::ToStdPermOptions(perms));
+}
 
 /// @brief Remove existing file
 /// @param async_tp TaskProcessor for synchronous waiting

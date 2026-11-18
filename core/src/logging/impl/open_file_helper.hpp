@@ -1,9 +1,14 @@
 #pragma once
 
+#include <chrono>
+#include <filesystem>
+#include <stdexcept>
+#include <string>
+#include <system_error>
 #include <thread>
+#include <type_traits>
 
 #include <fmt/format.h>
-#include <boost/filesystem.hpp>
 
 #include <logging/impl/reopen_mode.hpp>
 #include <userver/engine/sleep.hpp>
@@ -36,17 +41,19 @@ T OpenFile(const std::string& filename, ReopenMode mode = ReopenMode::kAppend) {
 
     const auto flags = mode == ReopenMode::kTruncate ? kOpenFlagsTruncate : kOpenFlags;
 
-    namespace fs = boost::filesystem;
-    constexpr auto kFilePermissions = fs::owner_write | fs::owner_read | fs::group_read | fs::others_read;
+    namespace fs = std::filesystem;
+    constexpr auto kFilePermissions =
+        fs::perms::owner_write | fs::perms::owner_read | fs::perms::group_read | fs::perms::others_read;
     std::string error_message{};
 
     for (auto tries = 0; tries < kMaxTries; ++tries) {
         try {
-            boost::system::error_code error;
+            std::error_code error;
             fs::create_directories(fs::path(filename).parent_path());
             fs::permissions(
                 fs::path(filename).parent_path(),
-                fs::owner_all | fs::group_read | fs::group_exe | fs::others_read | fs::others_exe,
+                fs::perms::owner_all | fs::perms::group_read | fs::perms::group_exec | fs::perms::others_read |
+                    fs::perms::others_exec,
                 error
             );
             if constexpr (std::is_constructible_v<T, decltype(filename), decltype(flags), decltype(kFilePermissions)>) {

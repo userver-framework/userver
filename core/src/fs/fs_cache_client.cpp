@@ -3,9 +3,6 @@
 #include <exception>
 #include <filesystem>
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/operations.hpp>
-
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/logging/log.hpp>
@@ -38,7 +35,7 @@ namespace fs {
 namespace {
 
 bool IsFilepathHidden(const std::string& path) {
-    auto filename = boost::filesystem::path(path).filename().string();
+    auto filename = std::filesystem::path(path).filename().string();
     return filename[0] == '.';
 }
 
@@ -120,8 +117,8 @@ void FsCacheClient::HandleCreate(const std::string& path) {
 
     try {
         FileInfoWithData info{};
-        info.extension = boost::filesystem::path(path).extension().string();
-        const auto file_size = boost::filesystem::file_size(path);
+        info.extension = std::filesystem::path(path).extension().string();
+        const auto file_size = std::filesystem::file_size(path);
         if (file_size > max_size_to_cache_) {
             info.data_or_path = std::filesystem::absolute(std::filesystem::path{path});
         } else {
@@ -154,7 +151,7 @@ void FsCacheClient::HandleCreateDirectoryBlocking(engine::io::sys_linux::Inotify
         }
     );
 
-    for (auto it = boost::filesystem::directory_iterator(path); it != boost::filesystem::directory_iterator(); ++it) {
+    for (auto it = std::filesystem::directory_iterator(path); it != std::filesystem::directory_iterator(); ++it) {
         if (is_directory(it->status())) {
             HandleCreateDirectoryBlocking(inotify, path + '/' + it->path().filename().string());
         } else {

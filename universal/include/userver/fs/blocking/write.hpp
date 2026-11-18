@@ -4,9 +4,10 @@
 /// @brief Functions for synchronous (blocking) file write operations
 /// @ingroup userver_universal
 
+#include <filesystem>
 #include <string_view>
 
-#include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/fs/blocking/impl/permissions.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +20,15 @@ namespace fs::blocking {
 /// @param path directory to create
 /// @param perms new directory permissions, default=0755
 /// @throws std::runtime_error if an error occurred while creating directories
-void CreateDirectories(std::string_view path, boost::filesystem::perms perms);
+void CreateDirectories(std::string_view path, std::filesystem::perms perms);
+
+/// @overload
+/// Accepts `boost::filesystem::perms`.
+/// @deprecated use the std::filesystem overload
+template <impl::LegacyPermissions Permissions>
+void CreateDirectories(std::string_view path, Permissions perms) {
+    fs::blocking::CreateDirectories(path, impl::ToStdPermissions(perms));
+}
 
 /// @overload
 void CreateDirectories(std::string_view path);
@@ -69,14 +78,47 @@ void Rename(utils::zstring_view source, utils::zstring_view destination);
 /// @param path file path to rewrite
 /// @param contents new file contents
 /// @param perms new file permissions
+/// @param options how to apply permissions to the temporary file
 /// @throws std::runtime_error
-void RewriteFileContentsAtomically(utils::zstring_view path, std::string_view contents, boost::filesystem::perms perms);
+void RewriteFileContentsAtomically(
+    utils::zstring_view path,
+    std::string_view contents,
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options = std::filesystem::perm_options::replace
+);
+
+/// @overload
+/// Accepts `boost::filesystem::perms` with combined permission and operation flags.
+/// @deprecated use the std::filesystem overload
+template <impl::LegacyPermissions Permissions>
+void RewriteFileContentsAtomically(utils::zstring_view path, std::string_view contents, Permissions perms) {
+    fs::blocking::RewriteFileContentsAtomically(
+        path,
+        contents,
+        impl::ToStdPermissions(perms),
+        impl::ToStdPermOptions(perms)
+    );
+}
 
 /// @brief Change file mode synchronously
+/// @pre The path must not be a symlink.
 /// @param path file path to chmod
 /// @param perms new file permissions
+/// @param options whether to replace, add or remove permissions and whether to follow symlinks
 /// @throws std::runtime_error
-void Chmod(utils::zstring_view path, boost::filesystem::perms perms);
+void Chmod(
+    utils::zstring_view path,
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options = std::filesystem::perm_options::replace
+);
+
+/// @overload
+/// Accepts `boost::filesystem::perms` with combined permission and operation flags.
+/// @deprecated use the std::filesystem overload
+template <impl::LegacyPermissions Permissions>
+void Chmod(utils::zstring_view path, Permissions perms) {
+    fs::blocking::Chmod(path, impl::ToStdPermissions(perms), impl::ToStdPermOptions(perms));
+}
 
 /// @brief Remove existing file synchronously
 /// @param path file path to chmod

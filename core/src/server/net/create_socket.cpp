@@ -1,5 +1,6 @@
 #include "create_socket.hpp"
 
+#include <filesystem>
 #include <string>
 
 #include <fmt/format.h>
@@ -18,13 +19,13 @@ namespace server::net {
 
 namespace {
 
-engine::io::Socket CreateUnixSocket(const std::string& path, int backlog, boost::filesystem::perms perms) {
+engine::io::Socket CreateUnixSocket(const std::string& path, int backlog, std::filesystem::perms perms) {
     const auto addr = engine::io::Sockaddr::MakeUnixSocketAddress(path);
 
     /* Use blocking API here, it is not critical as CreateUnixSocket() is called
      * on startup only */
 
-    if (fs::blocking::GetFileType(path) == boost::filesystem::file_type::socket_file) {
+    if (fs::blocking::GetFileType(path) == std::filesystem::file_type::socket) {
         fs::blocking::RemoveSingleFile(path);
     }
 

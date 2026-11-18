@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
-
-#include <boost/filesystem/operations.hpp>
+#include <string>
+#include <vector>
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
@@ -20,7 +21,7 @@ namespace server::net {
 
 struct PortConfig {
     std::string unix_socket_path;
-    boost::filesystem::perms unix_socket_perms{static_cast<boost::filesystem::perms>(0600)};
+    std::filesystem::perms unix_socket_perms{static_cast<std::filesystem::perms>(0600)};
     uint16_t port = 0;
     std::string address = "::";
     std::optional<int> listen_socket_fd;

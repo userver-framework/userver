@@ -5,7 +5,6 @@
 #include <system_error>
 
 #include <fmt/format.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/utils/assert.hpp>
@@ -18,7 +17,7 @@ namespace fs::blocking {
 
 namespace {
 
-void CreateDirectory(const char* path, boost::filesystem::perms perms) {
+void CreateDirectory(const char* path, std::filesystem::perms perms) {
     if (::mkdir(path, static_cast<::mode_t>(perms)) == -1) {
         const auto code = errno;
         if (code != EEXIST) {
@@ -33,7 +32,7 @@ void CreateDirectory(const char* path, boost::filesystem::perms perms) {
 
 }  // namespace
 
-void CreateDirectories(std::string_view path, boost::filesystem::perms perms) {
+void CreateDirectories(std::string_view path, std::filesystem::perms perms) {
     UASSERT(!path.empty());
 
     std::string mutable_path;
@@ -52,9 +51,9 @@ void CreateDirectories(std::string_view path, boost::filesystem::perms perms) {
 }
 
 void CreateDirectories(std::string_view path) {
-    using boost::filesystem::perms;
+    using std::filesystem::perms;
     const auto
-        perms0755 = perms::owner_all | perms::group_read | perms::group_exe | perms::others_read | perms::others_exe;
+        perms0755 = perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
     CreateDirectories(path, perms0755);
 }
 
@@ -82,35 +81,37 @@ void SyncDirectoryContents(utils::zstring_view path) {
 }
 
 void Rename(utils::zstring_view source, utils::zstring_view destination) {
-    boost::filesystem::rename(source.c_str(), destination.c_str());
+    std::filesystem::rename(source.c_str(), destination.c_str());
 }
 
 void RewriteFileContentsAtomically(
     utils::zstring_view path,
     std::string_view contents,
-    boost::filesystem::perms perms
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options
 ) {
     const auto tmp_path = fmt::format("{}{}.tmp", path, utils::generators::GenerateBoostUuid());
-    const boost::filesystem::path boost_tmp_path{tmp_path};
-    const auto directory = boost_tmp_path.parent_path().string();
+    const std::filesystem::path filesystem_tmp_path{tmp_path};
+    const auto directory = filesystem_tmp_path.parent_path().string();
 
-    utils::FastScopeGuard guard{[&boost_tmp_path]() noexcept {
-        boost::system::error_code ignore_error;
-        boost::filesystem::remove(boost_tmp_path, ignore_error);
+    utils::FastScopeGuard guard{[&filesystem_tmp_path]() noexcept {
+        std::error_code ignore_error;
+        std::filesystem::remove(filesystem_tmp_path, ignore_error);
     }};
     fs::blocking::RewriteFileContentsFSync(tmp_path, contents);
-    fs::blocking::Chmod(tmp_path, perms);
+    fs::blocking::Chmod(tmp_path, perms, options);
     fs::blocking::Rename(tmp_path, path);
     guard.Release();
 
     fs::blocking::SyncDirectoryContents(directory);
 }
 
-void Chmod(utils::zstring_view path, boost::filesystem::perms perms) {
-    boost::filesystem::permissions(path.c_str(), perms);
+void Chmod(utils::zstring_view path, std::filesystem::perms perms, std::filesystem::perm_options options) {
+    UINVARIANT(!std::filesystem::is_symlink(path.c_str()), "Changing permissions on a symlink is ambiguous");
+    std::filesystem::permissions(path.c_str(), perms, options);
 }
 
-bool RemoveSingleFile(utils::zstring_view path) { return boost::filesystem::remove(path.c_str()); }
+bool RemoveSingleFile(utils::zstring_view path) { return std::filesystem::remove(path.c_str()); }
 
 }  // namespace fs::blocking
 

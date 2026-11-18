@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <stdexcept>
+#include <system_error>
 #include <utility>
 
 #include <fmt/format.h>
@@ -18,17 +20,27 @@ namespace {
 constexpr std::size_t kCheckTimeAfterBytes{1 << 15};
 }
 
-FileWriter::FileWriter(std::string path, boost::filesystem::perms perms, tracing::ScopeTime& scope)
+FileWriter::FileWriter(
+    std::string path,
+    std::filesystem::perms perms,
+    tracing::ScopeTime& scope,
+    std::filesystem::perm_options options
+)
     : final_path_(std::move(path)),
       path_(final_path_ + ".tmp"),
       perms_(perms),
+      options_(options),
       cpu_relax_(kCheckTimeAfterBytes, &scope)
 {
     constexpr fs::blocking::OpenMode mode{fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
-    const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
+    auto initial_perms = perms_;
+    if ((options_ & std::filesystem::perm_options::remove) == std::filesystem::perm_options::remove) {
+        initial_perms = std::filesystem::perms::owner_read | std::filesystem::perms::owner_write;
+    }
 
     try {
-        file_ = fs::blocking::CFile{path_, mode, tmp_perms};
+        // Exclusive creation returns a writable descriptor even for read-only permissions.
+        file_ = fs::blocking::CFile{path_, mode, initial_perms};
     } catch (const std::exception& ex) {
         throw Error(fmt::format("Failed to open the dump file for write \"{}\": {}", path_, ex.what()));
     }
@@ -50,7 +62,7 @@ void FileWriter::Finish() {
         // but truncated.
         file_.Flush();
         std::move(file_).Close();
-        fs::blocking::Chmod(path_, perms_);  // drop perms::owner_write
+        fs::blocking::Chmod(path_, perms_, options_);
         fs::blocking::Rename(path_, final_path_);
     } catch (const std::exception& ex) {
         throw Error(fmt::format("Failed to finalize dump \"{}\". Reason: {}", path_, ex.what()));
@@ -124,8 +136,9 @@ void FileReader::Finish() {
     }
 }
 
-FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms)
-    : perms_(perms)
+FileOperationsFactory::FileOperationsFactory(std::filesystem::perms perms, std::filesystem::perm_options options)
+    : perms_(perms),
+      options_(options)
 {}
 
 std::unique_ptr<Reader> FileOperationsFactory::CreateReader(std::string full_path) {
@@ -133,7 +146,7 @@ std::unique_ptr<Reader> FileOperationsFactory::CreateReader(std::string full_pat
 }
 
 std::unique_ptr<Writer> FileOperationsFactory::CreateWriter(std::string full_path, tracing::ScopeTime& scope) {
-    return std::make_unique<FileWriter>(std::move(full_path), perms_, scope);
+    return std::make_unique<FileWriter>(std::move(full_path), perms_, scope, options_);
 }
 
 }  // namespace dump

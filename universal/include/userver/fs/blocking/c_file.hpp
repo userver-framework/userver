@@ -5,10 +5,11 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <span>
 #include <string_view>
 
-#include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/fs/blocking/impl/permissions.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 #include <userver/fs/blocking/open_mode.hpp>
@@ -37,8 +38,16 @@ public:
     CFile(
         utils::zstring_view path,
         OpenMode flags,
-        boost::filesystem::perms perms = boost::filesystem::perms::owner_read | boost::filesystem::perms::owner_write
+        std::filesystem::perms perms = std::filesystem::perms::owner_read | std::filesystem::perms::owner_write
     );
+
+    /// @overload
+    /// Accepts `boost::filesystem::perms`.
+    /// @deprecated use the std::filesystem overload
+    template <impl::LegacyPermissions Permissions>
+    CFile(utils::zstring_view path, OpenMode flags, Permissions perms)
+        : fs::blocking::CFile(path, flags, impl::ToStdPermissions(perms))
+    {}
 
     /// @brief Adopt the `std::FILE*` directly
     explicit CFile(std::FILE* file) noexcept;

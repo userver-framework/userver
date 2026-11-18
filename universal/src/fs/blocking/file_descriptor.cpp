@@ -10,8 +10,6 @@
 #include <system_error>
 #include <utility>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/iovec_advance.hpp>
@@ -85,9 +83,13 @@ FileDescriptor::FileDescriptor(int fd)
     UASSERT(fd != kNoFd);
 }
 
-FileDescriptor FileDescriptor::Open(utils::zstring_view path, OpenMode flags, boost::filesystem::perms perms) {
+FileDescriptor FileDescriptor::Open(utils::zstring_view path, OpenMode flags, std::filesystem::perms perms) {
     UASSERT(!path.empty());
-    const auto fd = utils::CheckSyscall(::open(path.c_str(), ToNative(flags), perms), "opening file '{}'", path);
+    const auto fd = utils::CheckSyscall(
+        ::open(path.c_str(), ToNative(flags), static_cast<::mode_t>(perms)),
+        "opening file '{}'",
+        path
+    );
     return FileDescriptor{fd};
 }
 

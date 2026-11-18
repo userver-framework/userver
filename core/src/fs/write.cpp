@@ -2,8 +2,6 @@
 
 #include <fmt/format.h>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/write.hpp>
 
@@ -11,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs {
 
-void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, boost::filesystem::perms perms) {
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, std::filesystem::perms perms) {
     engine::AsyncNoTracing(async_tp, [path, perms] { fs::blocking::CreateDirectories(path, perms); }).Get();
 }
 
@@ -36,17 +34,25 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source, const st
     engine::AsyncNoTracing(async_tp, &fs::blocking::Rename, source, destination).Get();
 }
 
-void Chmod(engine::TaskProcessor& async_tp, const std::string& path, boost::filesystem::perms perms) {
-    engine::AsyncNoTracing(async_tp, &fs::blocking::Chmod, path, perms).Get();
+void Chmod(
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options
+) {
+    engine::AsyncNoTracing(async_tp, [&path, perms, options] { fs::blocking::Chmod(path, perms, options); }).Get();
 }
 
 void RewriteFileContentsAtomically(
     engine::TaskProcessor& async_tp,
     const std::string& path,
     std::string_view contents,
-    boost::filesystem::perms perms
+    std::filesystem::perms perms,
+    std::filesystem::perm_options options
 ) {
-    engine::AsyncNoTracing(async_tp, &fs::blocking::RewriteFileContentsAtomically, path, contents, perms).Get();
+    engine::AsyncNoTracing(async_tp, [&path, contents, perms, options] {
+        fs::blocking::RewriteFileContentsAtomically(path, contents, perms, options);
+    }).Get();
 }
 
 bool RemoveSingleFile(engine::TaskProcessor& async_tp, const std::string& path) {

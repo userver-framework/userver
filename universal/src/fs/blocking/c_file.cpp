@@ -63,7 +63,7 @@ CFile::CFile(std::FILE* file) noexcept {
     impl_->handle.reset(file);
 }
 
-CFile::CFile(utils::zstring_view path, OpenMode flags, boost::filesystem::perms perms) {
+CFile::CFile(utils::zstring_view path, OpenMode flags, std::filesystem::perms perms) {
     auto fd = FileDescriptor::Open(path, flags, perms);
     impl_->handle
         .reset(utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen"));

@@ -2,6 +2,8 @@
 
 /// @brief Utilities for testing logic working with SQLite.
 
+#include <filesystem>
+
 #include <gtest/gtest.h>
 
 #include <userver/engine/task/task_base.hpp>
@@ -32,7 +34,7 @@ class SQLiteFixture : public ::testing::Test {
 protected:
     void SetUp() override {
         test_dir_ = fs::blocking::TempDirectory::Create();
-        fs::blocking::Chmod(test_dir_.GetPath(), boost::filesystem::perms::all_all);
+        fs::blocking::Chmod(test_dir_.GetPath(), std::filesystem::perms::all);
     }
 
     void TearDown() override {}

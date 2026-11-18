@@ -1,8 +1,7 @@
 #include <dump/dump_locator.hpp>
 
+#include <filesystem>
 #include <set>
-
-#include <boost/filesystem/operations.hpp>
 
 #include <dump/internal_helpers_test.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -58,7 +57,7 @@ void InsertAll(Container& destination, Range&& source) {
     destination.insert(std::begin(source), std::end(source));
 }
 
-std::string Filename(const std::string& full_path) { return boost::filesystem::path{full_path}.filename().string(); }
+std::string Filename(const std::string& full_path) { return std::filesystem::path{full_path}.filename().string(); }
 
 constexpr std::string_view kDumperName = "name";
 

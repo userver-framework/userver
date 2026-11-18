@@ -1,8 +1,13 @@
 #include <userver/utest/current_process_open_files.hpp>
 
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
+#include <system_error>
+
 #include <fmt/format.h>
 #include <sys/param.h>
-#include <boost/filesystem.hpp>
+#include <unistd.h>
 
 #if defined(__APPLE__)
 #include <libproc.h>
@@ -55,15 +60,15 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 #else
 
 #ifdef BSD
-    const boost::filesystem::path open_files_dir = "/dev/fd";
+    const std::filesystem::path open_files_dir = "/dev/fd";
 #else
-    const boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
+    const std::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
 #endif
-    boost::filesystem::directory_iterator it{open_files_dir};
-    const boost::filesystem::directory_iterator end;
+    std::filesystem::directory_iterator it{open_files_dir};
+    const std::filesystem::directory_iterator end;
     for (; it != end; ++it) {
-        boost::system::error_code err;
-        const auto path = boost::filesystem::read_symlink(it->path(), err);
+        std::error_code err;
+        const auto path = std::filesystem::read_symlink(it->path(), err);
         if (!err) {
             result.push_back(path.string());
         }

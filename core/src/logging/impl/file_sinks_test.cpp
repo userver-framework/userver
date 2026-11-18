@@ -1,8 +1,7 @@
 #include "file_sink.hpp"
 
+#include <filesystem>
 #include <functional>
-
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
@@ -62,34 +61,34 @@ UTEST_P(FileSinks, TestCreateFileMultiDir) {
 UTEST_P(FileSinks, TestWriteInFile) { EXPECT_NO_THROW(Sink().Log("message\n")); }
 
 UTEST_P(FileSinks, CheckPermissionsFile) {
-    const auto stat = boost::filesystem::status(Filename());
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::owner_read);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::owner_write);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::owner_exe);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::group_read);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::group_write);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::group_exe);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::others_read);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::others_write);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::others_exe);
+    const auto stat = std::filesystem::status(Filename());
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::owner_read) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::owner_write) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::owner_exec) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::group_read) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::group_write) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::group_exec) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::others_read) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::others_write) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::others_exec) != std::filesystem::perms::none);
 }
 
 UTEST_P(FileSinks, CheckPermissionsDir) {
     const auto subdir_filename = GetTempRootPath() + "/dir/temp_file";
     const auto subdir_sink = GetParam().sink_factory(subdir_filename);
     EXPECT_EQ(test::ReadFromFile(subdir_filename), test::Messages());
-    const auto path = boost::filesystem::path(subdir_filename).parent_path();
+    const auto path = std::filesystem::path(subdir_filename).parent_path();
 
-    const auto stat = boost::filesystem::status(path);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::owner_read);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::owner_write);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::owner_exe);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::group_read);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::group_write);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::group_exe);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::others_read);
-    ASSERT_FALSE(stat.permissions() & boost::filesystem::others_write);
-    ASSERT_TRUE(stat.permissions() & boost::filesystem::others_exe);
+    const auto stat = std::filesystem::status(path);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::owner_read) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::owner_write) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::owner_exec) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::group_read) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::group_write) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::group_exec) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::others_read) != std::filesystem::perms::none);
+    ASSERT_FALSE((stat.permissions() & std::filesystem::perms::others_write) != std::filesystem::perms::none);
+    ASSERT_TRUE((stat.permissions() & std::filesystem::perms::others_exec) != std::filesystem::perms::none);
 }
 
 UTEST_P(FileSinks, TestValidWriteInFile) { LogSingleMessageAndCheck(); }

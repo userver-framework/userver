@@ -1,7 +1,9 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <cstdlib>
+#include <filesystem>
+
 #include <fmt/format.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/json/raw_string.hpp>
@@ -83,7 +85,7 @@ std::optional<formats::yaml::Value> GetFromFileImpl(const formats::yaml::Value& 
 
     AssertFileMode(mode);
     const auto str_filename = file_name.As<std::string>();
-    if (!boost::filesystem::exists(str_filename)) {
+    if (!std::filesystem::exists(str_filename)) {
         return {};
     }
     return formats::yaml::blocking::FromFile(str_filename);

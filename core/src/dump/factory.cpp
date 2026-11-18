@@ -1,5 +1,7 @@
 #include <userver/dump/factory.hpp>
 
+#include <filesystem>
+
 #include <dump/secdist.hpp>
 #include <userver/dump/operations_encrypted.hpp>
 #include <userver/dump/operations_file.hpp>
@@ -11,8 +13,8 @@ namespace dump {
 
 namespace {
 
-boost::filesystem::perms GetPerms(const Config& config) {
-    using boost::filesystem::perms;
+std::filesystem::perms GetPerms(const Config& config) {
+    using std::filesystem::perms;
     if (config.world_readable) {
         return perms::owner_read | perms::group_read | perms::others_read;
     } else {
