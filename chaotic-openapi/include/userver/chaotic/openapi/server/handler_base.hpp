@@ -16,6 +16,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/handlers/formatted_error_data.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
@@ -57,7 +58,67 @@ concept ViewHasGetResponseForLogging =
         } -> std::convertible_to<std::string>;
     };
 
+// A View member named like a hook, whatever its signature; overload sets are not detected
+template <typename V>
+concept ViewDeclaresGetRequestBodyForLogging = requires { &V::GetRequestBodyForLogging; };
+
+template <typename V>
+concept ViewDeclaresGetInvalidRequestBodyForLogging = requires { &V::GetInvalidRequestBodyForLogging; };
+
+template <typename V>
+concept ViewDeclaresGetResponseForLogging = requires { &V::GetResponseForLogging; };
+
+template <typename P>
+concept HandlerPolicy = requires(
+    const USERVER_NAMESPACE::server::http::HttpRequest& request,
+    USERVER_NAMESPACE::server::request::RequestContext& context,
+    const std::string& data,
+    const USERVER_NAMESPACE::server::handlers::CustomHandlerException& exc
+) {
+    {
+        P::GetRequestBodyForLogging(request, context, data)
+    } -> std::same_as<std::optional<std::string>>;
+    {
+        P::GetResponseDataForLogging(request, context, data)
+    } -> std::same_as<std::optional<std::string>>;
+    {
+        P::GetFormattedExternalErrorBody(exc)
+    } -> std::same_as<std::optional<USERVER_NAMESPACE::server::handlers::FormattedErrorData>>;
+};
+
 }  // namespace impl
+
+/// @brief Project-wide behaviour of generated handlers, named once per handlers target.
+///
+/// A policy derives from DefaultHandlerPolicy and redefines the hooks it needs. Each hook
+/// returns `std::nullopt` to fall back to the userver default. A View's own logging hooks
+/// take precedence over the policy.
+struct DefaultHandlerPolicy {
+    /// Request body as written to the logs
+    static std::optional<std::string> GetRequestBodyForLogging(
+        const USERVER_NAMESPACE::server::http::HttpRequest& /*request*/,
+        USERVER_NAMESPACE::server::request::RequestContext& /*context*/,
+        const std::string& /*request_body*/
+    ) {
+        return std::nullopt;
+    }
+
+    /// Response body as written to the logs
+    static std::optional<std::string> GetResponseDataForLogging(
+        const USERVER_NAMESPACE::server::http::HttpRequest& /*request*/,
+        USERVER_NAMESPACE::server::request::RequestContext& /*context*/,
+        const std::string& /*response_data*/
+    ) {
+        return std::nullopt;
+    }
+
+    /// Body of an error response the operation does not declare
+    static std::optional<USERVER_NAMESPACE::server::handlers::FormattedErrorData> GetFormattedExternalErrorBody(
+        const USERVER_NAMESPACE::server::handlers::CustomHandlerException& /*exc*/
+    ) {
+        return std::nullopt;
+    }
+};
 
 /// @brief Base class for generated HTTP handlers.
 ///
@@ -68,6 +129,7 @@ concept ViewHasGetResponseForLogging =
 /// @tparam Request    Parsed request type for this operation.
 /// @tparam Response   Response variant type for this operation.
 /// @tparam HandlerTag Unique tag type for dependency injection keying.
+/// @tparam Policy     Project-wide logging and error rendering, see DefaultHandlerPolicy.
 ///
 /// The generated `Handler` subclass implements `Handle()`.
 template <
@@ -77,7 +139,8 @@ template <
     typename Response,
     typename HandlerTag,
     typename View,
-    typename HiddenArguments = void>
+    typename HiddenArguments = void,
+    typename Policy = DefaultHandlerPolicy>
 class BaseHandler final : public USERVER_NAMESPACE::server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = Name;
@@ -118,6 +181,40 @@ public:
         return std::nullopt;
     }
 
+    /// @brief Request body log string of the View or the Policy, or std::nullopt
+    /// for the default HttpHandlerBase behaviour.
+    static std::optional<std::string> RequestBodyForLogging(
+        const USERVER_NAMESPACE::server::http::HttpRequest& request,
+        USERVER_NAMESPACE::server::request::RequestContext& context,
+        const std::string& request_body
+    ) {
+        try {
+            if (auto result = TryGetBodyForLogging(request, request_body)) {
+                return result;
+            }
+        } catch (...) {
+            if constexpr (impl::ViewHasGetInvalidRequestBodyForLogging<View>) {
+                return View::GetInvalidRequestBodyForLogging(request);
+            }
+        }
+        return Policy::GetRequestBodyForLogging(request, context, request_body);
+    }
+
+    /// @brief Response body log string of the View or the Policy, or std::nullopt
+    /// for the default HttpHandlerBase behaviour.
+    static std::optional<std::string> ResponseDataForLogging(
+        const USERVER_NAMESPACE::server::http::HttpRequest& request,
+        USERVER_NAMESPACE::server::request::RequestContext& context,
+        const std::string& response_data
+    ) {
+        if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
+            if (auto* s = context.GetDataOptional(impl::kResponseLog)) {
+                return *s;
+            }
+        }
+        return Policy::GetResponseDataForLogging(request, context, response_data);
+    }
+
     BaseHandler(
         const USERVER_NAMESPACE::components::ComponentConfig& config,
         const USERVER_NAMESPACE::components::ComponentContext& context
@@ -143,6 +240,29 @@ private:
         !impl::ViewHasGetInvalidRequestBodyForLogging<View> || impl::ViewHasGetRequestBodyForLoggingJson<View>,
         "View::GetInvalidRequestBodyForLogging requires "
         "View::GetRequestBodyForLogging(const formats::json::Value&)."
+    );
+    static_assert(
+        !impl::ViewDeclaresGetRequestBodyForLogging<View> || impl::ViewHasGetRequestBodyForLoggingJson<View> ||
+            impl::ViewHasGetRequestBodyForLoggingString<View>,
+        "View::GetRequestBodyForLogging matches no supported signature: "
+        "static std::string GetRequestBodyForLogging(const formats::json::Value& body) (JSON body) or "
+        "static std::string GetRequestBodyForLogging(const std::string& body) (other body)."
+    );
+    static_assert(
+        !impl::ViewDeclaresGetInvalidRequestBodyForLogging<View> || impl::ViewHasGetInvalidRequestBodyForLogging<View>,
+        "View::GetInvalidRequestBodyForLogging matches no supported signature: "
+        "static std::string GetInvalidRequestBodyForLogging(const server::http::HttpRequest& request)."
+    );
+    static_assert(
+        !impl::ViewDeclaresGetResponseForLogging<View> || impl::ViewHasGetResponseForLogging<View, Response>,
+        "View::GetResponseForLogging matches no supported signature: "
+        "static std::string GetResponseForLogging(const Response& response, const std::string& serialized_response, "
+        "server::request::RequestContext& context)."
+    );
+    static_assert(
+        impl::HandlerPolicy<Policy>,
+        "Policy must provide the hooks of chaotic::openapi::server::DefaultHandlerPolicy with the same signatures, "
+        "derive it from DefaultHandlerPolicy."
     );
     static_assert(
         requires(Request&& r, Deps&& d, USERVER_NAMESPACE::server::request::RequestContext& ctx) {
@@ -224,14 +344,8 @@ private:
         USERVER_NAMESPACE::server::request::RequestContext& context,
         const std::string& request_body
     ) const override {
-        try {
-            if (auto result = TryGetBodyForLogging(request, request_body)) {
-                return std::move(*result);
-            }
-        } catch (...) {
-            if constexpr (impl::ViewHasGetInvalidRequestBodyForLogging<View>) {
-                return View::GetInvalidRequestBodyForLogging(request);
-            }
+        if (auto result = RequestBodyForLogging(request, context, request_body)) {
+            return std::move(*result);
         }
         return USERVER_NAMESPACE::server::handlers::HttpHandlerBase::GetRequestBodyForLogging(
             request,
@@ -245,16 +359,23 @@ private:
         USERVER_NAMESPACE::server::request::RequestContext& context,
         const std::string& response_data
     ) const override {
-        if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
-            if (auto* s = context.GetDataOptional(impl::kResponseLog)) {
-                return *s;
-            }
+        if (auto result = ResponseDataForLogging(request, context, response_data)) {
+            return std::move(*result);
         }
         return USERVER_NAMESPACE::server::handlers::HttpHandlerBase::GetResponseDataForLogging(
             request,
             context,
             response_data
         );
+    }
+
+    USERVER_NAMESPACE::server::handlers::FormattedErrorData GetFormattedExternalErrorBody(
+        const USERVER_NAMESPACE::server::handlers::CustomHandlerException& exc
+    ) const override {
+        if (auto result = Policy::GetFormattedExternalErrorBody(exc)) {
+            return std::move(*result);
+        }
+        return USERVER_NAMESPACE::server::handlers::HttpHandlerBase::GetFormattedExternalErrorBody(exc);
     }
 
     FactoriesContainer& factories_;

@@ -135,6 +135,41 @@ See @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md for a database
 Digest auth checker. The `chaotic_openapi_service` sample contains a complete in-memory example.
 
 
+### Handler policy {#chaotic_handler_policy}
+
+How a handler logs request and response bodies and renders the errors its operation does not declare may be set
+per handler or for a whole list of handlers, at the point the handlers are registered. A policy is a type deriving
+from `chaotic::openapi::server::DefaultHandlerPolicy` that redefines the hooks it needs; each hook returns
+`std::nullopt` to keep the userver default:
+
+@snippet samples/chaotic_openapi_service/src/handler_policy.hpp handler policy
+
+| Hook | Used for |
+|---|---|
+| `GetRequestBodyForLogging(request, context, request_body)` | The request body written to the logs. |
+| `GetResponseDataForLogging(request, context, response_data)` | The response body written to the logs. |
+| `GetFormattedExternalErrorBody(exc)` | The body of an error the operation does not declare: a request that fails to parse, a `server::handlers::CustomHandlerException` or any other exception escaping the view. Declared error responses are serialized as declared. |
+
+Every generated operation provides `HandlerFor<Policy>` beside `Handler`, which is `HandlerFor<>` without a policy,
+and the generated `ChaoticHandlersList<Policy>()` applies a policy to all the handlers of the list:
+
+@snippet samples/chaotic_openapi_service/main.cpp register-handlers
+
+To use different policies, append the handlers one by one:
+
+```cpp
+component_list
+    .Append<handlers::insecure::callsecretget::HandlerFor<LoudPolicy>>()
+    .Append<handlers::insecure::insecuresecretpost::HandlerFor<RedactingPolicy>>();
+```
+
+A View's own `GetRequestBodyForLogging`, `GetInvalidRequestBodyForLogging` and `GetResponseForLogging` take precedence
+over the policy, the policy over the userver default. Handlers registered without a policy behave exactly as before.
+
+A policy hook with a wrong signature does not compile, and neither does a View hook whose signature matches none of
+the supported ones: a mistyped hook is reported instead of being silently ignored.
+
+
 ### Direct CLI reference
 
 `chaotic-openapi-gen` is the underlying executable. Handler-relevant flags:
