@@ -34,6 +34,22 @@ static_assert(std::is_aggregate_v<SmolDependencies>);
 
 }  // namespace sample
 
+struct WideDependencies {
+    int a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q;
+    USERVER_ALLOW_CONVERSIONS_TO_SUBSET();
+};
+
+USERVER_DEFINE_STRUCT_SUBSET(WideSubset, WideDependencies, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q);
+
+TEST(DefineStructSubset, FieldsAcrossBlockBoundary) {
+    WideDependencies deps{};
+    deps.p = 16;
+    deps.q = 17;
+    const WideSubset subset = deps;
+    EXPECT_EQ(subset.p, 16);
+    EXPECT_EQ(subset.q, 17);
+}
+
 TEST(DefineStructSubset, Sample) {
     using sample::Dependencies, sample::SmolDependencies;
 

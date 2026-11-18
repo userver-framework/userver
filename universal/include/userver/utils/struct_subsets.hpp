@@ -7,11 +7,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <boost/preprocessor/empty.hpp>
-#include <boost/preprocessor/seq/for_each.hpp>
-
 #include <userver/utils/forward_like.hpp>
-#include <userver/utils/impl/boost_variadic_to_seq.hpp>
+#include <userver/utils/impl/for_each_field.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,28 +52,24 @@ USERVER_NAMESPACE_END
 /// @cond
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_MAP(r, data, elem) \
-    USERVER_NAMESPACE::utils::impl::ForwardLikeExplicit<OtherDeps, decltype(other.elem)>(other.elem),
+#define USERVER_IMPL_STRUCT_MAP(source, elem) \
+    USERVER_NAMESPACE::utils::impl::ForwardLikeExplicit<OtherDeps, decltype(source.elem)>(source.elem),
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                                                     \
     template <typename OtherDeps>                                                                      \
     static Self MakeFromSupersetImpl(OtherDeps&& other, USERVER_NAMESPACE::utils::impl::InternalTag) { \
-        return {BOOST_PP_SEQ_FOR_EACH(                                                                 \
-            USERVER_IMPL_STRUCT_MAP,                                                                   \
-            BOOST_PP_EMPTY(),                                                                          \
-            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                                                  \
-        )};                                                                                            \
+        return {USERVER_IMPL_FOR_EACH_FIELD(USERVER_IMPL_STRUCT_MAP, other, __VA_ARGS__)};             \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_SUBSET_MAP(r, data, elem) \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */  \
+#define USERVER_IMPL_STRUCT_SUBSET_MAP(data, elem)   \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */ \
     decltype(data::elem) elem;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_SUBSET_REF_MAP(r, data, elem) \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */      \
+#define USERVER_IMPL_STRUCT_SUBSET_REF_MAP(data, elem) \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */   \
     std::add_const_t<decltype(data::elem)>& elem;
 
 /// @endcond
@@ -120,17 +113,13 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_DEFINE_STRUCT_SUBSET(SubsetStruct, OriginalStruct, ...) \
-    struct SubsetStruct {                                               \
-        BOOST_PP_SEQ_FOR_EACH(                                          \
-            USERVER_IMPL_STRUCT_SUBSET_MAP,                             \
-            OriginalStruct,                                             \
-            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                   \
-        )                                                               \
-                                                                        \
-        USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStruct, __VA_ARGS__)      \
-                                                                        \
-        USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                          \
+#define USERVER_DEFINE_STRUCT_SUBSET(SubsetStruct, OriginalStruct, ...)                          \
+    struct SubsetStruct {                                                                        \
+        USERVER_IMPL_FOR_EACH_FIELD(USERVER_IMPL_STRUCT_SUBSET_MAP, OriginalStruct, __VA_ARGS__) \
+                                                                                                 \
+        USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStruct, __VA_ARGS__)                               \
+                                                                                                 \
+        USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                                                   \
     }
 
 /// @brief Defines a struct containing a subset of data members
@@ -161,11 +150,7 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_DEFINE_STRUCT_SUBSET_REF(SubsetStructRef, OriginalStruct, ...)                                       \
     struct SubsetStructRef {                                                                                         \
-        BOOST_PP_SEQ_FOR_EACH(                                                                                       \
-            USERVER_IMPL_STRUCT_SUBSET_REF_MAP,                                                                      \
-            OriginalStruct,                                                                                          \
-            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                                                                \
-        )                                                                                                            \
+        USERVER_IMPL_FOR_EACH_FIELD(USERVER_IMPL_STRUCT_SUBSET_REF_MAP, OriginalStruct, __VA_ARGS__)                 \
                                                                                                                      \
         /* Protects against copying into async functions */                                                          \
         USERVER_NAMESPACE::utils::impl::NonMovable _impl_non_movable{USERVER_NAMESPACE::utils::impl::InternalTag{}}; \

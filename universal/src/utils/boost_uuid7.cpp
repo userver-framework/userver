@@ -1,16 +1,13 @@
 #include <userver/utils/boost_uuid7.hpp>
 
 #include <chrono>
-#include <limits>
+#include <span>
 #include <stdexcept>
-
-#include <boost/random/uniform_int.hpp>
-#include <boost/random/variate_generator.hpp>
 
 #include <userver/compiler/thread_local.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
-#include <userver/utils/rand.hpp>
-#include <userver/utils/span.hpp>
+
+#include <utils/impl/uuid_random.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,14 +17,6 @@ namespace {
 /// https://commitfest.postgresql.org/43/4388/
 class UuidV7Generator {
 public:
-    UuidV7Generator(utils::RandomBase& rng)
-        : random_generator_(
-              &rng,
-              boost::uniform_int<
-                  std::uint64_t>(std::numeric_limits<std::uint64_t>::min(), std::numeric_limits<std::uint64_t>::max())
-          )
-    {}
-
     boost::uuids::uuid operator()() {
         boost::uuids::uuid uuid{};
         auto current_timestamp = CurrentUnixTimestamp();
@@ -49,7 +38,7 @@ public:
             current_timestamp = previous_timestamp_;
 
             // Fill var and rand_b with random data
-            GenerateRandomBlock(utils::span<std::uint8_t>(uuid.begin(), uuid.end()).subspan(8));
+            utils::impl::FillUuidRandomBytes(std::span{uuid.begin(), uuid.end()}.subspan(8));
 
             // Fill rand_a and rand_b with counter data
 
@@ -63,7 +52,7 @@ public:
             uuid.data[9] = (uuid.data[9] & 0xF) | static_cast<std::uint8_t>(sequence_counter_ << 4);
         } else {
             // fill ver, rand_a, var and rand_b with random data
-            GenerateRandomBlock(utils::span<std::uint8_t>(uuid.begin(), uuid.end()).subspan(6));
+            utils::impl::FillUuidRandomBytes(std::span{uuid.begin(), uuid.end()}.subspan(6));
 
             // Keep most significant bit of a counter initialized as zero
             // for guarding against counter rollover.
@@ -99,34 +88,17 @@ public:
 private:
     static constexpr std::uint32_t kMaxSequenceCounterValue = 0x3FFFFF;
 
-    void GenerateRandomBlock(utils::span<std::uint8_t> block) {
-        int i = 0;
-        std::uint64_t random_value = random_generator_();
-
-        for (auto it = block.begin(), end = block.end(); it != end; ++it, ++i) {
-            if (i == sizeof(std::uint64_t)) {
-                random_value = random_generator_();
-                i = 0;
-            }
-
-            *it = static_cast<std::uint8_t>((random_value >> (i * 8)) & 0xFF);
-        }
-    }
-
     static std::uint64_t CurrentUnixTimestamp() {
         return std::chrono::duration_cast<
                    std::chrono::milliseconds>(utils::datetime::WallCoarseClock::now().time_since_epoch())
             .count();
     }
 
-    boost::random::variate_generator<utils::RandomBase*, boost::uniform_int<std::uint64_t>> random_generator_;
     std::uint32_t sequence_counter_{0};
     std::uint64_t previous_timestamp_{0};
 };
 
-compiler::ThreadLocal local_uuid_v7_generator = [] {
-    return utils::WithDefaultRandom([](utils::RandomBase& rng) { return UuidV7Generator(rng); });
-};
+compiler::ThreadLocal local_uuid_v7_generator = [] { return UuidV7Generator{}; };
 
 }  // namespace
 

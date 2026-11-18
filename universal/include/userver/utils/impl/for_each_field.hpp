@@ -1,0 +1,52 @@
+#pragma once
+
+/// @cond
+
+// Append 16 empty fields so even a partial block has a 17th argument to check.
+#define USERVER_IMPL_FOR_EACH_FIELD(action, data, ...) \
+    __VA_OPT__(USERVER_IMPL_FIELDS_1(action, data, __VA_ARGS__, USERVER_IMPL_FIELDS_PADDING))
+#define USERVER_IMPL_FIELDS_PADDING , , , , , , , , , , , , , , ,
+
+#define USERVER_IMPL_FIELD_EMIT(action, data, ...) __VA_OPT__(action(data, __VA_ARGS__))
+
+// Emit this block once, then select the next block if there is another field.
+// clang-format off
+#define USERVER_IMPL_FIELDS_BLOCK(number, action, data, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, next, ...) \
+    USERVER_IMPL_FIELD_EMIT(action, data, a) USERVER_IMPL_FIELD_EMIT(action, data, b) \
+    USERVER_IMPL_FIELD_EMIT(action, data, c) USERVER_IMPL_FIELD_EMIT(action, data, d) \
+    USERVER_IMPL_FIELD_EMIT(action, data, e) USERVER_IMPL_FIELD_EMIT(action, data, f) \
+    USERVER_IMPL_FIELD_EMIT(action, data, g) USERVER_IMPL_FIELD_EMIT(action, data, h) \
+    USERVER_IMPL_FIELD_EMIT(action, data, i) USERVER_IMPL_FIELD_EMIT(action, data, j) \
+    USERVER_IMPL_FIELD_EMIT(action, data, k) USERVER_IMPL_FIELD_EMIT(action, data, l) \
+    USERVER_IMPL_FIELD_EMIT(action, data, m) USERVER_IMPL_FIELD_EMIT(action, data, n) \
+    USERVER_IMPL_FIELD_EMIT(action, data, o) USERVER_IMPL_FIELD_EMIT(action, data, p) \
+    USERVER_IMPL_FIELDS_NEXT(USERVER_IMPL_FIELDS_##number, next)
+// clang-format on
+
+#define USERVER_IMPL_FIELDS_NEXT(block, ...) USERVER_IMPL_FIELDS_FIRST(__VA_OPT__(block, ) USERVER_IMPL_FIELDS_DONE)
+#define USERVER_IMPL_FIELDS_FIRST(first, ...) first
+#define USERVER_IMPL_FIELDS_DONE(...)
+#define USERVER_IMPL_FIELDS_OVERFLOW(...) USERVER_STRUCT_SUBSET_SUPPORTS_AT_MOST_256_FIELDS
+
+#define USERVER_IMPL_FIELDS_TAIL(action, data, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, ...) \
+    action, data, __VA_ARGS__
+
+// Distinct names allow each block to expand immediately. DONE discards TAIL without expanding it.
+#define USERVER_IMPL_FIELDS_1(...) USERVER_IMPL_FIELDS_BLOCK(2, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_2(...) USERVER_IMPL_FIELDS_BLOCK(3, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_3(...) USERVER_IMPL_FIELDS_BLOCK(4, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_4(...) USERVER_IMPL_FIELDS_BLOCK(5, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_5(...) USERVER_IMPL_FIELDS_BLOCK(6, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_6(...) USERVER_IMPL_FIELDS_BLOCK(7, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_7(...) USERVER_IMPL_FIELDS_BLOCK(8, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_8(...) USERVER_IMPL_FIELDS_BLOCK(9, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_9(...) USERVER_IMPL_FIELDS_BLOCK(10, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_10(...) USERVER_IMPL_FIELDS_BLOCK(11, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_11(...) USERVER_IMPL_FIELDS_BLOCK(12, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_12(...) USERVER_IMPL_FIELDS_BLOCK(13, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_13(...) USERVER_IMPL_FIELDS_BLOCK(14, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_14(...) USERVER_IMPL_FIELDS_BLOCK(15, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_15(...) USERVER_IMPL_FIELDS_BLOCK(16, __VA_ARGS__)(USERVER_IMPL_FIELDS_TAIL(__VA_ARGS__))
+#define USERVER_IMPL_FIELDS_16(...) USERVER_IMPL_FIELDS_BLOCK(OVERFLOW, __VA_ARGS__)()
+
+/// @endcond

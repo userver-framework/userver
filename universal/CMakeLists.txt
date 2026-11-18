@@ -247,7 +247,7 @@ if(BOOST_CPM)
     # Boost from CPM
     target_link_libraries(
         ${PROJECT_NAME}
-        PUBLIC Boost::uuid Boost::random Boost::container
+        PUBLIC Boost::uuid Boost::container
         PRIVATE Boost::exception
     )
 endif()

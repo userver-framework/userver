@@ -1,12 +1,10 @@
 #include <userver/utils/boost_uuid4.hpp>
 
-#include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <userver/compiler/thread_local.hpp>
-#include <userver/utils/rand.hpp>
+#include <utils/impl/uuid_random.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +13,11 @@ namespace utils {
 namespace generators {
 
 boost::uuids::uuid GenerateBoostUuid() {
-    auto local_gen = impl::UseLocalRandomImpl();
-    boost::uuids::basic_random_generator generator{*local_gen};
-    return generator();
+    boost::uuids::uuid uuid{};
+    utils::impl::FillUuidRandomBytes({uuid.begin(), uuid.end()});
+    uuid.data[6] = (uuid.data[6] & 0x0F) | 0x40;  // Version 4
+    uuid.data[8] = (uuid.data[8] & 0x3F) | 0x80;  // RFC variant
+    return uuid;
 }
 
 }  // namespace generators

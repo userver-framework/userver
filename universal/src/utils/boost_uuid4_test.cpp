@@ -4,16 +4,17 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/string_generator.hpp>
 
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 TEST(UUID, Boost) {
-    EXPECT_NE(utils::generators::GenerateBoostUuid(), boost::uuids::uuid{});
-
-    EXPECT_NE(utils::generators::GenerateBoostUuid(), utils::generators::GenerateBoostUuid());
+    const auto uuid = utils::generators::GenerateBoostUuid();
+    EXPECT_EQ(uuid.version(), boost::uuids::uuid::version_random_number_based);
+    EXPECT_EQ(uuid.variant(), boost::uuids::uuid::variant_rfc_4122);
+    EXPECT_NE(uuid, utils::generators::GenerateBoostUuid());
 }
 
 TEST(UUID, Format) {
