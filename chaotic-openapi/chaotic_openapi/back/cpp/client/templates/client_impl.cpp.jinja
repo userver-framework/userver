@@ -5,10 +5,10 @@
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-{% if spec.uses_digest_security() %}
-#include <userver/clients/http/request.hpp>
-#include <userver/utils/algo.hpp>
-#include <userver/utils/assert.hpp>
+{% if spec.security_schemes() %}
+#include <string_view>
+
+#include <userver/chaotic/openapi/client/auth.hpp>
 {% endif %}
 
 namespace {{ namespace }} {
@@ -55,21 +55,17 @@ ClientImpl::ClientImpl(
         SerializeRequest(request, config_.base_url, r);
         EncodeRequest(r, command_control);
 
-        {% if op.uses_digest_security() %}
-        // Apply digest auth credentials for scheme '{{ op.digest_scheme_name() }}'
-        const auto* credentials = USERVER_NAMESPACE::utils::FindOrNullptr(
-            config_.digest_auth_credentials, "{{ op.digest_scheme_name() }}"
-        );
-        UINVARIANT(
-            credentials != nullptr,
-            "Digest auth credentials for scheme '{{ op.digest_scheme_name() }}' not found in config"
-        );
-        r.http_auth_type(
-            USERVER_NAMESPACE::clients::http::HttpAuthType::kDigest,
-            /*auth_only=*/false,
-            credentials->username,
-            credentials->password.GetUnderlying()
-        );
+        {% if op.security %}
+        {
+            {% if op.security.scopes %}
+            static constexpr std::string_view kScopes[] = { {{- op.security_scopes_initializer() -}} };
+            {% endif %}
+            USERVER_NAMESPACE::chaotic::openapi::client::ApplyAuth(
+                r,
+                config_.auth_providers,
+                {"{{ spec.client_name }}", "{{ op.security.auth_type }}", {% if op.security.scopes %}kScopes{% else %}{}{% endif %}}
+            );
+        }
         {% endif %}
 
         middleware_manager_.ProcessRequest(r);

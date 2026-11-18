@@ -1,5 +1,6 @@
 from collections.abc import Generator
 import dataclasses
+import json
 from typing import Literal
 
 from chaotic import cpp_names
@@ -10,12 +11,31 @@ from chaotic_openapi.back.cpp.client import middleware
 
 @dataclasses.dataclass
 class Security:
+    """A security scheme of an operation, the generated client applies it with an auth provider."""
+
     auth_type: str
+    # Human-readable scheme description, e.g. ``http/bearer`` or ``apiKey "X-Key" in header``
+    kind: str
+    # Scopes (roles) the operation requires
+    scopes: list[str] = dataclasses.field(default_factory=list, kw_only=True)
+
+    def default_auth_provider(self) -> str | None:
+        """Component the generated client takes the provider from if its static config names none"""
+        return None
+
+    def cpp_kind(self) -> str:
+        """The kind for a C++ string literal"""
+        return json.dumps(self.kind)[1:-1]
 
 
 @dataclasses.dataclass
 class HttpDigestSecurity(Security):
     """``type: http, scheme: digest`` (RFC 7616)."""
+
+    kind: str = 'http/digest'
+
+    def default_auth_provider(self) -> str | None:
+        return 'chaotic-digest-auth-provider'
 
 
 @dataclasses.dataclass
@@ -227,13 +247,10 @@ class Operation:
     def destination_metric_name(self) -> str:
         return self.path.replace('{', '_').replace('}', '_')
 
-    def uses_digest_security(self) -> bool:
-        return isinstance(self.security, HttpDigestSecurity)
-
-    def digest_scheme_name(self) -> str:
-        assert self.uses_digest_security(), 'Operation does not use digest security'
+    def security_scopes_initializer(self) -> str:
+        """C++ initializer of the scopes of the security requirement"""
         assert self.security is not None
-        return self.security.auth_type
+        return ', '.join(json.dumps(scope) for scope in self.security.scopes)
 
     def requests_declaration_includes(self) -> list[str]:
         includes: set[str] = set()

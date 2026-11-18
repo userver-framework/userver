@@ -18,10 +18,12 @@
 #define USERVER_TVM2_HTTP_CLIENT
 {% endif %}
 
-{% if spec.uses_digest_security() %}
-#include <userver/chaotic/openapi/client/digest_auth.hpp>
-#include <userver/storages/secdist/component.hpp>
-#include <userver/utils/assert.hpp>
+{% if spec.security_schemes() %}
+#include <optional>
+#include <stdexcept>
+#include <string>
+
+#include <userver/chaotic/openapi/client/auth_component.hpp>
 {% endif %}
 
 namespace {{ namespace }} {
@@ -30,24 +32,32 @@ namespace {
 
 USERVER_NAMESPACE::chaotic::openapi::client::Config MakeConfig(
     const USERVER_NAMESPACE::components::ComponentConfig& config,
-    const USERVER_NAMESPACE::components::ComponentContext&{% if spec.uses_digest_security() %} context{% endif %}
+    const USERVER_NAMESPACE::components::ComponentContext&{% if spec.security_schemes() %} context{% endif %}
 ) {
     auto cfg = USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl);
-    {% if spec.uses_digest_security() %}
-    const auto& secdist = context.FindComponent<USERVER_NAMESPACE::components::Secdist>().Get();
-    const auto& digest_cfg = secdist.Get<USERVER_NAMESPACE::chaotic::openapi::client::DigestAuthSecdistConfig>();
+    {% if spec.security_schemes() %}
+    const auto& providers_config = config["auth-providers"];
 
-    {% for scheme_name in spec.digest_scheme_names() %}
+    {% for scheme in spec.security_schemes() %}
     {
-        const auto [it, inserted] = cfg.digest_auth_credentials.emplace(
-            "{{ scheme_name }}",
-            digest_cfg.GetCredentialsOrThrow("{{ spec.client_name }}", "{{ scheme_name }}")
+        {% if scheme.default_auth_provider() %}
+        const auto provider_name = providers_config["{{ scheme.auth_type }}"].As<std::string>(
+            "{{ scheme.default_auth_provider() }}"
         );
-        UINVARIANT(
-            inserted,
-            "Duplicate digest auth scheme '{{ scheme_name }}' for client '{{ spec.client_name }}'; "
-            "scheme names must be unique — this is a chaotic-openapi codegen bug, please report it"
-        );
+        {% else %}
+        const auto provider_name = providers_config["{{ scheme.auth_type }}"].As<std::optional<std::string>>();
+        if (!provider_name) {
+            throw std::runtime_error(
+                "Client '{{ spec.client_name }}': security scheme '{{ scheme.auth_type }}' ({{ scheme.cpp_kind() }}) "
+                "needs an auth provider, name a component derived from "
+                "chaotic::openapi::client::AuthProviderComponentBase in 'auth-providers.{{ scheme.auth_type }}'"
+            );
+        }
+        {% endif %}
+        auto& provider = context.FindComponent<
+            USERVER_NAMESPACE::chaotic::openapi::client::AuthProviderComponentBase>({% if scheme.default_auth_provider() %}provider_name{% else %}*provider_name{% endif %}).GetAuthProvider();
+        provider.Prepare("{{ spec.client_name }}", "{{ scheme.auth_type }}");
+        cfg.auth_providers.emplace("{{ scheme.auth_type }}", &provider);
     }
     {% endfor %}
     {% endif %}
@@ -120,6 +130,15 @@ properties:
         type: object
         description: Middlewares configuration
         additionalProperties: true
+        properties: {}
+    auth-providers:
+        type: object
+        description: |
+            Names of the components that provide the credentials of security schemes, by the securitySchemes key.
+            A digest scheme takes chaotic-digest-auth-provider unless another provider is named
+        additionalProperties:
+            type: string
+            description: name of a component derived from chaotic::openapi::client::AuthProviderComponentBase
         properties: {}
 )";
 
