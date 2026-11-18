@@ -6,6 +6,8 @@
 #include <userver/chaotic/openapi/parameters_read.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <cstdint>
+#include <string>
+#include <userver/chaotic/io/std/vector.hpp>
 
 #include <handlers/test/openapi.hpp>
 

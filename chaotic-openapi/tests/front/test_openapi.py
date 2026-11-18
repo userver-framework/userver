@@ -516,3 +516,53 @@ Assertion failed, Field x-usrv-tag is not allowed in this context
                 },
             },
         })
+
+
+def _openapi_with_refs(**ref_siblings) -> dict:
+    def make_ref(target: str) -> dict:
+        return {'$ref': target, **ref_siblings}
+
+    return {
+        'openapi': '3.1.0',
+        'info': {'title': '', 'version': '1.0'},
+        'components': {
+            'parameters': {
+                'Param': {'name': 'param', 'in': 'query', 'schema': {'type': 'string'}},
+            },
+            'requestBodies': {
+                'Body': {'content': {'application/json': {'schema': {'type': 'string'}}}},
+            },
+            'headers': {
+                'Header': {'schema': {'type': 'string'}},
+            },
+            'responses': {
+                'Error': {'description': 'error'},
+            },
+        },
+        'paths': {
+            '/': {
+                'post': {
+                    'parameters': [make_ref('#/components/parameters/Param')],
+                    'requestBody': make_ref('#/components/requestBodies/Body'),
+                    'responses': {
+                        '200': {
+                            'description': 'OK',
+                            'headers': {'X-Header': make_ref('#/components/headers/Header')},
+                        },
+                        '400': make_ref('#/components/responses/Error'),
+                    },
+                },
+            },
+        },
+    }
+
+
+def test_openapi_ref_siblings_are_accepted(simple_parser):
+    assert simple_parser(
+        _openapi_with_refs(summary='overridden summary', description='overridden description'),
+    ) == simple_parser(_openapi_with_refs())
+
+
+def test_openapi_ref_unknown_sibling_is_rejected(simple_parser):
+    with pytest.raises(Exception, match='Unknown field: "unknown"'):
+        simple_parser(_openapi_with_refs(unknown='value'))

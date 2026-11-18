@@ -9,7 +9,7 @@ def translate_single_schema():
     def clear_source_location(schema):
         schema.source_location_ = None
 
-    def func(schema):
+    def func(schema, include_dirs=None):
         parser = front_parser.Parser('test')
         parser.parse_schema(schema, '<inline>', '<inline>')
         service = parser.service()
@@ -18,7 +18,7 @@ def translate_single_schema():
             service,
             dynamic_config='',
             cpp_namespace='test_namespace',
-            include_dirs=[],
+            include_dirs=include_dirs or [],
             middleware_plugins=[],
         )
         service.visit_all_schemas(clear_source_location)

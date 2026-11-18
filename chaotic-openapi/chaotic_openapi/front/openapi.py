@@ -66,9 +66,11 @@ class MediaType(base_model.BaseModel):
     )
 
 
-# https://spec.openapis.org/oas/v3.0.0.html#reference-object
+# https://spec.openapis.org/oas/v3.1.0.html#reference-object
 class Ref(base_model.BaseModel):
     ref: str = pydantic.Field(alias='$ref')
+    summary: str | None = None
+    description: str | None = None
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#responses-object

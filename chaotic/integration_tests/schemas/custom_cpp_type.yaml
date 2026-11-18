@@ -127,3 +127,7 @@ definitions:
             strong_typedef:
                 type: string
                 x-usrv-cpp-type: userver::utils::StrongTypedef<my::CustomString, std::string>
+            strong_uuid:
+                type: string
+                format: uuid
+                x-usrv-cpp-type: userver::utils::StrongTypedef<my::CustomString, boost::uuids::uuid>

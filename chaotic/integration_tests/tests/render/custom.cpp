@@ -1,5 +1,7 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <boost/uuid/string_generator.hpp>
+
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/parser/exception.hpp>
@@ -318,6 +320,15 @@ TEST(Custom, ArrayOfXCppTypeValidation) {
         "Parse error at pos 31, path 'bad_lon.[0].lat': Error at path 'bad_lon.[0].lat': Invalid value, maximum=43, "
         "given=600, the latest token was :600"
     );
+}
+
+TEST(Custom, StrongTypedefOverFormat) {
+    constexpr std::string_view kUuid = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+    auto json = formats::json::MakeObject("strong_uuid", kUuid);
+    auto custom = json.As<ns::StrongTypedefObject>();
+    EXPECT_EQ(custom.strong_uuid->GetUnderlying(), boost::uuids::string_generator{}(kUuid.begin(), kUuid.end()));
+
+    EXPECT_EQ(TestDomSerializer(custom), json);
 }
 
 USERVER_NAMESPACE_END
