@@ -3,6 +3,7 @@
 #include <chrono>
 #include <optional>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/shard.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <userver/engine/pulse_event.hpp>
@@ -34,7 +35,8 @@ public:
         const std::vector<std::string>& shard_names,
         const std::vector<ConnectionInfo>& conns,
         ConnectionSecurity connection_security,
-        std::chrono::seconds max_disconnect_time
+        std::chrono::seconds max_disconnect_time,
+        ConnectionMode connection_mode = ConnectionMode::kCommands
     );
 
     ~SentinelTopologyHolder() override;
@@ -45,14 +47,18 @@ public:
 
     void Stop() override;
 
-    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
-    bool IsReady(const HealthCheckParams& params) const override;
+    bool WaitReadyOnce(
+        engine::Deadline deadline,
+        WaitConnectedMode mode,
+        ConnectionKind kind = ConnectionKind::kCommand
+    ) override;
+    bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const override;
 
     rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const override;
 
     void SendUpdateClusterTopology() override;
 
-    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
+    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const override;
 
     void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
 
@@ -72,7 +78,7 @@ public:
 
     Credentials GetCredentials() override;
 
-    std::string GetReadinessInfo() const override;
+    std::string GetReadinessInfo(ConnectionKind kind = ConnectionKind::kCommand) const override;
 
 private:
     std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const HostPort& host_port);
@@ -132,6 +138,7 @@ private:
     rcu::Variable<ClusterTopology, rcu::ExclusiveRcuTraits> topology_;
 
     const ConnectionSecurity connection_security_;
+    const ConnectionMode connection_mode_;
 };
 
 }  // namespace storages::redis::impl

@@ -17,7 +17,7 @@ SubscriptionQueue<Item>::SubscriptionQueue()
 
 template <typename Item>
 SubscriptionQueue<Item>::SubscriptionQueue(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> patterns,
     const CommandControl& command_control
 )
@@ -29,7 +29,7 @@ requires std::is_same_v<Item, PatternSubscriptionQueueItem>
 
 template <typename Item>
 SubscriptionQueue<Item>::SubscriptionQueue(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> channels,
     const CommandControl& command_control,
     ChannelSubscriptionMode mode
@@ -62,7 +62,7 @@ void SubscriptionQueue<Item>::Unsubscribe() {
 
 template <typename Item>
 SubscriptionQueue<Item>::TokenType SubscriptionQueue<Item>::GetSubscriptionToken(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> channels,
     const CommandControl& command_control,
     ChannelSubscriptionMode mode
@@ -101,7 +101,7 @@ requires std::is_same_v<Item, ChannelSubscriptionQueueItem>
 
 template <typename Item>
 SubscriptionQueue<Item>::TokenType SubscriptionQueue<Item>::GetSubscriptionToken(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> patterns,
     const CommandControl& command_control
 )

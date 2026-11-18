@@ -37,22 +37,35 @@ components_manager:
             method: GET
             db: redis-sentinel
 
+        handler-standalone-publisher:
+            path: /standalone-publisher
+            task_processor: main-task-processor
+            method: GET
+            db: redis-standalone
+
+        handler-cluster-publisher:
+            path: /cluster-publisher
+            task_processor: main-task-processor
+            method: GET
+            db: redis-cluster
+
         key-value-database:
             groups:
               - config_name: redis-sentinel
                 db: redis-sentinel
-            subscribe_groups:
-              - config_name: redis-sentinel
-                db: redis-sentinel
-              - config_name: redis-cluster
-                db: redis-cluster
-                sharding_strategy: RedisCluster
-              - config_name: redis-sentinel
-                db: redis-sentinel-with-master
-                allow_reads_from_master: true
+                enable_subscriptions: true
               - config_name: redis-standalone
                 db: redis-standalone
                 sharding_strategy: RedisStandalone
+                enable_subscriptions: true
+              - config_name: redis-cluster
+                db: redis-cluster
+                sharding_strategy: RedisCluster
+                enable_subscriptions: true
+            subscribe_groups:
+              - config_name: redis-sentinel
+                db: redis-sentinel-with-master
+                allow_reads_from_master: true
             thread_pools:
                 redis_thread_pool_size: 2
                 sentinel_thread_pool_size: 1

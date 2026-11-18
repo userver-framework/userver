@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <storages/redis/impl/cluster_topology.hpp>
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/shard.hpp>
@@ -25,11 +26,15 @@ public:
     virtual void Init() = 0;
     virtual void Start() = 0;
     virtual void Stop() = 0;
-    virtual bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) = 0;
-    virtual bool IsReady(const HealthCheckParams& params) const = 0;
+    virtual bool WaitReadyOnce(
+        engine::Deadline deadline,
+        WaitConnectedMode mode,
+        ConnectionKind kind = ConnectionKind::kCommand
+    ) = 0;
+    virtual bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const = 0;
     virtual rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const = 0;
     virtual void SendUpdateClusterTopology() = 0;
-    virtual std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const = 0;
+    virtual std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const = 0;
     virtual void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const = 0;
 
     virtual void SetCommandsBufferingSettings(CommandsBufferingSettings settings) = 0;
@@ -42,7 +47,7 @@ public:
     virtual void UpdateCredentials(const Credentials& credentials) = 0;
     virtual Credentials GetCredentials() = 0;
 
-    virtual std::string GetReadinessInfo() const = 0;
+    virtual std::string GetReadinessInfo(ConnectionKind kind = ConnectionKind::kCommand) const = 0;
     virtual ~TopologyHolderBase() = default;
 
 protected:

@@ -1,5 +1,10 @@
 #include <storages/redis/pubsub_redistest.hpp>
 
+#include <storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/scope_guard.hpp>
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -10,11 +15,77 @@
 
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+void CheckSubscriptionStatistics(
+    storages::redis::Client& client,
+    storages::redis::SubscribeClient& subscribe_client,
+    storages::redis::impl::Sentinel& sentinel,
+    bool sharded
+) {
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+    const utils::ScopeGuard unmock_time{utils::datetime::MockNowUnset};
+    const auto channel = utils::generators::GenerateUuid();
+    engine::SingleConsumerEvent messages_received;
+    std::atomic<size_t> received{0};
+    auto callback = [&](const auto&, const auto&) {
+        if (++received >= 2) {
+            messages_received.Send();
+        }
+    };
+    auto token =
+        sharded ? subscribe_client.Ssubscribe(channel, callback, {})
+                : subscribe_client.Subscribe(channel, callback, {});
+    auto sender = utils::CriticalAsync("sender", [&] {
+        while (!engine::current_task::ShouldCancel()) {
+            if (sharded) {
+                client.Spublish(channel, "payload", {});
+            } else {
+                client.Publish(channel, "payload", {});
+            }
+            engine::InterruptibleSleepFor(std::chrono::milliseconds{100});
+        }
+    });
+    ASSERT_TRUE(messages_received.WaitForEventFor(utest::kMaxTestWaitTime));
+    sender.SyncCancel();
+    token.Unsubscribe();
+
+    storages::redis::CommandControl cc;
+    cc.force_request_to_master = true;
+    client.Set(channel, "value", cc).Get();
+    EXPECT_EQ(client.Get(channel, cc).Get(), "value");
+
+    // Published statistics exclude the current five-second epoch.
+    utils::datetime::MockSleep(std::chrono::seconds{6});
+    const storages::redis::MetricsSettings settings;
+    const auto stats = sentinel.GetStatistics(settings);
+    const auto& timings = stats->shard_group_total.command_timings_percentile;
+    EXPECT_TRUE(timings.contains("get"));
+    EXPECT_TRUE(timings.contains("set"));
+    EXPECT_FALSE(timings.contains(sharded ? "ssubscribe" : "subscribe"));
+    EXPECT_FALSE(timings.contains(sharded ? "sunsubscribe" : "unsubscribe"));
+}
+
+}  // namespace
+
+UTEST_F_MT(RedisPubsubTest, SubscriptionMessagesDoNotAffectCommandStatistics, 2) {
+    CheckSubscriptionStatistics(*GetClient(), *GetSubscribeClient(), *GetSentinel(), false);
+}
+
+UTEST_F_MT(RedisClusterPubsubTest, ShardedMessagesDoNotAffectCommandStatistics, 2) {
+#ifdef ARCADIA_ROOT
+    CheckSubscriptionStatistics(*GetClient(), *GetSubscribeClient(), *GetSentinel(), true);
+#else
+    GTEST_SKIP();
+#endif
+}
 
 UTEST_P_MT(RedisPubsubTestBasic, SimpleSubscribe, 2) {
     const std::string test_data = "something_else";
@@ -43,6 +114,9 @@ UTEST_P_MT(RedisPubsubTestBasic, SimpleSubscribe, 2) {
     auto token = GetSubscribeClient()->Subscribe(test_channel, std::move(callback), cc);
 
     EXPECT_TRUE(success.WaitForEventFor(utest::kMaxTestWaitTime));
+
+    auto info = GetSentinel()->MakeRequest({"info", "server"}, "none", false).Get();
+    EXPECT_TRUE(info->IsOk());
 
     sender.RequestCancel();
     token.Unsubscribe();
@@ -272,6 +346,9 @@ UTEST_P_MT(RedisClusterPubsubTestBasic, SimpleSsubscribe, 2) {
     auto token = GetSubscribeClient()->Ssubscribe(test_channel, std::move(callback), cc);
 
     EXPECT_TRUE(success.WaitForEventFor(utest::kMaxTestWaitTime));
+
+    auto info = GetSentinel()->MakeRequest({"info", "server"}, "none", false).Get();
+    EXPECT_TRUE(info->IsOk());
 
     sender.RequestCancel();
     token.Unsubscribe();

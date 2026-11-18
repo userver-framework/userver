@@ -2,6 +2,7 @@
 
 #include <ranges>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/ranges.h>
@@ -31,7 +32,7 @@
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/impl/subscription_statistics.hpp>
 
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"
@@ -172,21 +173,55 @@ void Redis::Connect(
         storages::redis::impl::ThreadPools>(redis_pools.sentinel_thread_pool_size, redis_pools.redis_thread_pool_size);
 
     const auto redis_groups = config["groups"].As<std::vector<RedisGroup>>();
+    const auto subscribe_redis_groups = config["subscribe_groups"].As<std::vector<SubscribeRedisGroup>>();
+    std::unordered_map<std::string, const SubscribeRedisGroup*> subscribe_groups_by_name;
+    for (const auto& group : subscribe_redis_groups) {
+        subscribe_groups_by_name.emplace(group.db, &group);
+    }
+    std::unordered_map<std::string, const SubscribeRedisGroup*> shared_subscribe_groups;
+    for (const auto& group : redis_groups) {
+        const auto it = subscribe_groups_by_name.find(group.db);
+        if (it == subscribe_groups_by_name.end()) {
+            continue;
+        }
+        if (storages::redis::impl::CanShareSentinel(group, *it->second)) {
+            shared_subscribe_groups.emplace(group.db, it->second);
+        } else if (group.enable_subscriptions) {
+            throw std::runtime_error(fmt::format(
+                "Redis group '{}' enables subscriptions but has an incompatible subscribe_groups entry",
+                group.db
+            ));
+        }
+    }
     for (const RedisGroup& redis_group : redis_groups) {
         auto settings = GetSecdistSettings(secdist_component, redis_group);
+        const auto shared_it = shared_subscribe_groups.find(redis_group.db);
+        const auto* subscribe_group = shared_it == shared_subscribe_groups.end() ? nullptr : shared_it->second;
 
         auto sentinel = storages::redis::impl::Sentinel::CreateSentinel(
             thread_pools_,
             settings,
             redis_group.config_name,
             config_source,
-            storages::redis::impl::MakeSentinelStaticConfig(redis_group),
+            storages::redis::impl::MakeSentinelStaticConfig(redis_group, subscribe_group),
             testsuite_redis_control
         );
         if (sentinel) {
             sentinels_.emplace(redis_group.db, sentinel);
             const auto& client = std::make_shared<storages::redis::ClientImpl>(sentinel);
             clients_.emplace(redis_group.db, client);
+
+            if (redis_group.enable_subscriptions && !subscribe_group) {
+                subscribe_clients_
+                    .emplace(redis_group.db, std::make_shared<storages::redis::SubscribeClientImpl>(sentinel));
+                if (redis_group.required_mode != storages::redis::WaitConnectedMode::kNoWait) {
+                    health_check_manager_->AddSubscribeClient(
+                        redis_group.db,
+                        {redis_group.required_mode, redis_group.max_failed_shards, redis_group.max_failed_shards_percent
+                        }
+                    );
+                }
+            }
 
             if (redis_group.required_mode != storages::redis::WaitConnectedMode::kNoWait) {
                 health_check_manager_->AddClient(
@@ -205,19 +240,25 @@ void Redis::Connect(
         sentinel_it.second->WaitConnectedOnce(redis_config.redis_wait_connected);
     }
 
-    auto subscribe_redis_groups = config["subscribe_groups"].As<std::vector<SubscribeRedisGroup>>();
-
     for (const auto& redis_group : subscribe_redis_groups) {
-        auto settings = GetSecdistSettings(secdist_component, redis_group);
-
-        auto sentinel = storages::redis::impl::SubscribeSentinel::Create(
-            thread_pools_,
-            settings,
-            redis_group.config_name,
-            config_source,
-            storages::redis::impl::MakeSubscribeSentinelStaticConfig(redis_group),
-            testsuite_redis_control
-        );
+        std::shared_ptr<storages::redis::impl::Sentinel> sentinel;
+        if (shared_subscribe_groups.contains(redis_group.db)) {
+            const auto it = sentinels_.find(redis_group.db);
+            if (it != sentinels_.end()) {
+                sentinel = it->second;
+            }
+        }
+        if (!sentinel) {
+            auto settings = GetSecdistSettings(secdist_component, redis_group);
+            sentinel = storages::redis::impl::Sentinel::CreateSentinel(
+                thread_pools_,
+                settings,
+                redis_group.config_name,
+                config_source,
+                storages::redis::impl::MakeSentinelStaticConfig(redis_group),
+                testsuite_redis_control
+            );
+        }
         if (sentinel) {
             subscribe_clients_
                 .emplace(redis_group.db, std::make_shared<storages::redis::SubscribeClientImpl>(std::move(sentinel)));
@@ -298,11 +339,9 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
                                            .value_or(utils::RetryBudgetSettings{}));
     }
 
-    auto subscriber_cc = std::make_shared<
-        storages::redis::CommandControl>(redis_config.subscriber_default_command_control);
     for (auto& it : subscribe_clients_) {
         auto& subscribe_client = it.second->GetNative();
-        subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
+        subscribe_client.SetSubscriberDefaultCommandControl(redis_config.subscriber_default_command_control);
         subscribe_client.SetRebalanceMinInterval(redis_config.subscriptions_rebalance_min_interval);
     }
 
@@ -322,6 +361,14 @@ void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
         const auto& config_name = sentinel->ShardGroupName();
         const auto& settings = cfg.Get<storages::secdist::RedisMapSettings>().GetSettings(config_name);
         sentinel->UpdateSettings(settings);
+    }
+    for (auto& [db, client] : subscribe_clients_) {
+        if (sentinels_.contains(db) && sentinels_.at(db).get() == &client->GetNative()) {
+            continue;
+        }
+        auto& sentinel = client->GetNative();
+        const auto& settings = cfg.Get<storages::secdist::RedisMapSettings>().GetSettings(sentinel.ShardGroupName());
+        sentinel.UpdateSettings(settings);
     }
 }
 

@@ -19,7 +19,7 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -102,10 +102,15 @@ Sentinel::Sentinel(
     : shard_group_name_(shard_group_name),
       thread_pools_(thread_pools),
       secdist_default_command_control_(creation_config.command_control),
+      secdist_default_subscription_command_control_(creation_config.subscription_command_control
+                                                        .value_or(creation_config.command_control)),
       testsuite_redis_control_(testsuite_redis_control),
-      is_in_cluster_mode_(creation_config.key_shard_factory.IsClusterStrategy())
+      is_in_cluster_mode_(creation_config.key_shard_factory.IsClusterStrategy()),
+      per_channel_stats_enabled_(creation_config.per_channel_stats_enabled),
+      subscriber_default_command_control_(secdist_default_subscription_command_control_)
 {
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
+    const bool enable_subscriptions = HasSubscriptions(creation_config.connection_mode);
 
     if (!thread_pools_) {
         throw std::runtime_error("can't create Sentinel with empty thread_pools");
@@ -132,6 +137,9 @@ Sentinel::Sentinel(
             database_index
         );
     });
+    if (enable_subscriptions) {
+        InitSubscriptionStorage(shards);
+    }
 }
 
 Sentinel::~Sentinel() { Stop(); }
@@ -140,13 +148,17 @@ void Sentinel::Start() {
     sentinel_thread_control_->RunInEvLoopSyncWithResult([this] { impl_->Start(); });
 }
 
-void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) { impl_->WaitConnectedDebug(allow_empty_slaves); }
-
-void Sentinel::WaitConnectedOnce(RedisWaitConnected wait_connected) {
-    impl_->WaitConnectedOnce(wait_connected.MergeWith(testsuite_redis_control_));
+void Sentinel::WaitConnectedDebug(bool allow_empty_slaves, ConnectionKind kind) {
+    impl_->WaitConnectedDebug(allow_empty_slaves, kind);
 }
 
-bool Sentinel::IsReady(const HealthCheckParams& params) const { return impl_->IsReady(params); }
+void Sentinel::WaitConnectedOnce(RedisWaitConnected wait_connected, ConnectionKind kind) {
+    impl_->WaitConnectedOnce(wait_connected.MergeWith(testsuite_redis_control_), kind);
+}
+
+bool Sentinel::IsReady(const HealthCheckParams& params, ConnectionKind kind) const {
+    return impl_->IsReady(params, kind);
+}
 
 void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 
@@ -170,7 +182,14 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
 
     LOG_DEBUG() << "redis command_control:" << creation_config.command_control.ToString();
     std::shared_ptr<storages::redis::impl::Sentinel> client;
-    if (!shards.empty() && !conns.empty()) {
+    const bool subscription_only = creation_config.connection_mode == ConnectionMode::kSubscriptions;
+    const auto database_index = subscription_only ? 0 : settings.database_index;
+    if (subscription_only && settings.database_index != 0) {
+        LOG_WARNING()
+            << "`database index` has no effect on subscriptions. Publishing on database " << settings.database_index
+            << " will be heard by subscribers on all other databases.";
+    }
+    if (subscription_only || (!shards.empty() && !conns.empty())) {
         client = std::make_shared<storages::redis::impl::Sentinel>(
             thread_pools,
             shards,
@@ -181,7 +200,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             dynamic_config_source,
             creation_config,
             testsuite_redis_control,
-            settings.database_index
+            database_index
         );
         client->Start();
     }
@@ -191,6 +210,9 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
 
 void Sentinel::Stop() noexcept {
     if (impl_) {
+        if (subscription_storage_) {
+            subscription_storage_->Stop();
+        }
         // ev watchers could be performing right now, so we have to call Stop() before impl_.reset() to make sure
         // that watchers stop and do not get impl_ == nullptr during their run.
         impl_->Stop();
@@ -209,7 +231,7 @@ std::unordered_map<ServerId, size_t, ServerIdHasher> Sentinel::GetAvailableServe
     bool with_master,
     const CommandControl& cc
 ) const {
-    return impl_->GetAvailableServersWeighted(shard_idx, with_master, GetCommandControl(cc));
+    return impl_->GetAvailableServersWeighted(shard_idx, with_master, cc);
 }
 
 void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {

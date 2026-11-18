@@ -8,6 +8,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/keyshard.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
@@ -52,10 +53,12 @@ ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel)
 {}
 
 void ClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
-    redis_client_->WaitConnectedOnce(wait_connected);
+    redis_client_->WaitConnectedOnce(wait_connected, impl::ConnectionKind::kCommand);
 }
 
-bool ClientImpl::IsReady(const HealthCheckParams& params) const { return redis_client_->IsReady(params); }
+bool ClientImpl::IsReady(const HealthCheckParams& params) const {
+    return redis_client_->IsReady(params, impl::ConnectionKind::kCommand);
+}
 
 size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
 bool ClientImpl::IsInClusterMode() const { return redis_client_->IsInClusterMode(); }

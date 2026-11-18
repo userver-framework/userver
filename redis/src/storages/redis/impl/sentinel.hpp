@@ -7,9 +7,11 @@
 #include <boost/signals2.hpp>
 
 #include <userver/dynamic_config/source.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/request.hpp>
 #include <storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/base.hpp>
@@ -44,6 +46,9 @@ const auto kCheckRedisConnectedInterval = std::chrono::seconds(3);
 // Forward declarations
 class SentinelImpl;
 class Shard;
+class SubscriptionStorageBase;
+class SubscriptionToken;
+struct PubsubClusterStatistics;
 
 class Sentinel {
 public:
@@ -76,7 +81,7 @@ public:
     void Start();
 
     // Wait until connections to all servers are up
-    void WaitConnectedDebug(bool allow_empty_slaves = false);
+    void WaitConnectedDebug(bool allow_empty_slaves = false, ConnectionKind kind = ConnectionKind::kCommand);
 
     // Wait until connections to all shards are up first time.
     // mode == kNoWait: do not wait.
@@ -87,8 +92,8 @@ public:
     // at least one of its slaves.
     // mode == kMasterAndSlave: for each shard need a connection to its master and
     // at least one of its slaves.
-    void WaitConnectedOnce(RedisWaitConnected wait_connected);
-    bool IsReady(const HealthCheckParams& params) const;
+    void WaitConnectedOnce(RedisWaitConnected wait_connected, ConnectionKind kind = ConnectionKind::kCommand);
+    bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const;
 
     void ForceUpdateHosts();
 
@@ -164,8 +169,27 @@ public:
     using SubscribeCallback = std::function<void(ServerId, const std::string& channel, size_t count)>;
     using UnsubscribeCallback = std::function<void(ServerId, const std::string& channel, size_t count)>;
 
-    virtual void NotifyInstancesChanged(size_t /*shard*/) {}
-    virtual void NotifyTopologyChanged(size_t /*shards_count*/) {}
+    SubscriptionToken Subscribe(
+        const std::string& channel,
+        const UserMessageCallback& callback,
+        CommandControl control = {}
+    );
+    SubscriptionToken Psubscribe(
+        const std::string& pattern,
+        const UserPmessageCallback& callback,
+        CommandControl control = {}
+    );
+    SubscriptionToken Ssubscribe(
+        const std::string& channel,
+        const UserMessageCallback& callback,
+        CommandControl control = {}
+    );
+    PubsubClusterStatistics GetSubscriberStatistics(const PubsubMetricsSettings& settings) const;
+    void SetSubscriberDefaultCommandControl(const CommandControl& cc);
+    void SetRebalanceMinInterval(std::chrono::milliseconds interval);
+
+    virtual void NotifyInstancesChanged(size_t shard);
+    virtual void NotifyTopologyChanged(size_t shards_count);
 
 protected:
     void Stop() noexcept;
@@ -202,14 +226,21 @@ public:
 private:
     friend class Transaction;
 
+    void InitSubscriptionStorage(const std::vector<std::string>& shards);
+    CommandControl GetSubscriptionCommandControl(const CommandControl& cc) const;
+
     std::unique_ptr<SentinelImpl> impl_;
     const std::string shard_group_name_;
     std::shared_ptr<ThreadPools> thread_pools_;
     std::unique_ptr<engine::ev::ThreadControl> sentinel_thread_control_;
     CommandControl secdist_default_command_control_;
+    CommandControl secdist_default_subscription_command_control_;
     utils::SwappingSmart<CommandControl> config_default_command_control_;
     testsuite::RedisControl testsuite_redis_control_;
     const bool is_in_cluster_mode_;
+    const bool per_channel_stats_enabled_;
+    rcu::Variable<CommandControl, rcu::SyncRcuTraits> subscriber_default_command_control_;
+    std::unique_ptr<SubscriptionStorageBase> subscription_storage_;
 };
 
 }  // namespace storages::redis::impl

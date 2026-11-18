@@ -16,7 +16,7 @@ public:
     using OnMessageCb = SubscriptionToken::OnMessageCb;
 
     SubscriptionTokenImpl(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> channels,
         OnMessageCb on_message_cb,
         const CommandControl& command_control,
@@ -42,7 +42,7 @@ public:
     using OnPmessageCb = SubscriptionToken::OnPmessageCb;
 
     PsubscriptionTokenImpl(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> patterns,
         OnPmessageCb on_pmessage_cb,
         const CommandControl& command_control

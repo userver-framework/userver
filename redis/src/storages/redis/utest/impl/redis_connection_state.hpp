@@ -4,7 +4,6 @@
 
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/subscribe_client_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,21 +1,17 @@
-#include "subscribe_sentinel.hpp"
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <memory>
 
-#include <userver/logging/log.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <storages/redis/impl/cluster_subscription_storage.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
 namespace {
-
-constexpr std::size_t kSubscriptionDatabaseIndex = 0;
 
 std::unique_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const engine::ev::ThreadControl& thread_control,
@@ -32,137 +28,59 @@ std::unique_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
 
 }  // namespace
 
-SubscribeSentinel::SubscribeSentinel(
-    const std::shared_ptr<ThreadPools>& thread_pools,
-    const std::vector<std::string>& shards,
-    const std::vector<ConnectionInfo>& conns,
-    std::string shard_group_name,
-    dynamic_config::Source dynamic_config_source,
-    const Credentials& credentials,
-    ConnectionSecurity connection_security,
-    const testsuite::RedisControl& testsuite_redis_control,
-    std::size_t database_index,
-    SubscribeSentinelStaticConfig creation_config
-)
-    : Sentinel(
-          thread_pools,
-          shards,
-          conns,
-          std::move(shard_group_name),
-          credentials,
-          connection_security,
-          dynamic_config_source,
-          SentinelStaticConfig{
-              std::move(creation_config.client_name),
-              std::move(creation_config.key_shard_factory),
-              std::move(creation_config.command_control),
-              creation_config.topology_update_method,
-              creation_config.required_mode,
-              creation_config.max_failed_shards,
-              creation_config.max_failed_shards_percent
-          },
-          testsuite_redis_control,
-          database_index
-      ),
-      per_channel_stats_enabled_(creation_config.per_channel_stats_enabled)
-{
-    storage_ = CreateSubscriptionStorage(GetSentinelThreadControl(), shards, IsInClusterMode());
-    InitStorage();
+void Sentinel::InitSubscriptionStorage(const std::vector<std::string>& shards) {
+    subscription_storage_ = CreateSubscriptionStorage(GetSentinelThreadControl(), shards, IsInClusterMode());
+    subscription_storage_->SetCommandControl(GetSubscriptionCommandControl({}));
+    subscription_storage_->SetUnsubscribeCallback([this](size_t shard, CommandPtr cmd) {
+        AsyncCommand(cmd, false, shard);
+    });
+    subscription_storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) {
+        AsyncCommand(cmd, false, shard);
+    });
+    subscription_storage_->SetShardedUnsubscribeCallback([this](const std::string& channel, CommandPtr cmd) {
+        AsyncCommand(cmd, channel, false);
+    });
+    subscription_storage_->SetShardedSubscribeCallback([this](const std::string& channel, CommandPtr cmd) {
+        AsyncCommand(cmd, channel, false);
+    });
 }
 
-SubscribeSentinel::~SubscribeSentinel() {
-    storage_->Stop();
-    Stop();
+CommandControl Sentinel::GetSubscriptionCommandControl(const CommandControl& cc) const {
+    const auto defaults = subscriber_default_command_control_.Read();
+    return secdist_default_subscription_command_control_.MergeWith(*defaults)
+        .MergeWith(cc)
+        .MergeWith(testsuite_redis_control_);
 }
 
-std::unique_ptr<SubscribeSentinel> SubscribeSentinel::Create(
-    const std::shared_ptr<ThreadPools>& thread_pools,
-    const secdist::RedisSettings& settings,
-    std::string shard_group_name,
-    dynamic_config::Source dynamic_config_source,
-    const SubscribeSentinelStaticConfig& creation_config,
-    const testsuite::RedisControl& testsuite_redis_control
-) {
-    const auto& username = settings.username;
-    const auto& password = settings.password;
-    const auto& sentinel_username = settings.sentinel_username;
-    const auto& sentinel_password = settings.sentinel_password;
-
-    const std::vector<std::string>& shards = settings.shards;
-    LOG_DEBUG() << "shards.size() = " << shards.size();
-    for (const std::string& shard : shards) {
-        LOG_DEBUG() << "shard:  name = " << shard;
-    }
-
-    const auto is_cluster_mode = creation_config.key_shard_factory.IsClusterStrategy();
-    std::vector<ConnectionInfo> conns;
-    conns.reserve(settings.sentinels.size());
-    LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
-    for (const auto& sentinel : settings.sentinels) {
-        LOG_DEBUG() << "sentinel:  host = " << sentinel.host << "  port = " << sentinel.port;
-        // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
-        // sentinels in cluster mode.
-        conns.emplace_back(
-            sentinel.host,
-            sentinel.port,
-            (is_cluster_mode ? Credentials{username, password} : Credentials{sentinel_username, sentinel_password}),
-            false,
-            settings.secure_connection
-        );
-    }
-    LOG_DEBUG() << "redis command_control: " << creation_config.command_control.ToString();
-
-    if (settings.database_index != kSubscriptionDatabaseIndex) {
-        LOG_WARNING()
-            << "`database index` has no effect on susbscriptions. Publishing on database " << settings.database_index
-            << " will be heard by a subscribers on all other databases.";
-    }
-
-    auto subscribe_sentinel = std::make_unique<SubscribeSentinel>(
-        thread_pools,
-        shards,
-        conns,
-        std::move(shard_group_name),
-        dynamic_config_source,
-        Credentials{username, password},
-        settings.secure_connection,
-        testsuite_redis_control,
-        kSubscriptionDatabaseIndex,
-        creation_config
-    );
-    subscribe_sentinel->Start();
-    return subscribe_sentinel;
-}
-
-SubscriptionToken SubscribeSentinel::Subscribe(
+SubscriptionToken Sentinel::Subscribe(
     const std::string& channel,
-    const Sentinel::UserMessageCallback& message_callback,
+    const UserMessageCallback& callback,
     CommandControl control
 ) {
-    auto token = storage_->Subscribe(channel, message_callback, GetCommandControl(control));
-    return token;
+    UINVARIANT(subscription_storage_, "Redis subscriptions are not enabled");
+    return subscription_storage_->Subscribe(channel, callback, GetSubscriptionCommandControl(control));
 }
 
-SubscriptionToken SubscribeSentinel::Psubscribe(
+SubscriptionToken Sentinel::Psubscribe(
     const std::string& pattern,
-    const Sentinel::UserPmessageCallback& message_callback,
+    const UserPmessageCallback& callback,
     CommandControl control
 ) {
-    auto token = storage_->Psubscribe(pattern, message_callback, GetCommandControl(control));
-    return token;
+    UINVARIANT(subscription_storage_, "Redis subscriptions are not enabled");
+    return subscription_storage_->Psubscribe(pattern, callback, GetSubscriptionCommandControl(control));
 }
 
-SubscriptionToken SubscribeSentinel::Ssubscribe(
+SubscriptionToken Sentinel::Ssubscribe(
     const std::string& channel,
-    const Sentinel::UserMessageCallback& message_callback,
+    const UserMessageCallback& callback,
     CommandControl control
 ) {
-    return storage_->Ssubscribe(channel, message_callback, GetCommandControl(control));
+    UINVARIANT(subscription_storage_, "Redis subscriptions are not enabled");
+    return subscription_storage_->Ssubscribe(channel, callback, GetSubscriptionCommandControl(control));
 }
 
-PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(const PubsubMetricsSettings& settings) const {
-    auto raw = storage_->GetStatistics();
-
+PubsubClusterStatistics Sentinel::GetSubscriberStatistics(const PubsubMetricsSettings& settings) const {
+    auto raw = subscription_storage_->GetStatistics();
     PubsubClusterStatistics result(settings, per_channel_stats_enabled_);
     for (auto& shard : raw.by_shard) {
         result.by_shard.emplace(shard.shard_name, std::move(shard));
@@ -170,31 +88,28 @@ PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(const PubsubM
     return result;
 }
 
-void SubscribeSentinel::RebalanceSubscriptions(size_t shard_idx) {
-    const auto with_master = IsInClusterMode() || GetCommandControl({}).allow_reads_from_master.value_or(false);
-    auto server_weights = GetAvailableServersWeighted(shard_idx, with_master);
-    storage_->RequestRebalance(shard_idx, std::move(server_weights));
+void Sentinel::SetSubscriberDefaultCommandControl(const CommandControl& cc) {
+    subscriber_default_command_control_.Assign(cc);
+    subscription_storage_->SetCommandControl(GetSubscriptionCommandControl({}));
 }
 
-void SubscribeSentinel::SetConfigDefaultCommandControl(const std::shared_ptr<CommandControl>& cc) {
-    Sentinel::SetConfigDefaultCommandControl(cc);
-    storage_->SetCommandControl(GetCommandControl(*cc));
+void Sentinel::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
+    subscription_storage_->SetRebalanceMinInterval(interval);
 }
 
-void SubscribeSentinel::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
-    storage_->SetRebalanceMinInterval(interval);
+void Sentinel::NotifyInstancesChanged(size_t shard) {
+    if (!subscription_storage_) {
+        return;
+    }
+    const auto cc = GetSubscriptionCommandControl({});
+    const auto with_master = IsInClusterMode() || cc.allow_reads_from_master.value_or(false);
+    subscription_storage_->RequestRebalance(shard, GetAvailableServersWeighted(shard, with_master, cc));
 }
 
-void SubscribeSentinel::InitStorage() {
-    storage_->SetCommandControl(GetCommandControl({}));
-    storage_->SetUnsubscribeCallback([this](size_t shard, CommandPtr cmd) { AsyncCommand(cmd, false, shard); });
-    storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) { AsyncCommand(cmd, false, shard); });
-    storage_->SetShardedUnsubscribeCallback([this](const std::string& channel, CommandPtr cmd) {
-        AsyncCommand(cmd, channel, false);
-    });
-    storage_->SetShardedSubscribeCallback([this](const std::string& channel, CommandPtr cmd) {
-        AsyncCommand(cmd, channel, false);
-    });
+void Sentinel::NotifyTopologyChanged(size_t shards_count) {
+    if (subscription_storage_) {
+        subscription_storage_->SetShardsCount(shards_count);
+    }
 }
 
 }  // namespace storages::redis::impl

@@ -4,6 +4,8 @@
 
 #include <userver/logging/log.hpp>
 
+#include <storages/redis/impl/redis_connection_defaults.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
@@ -14,13 +16,15 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     const std::string& shard_group_name,
     const Credentials& credentials,
     std::size_t database_index,
-    ConnectionInfo conn
+    ConnectionInfo conn,
+    ConnectionMode connection_mode
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(shard_group_name),
       credentials_(credentials),
       database_index_(database_index),
+      connection_mode_(connection_mode),
       conn_to_create_(conn),
       create_node_watch_(
           ev_thread_,
@@ -55,19 +59,15 @@ void StandaloneTopologyHolder::Stop() {
     node_.Assign(std::nullopt);
 }
 
-bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
-    LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
-    return readiness_event_.WaitUntil(deadline, [this, mode] {
-        return IsReady(HealthCheckParams{mode, 0, 0});
+bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode, ConnectionKind kind) {
+    return readiness_event_.WaitUntil(deadline, [this, mode, kind] {
+        return IsReady(HealthCheckParams{mode, 0, 0}, kind);
     }) == engine::FutureStatus::kReady;
 }
 
-bool StandaloneTopologyHolder::IsReady(const HealthCheckParams& params) const {
-    if (!is_nodes_received_) {
-        return false;
-    }
-    auto ptr = topology_.Read();
-    return ptr->IsReady(params);
+bool StandaloneTopologyHolder::IsReady(const HealthCheckParams& params, ConnectionKind kind) const {
+    const auto topology = topology_.Read();
+    return is_nodes_received_.load() && topology->IsReady(params, kind);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> StandaloneTopologyHolder::GetTopology() const {
@@ -78,10 +78,11 @@ void StandaloneTopologyHolder::SendUpdateClusterTopology() {
     LOG_WARNING() << "SendUpdateClusterTopology is not applicable for standalone";
 }
 
-std::shared_ptr<Redis> StandaloneTopologyHolder::GetRedisInstance(const HostPort& host_port) const {
+std::shared_ptr<Redis> StandaloneTopologyHolder::GetRedisInstance(const HostPort& host_port, ConnectionKind kind)
+    const {
     auto node = node_.Read();
     if (node->has_value() && node->value().host_port == host_port) {
-        return std::const_pointer_cast<Redis>(node->value().node->Get());
+        return node->value().node->GetConnection(kind);
     }
 
     return {};
@@ -154,7 +155,12 @@ boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopolo
 std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfoInt& info) {
     UASSERT(ev_thread_.IsInEvThread());
     LOG_DEBUG() << "Create new redis instance " << info.Fulltext();
-    return RedisConnectionHolder::Create(
+    const auto kind = HasCommands(connection_mode_) ? ConnectionKind::kCommand : ConnectionKind::kSubscription;
+    auto& statistics =
+        kind == ConnectionKind::kCommand
+            ? statistics_holder_.MakeInstanceStats()
+            : statistics_holder_.MakeSubscriptionInstanceStats();
+    auto instance = RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
         shard_group_name_,
@@ -165,9 +171,16 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         commands_buffering_settings_.value_or(CommandsBufferingSettings{}),
         monitoring_settings_,
         retry_budget_settings_,
-        statistics_holder_.MakeInstanceStats(),
-        redis::RedisCreationSettings{info.GetConnectionSecurity(), false}
+        statistics,
+        redis::RedisCreationSettings{info.GetConnectionSecurity(), false},
+        Hysteresis::Config{},
+        kDefaultMaxDisconnectTime,
+        kind
     );
+    if (HasCommands(connection_mode_) && HasSubscriptions(connection_mode_)) {
+        instance->EnableSubscriptions(statistics_holder_.MakeSubscriptionInstanceStats());
+    }
+    return instance;
 }
 
 void StandaloneTopologyHolder::CreateNode() {
@@ -218,6 +231,10 @@ void StandaloneTopologyHolder::CreateNode() {
 void StandaloneTopologyHolder::UpdateCredentials(const Credentials& credentials) {
     UASSERT(ev_thread_.IsInEvThread());
     credentials_ = credentials;
+    const auto node = node_.Read();
+    if (node->has_value()) {
+        node->value().node->UpdateCredentials(credentials);
+    }
 }
 
 Credentials StandaloneTopologyHolder::GetCredentials() {
@@ -225,7 +242,7 @@ Credentials StandaloneTopologyHolder::GetCredentials() {
     return credentials_;
 }
 
-std::string StandaloneTopologyHolder::GetReadinessInfo() const {
+std::string StandaloneTopologyHolder::GetReadinessInfo(ConnectionKind /*kind*/) const {
     return fmt::format("Nodes config parsed: {}.", is_nodes_received_.load());
 }
 

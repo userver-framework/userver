@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include <userver/formats/parse/to.hpp>
@@ -9,7 +10,9 @@
 #include <userver/storages/redis/topology_update_method.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/keyshard.hpp>
+#include <storages/redis/impl/redis_connection_defaults.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,7 +33,9 @@ struct RedisGroup {
     storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
     uint32_t max_failed_shards{0};
     uint32_t max_failed_shards_percent{0};
-    std::chrono::seconds max_disconnect_time{35};
+    std::chrono::seconds max_disconnect_time{kDefaultMaxDisconnectTime};
+    bool enable_subscriptions{false};
+    bool per_channel_stats_enabled{true};
 };
 
 RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisGroup>);
@@ -48,10 +53,13 @@ struct SubscribeRedisGroup {
     storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
     uint32_t max_failed_shards{0};
     uint32_t max_failed_shards_percent{0};
-    std::chrono::seconds max_disconnect_time{35};
+    std::chrono::seconds max_disconnect_time{kDefaultMaxDisconnectTime};
 };
 
 SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<SubscribeRedisGroup>);
+
+/// Whether both clients can share topology without changing their connection settings.
+bool CanShareSentinel(const RedisGroup& group, const SubscribeRedisGroup& subscribe_group);
 
 /// @brief Bundle of parameters that originate from RedisGroup and are threaded
 ///        through the Sentinel / SentinelImpl constructor chain.
@@ -71,25 +79,42 @@ struct SentinelStaticConfig {
     storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
     uint32_t max_failed_shards{0};
     uint32_t max_failed_shards_percent{0};
-    std::chrono::seconds max_disconnect_time{35};
-};
-
-/// @brief Extends SentinelStaticConfig with subscription-specific options.
-struct SubscribeSentinelStaticConfig {
-    std::string client_name;
-    KeyShardFactory key_shard_factory;
-    CommandControl command_control;
-    storages::redis::TopologyUpdateMethod topology_update_method{storages::redis::TopologyUpdateMethod::kClusterSlots};
+    std::chrono::seconds max_disconnect_time{kDefaultMaxDisconnectTime};
+    ConnectionMode connection_mode{ConnectionMode::kCommands};
     bool per_channel_stats_enabled{true};
-
-    storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
-    uint32_t max_failed_shards{0};
-    uint32_t max_failed_shards_percent{0};
-    std::chrono::seconds max_disconnect_time{35};
+    std::optional<CommandControl> subscription_command_control{};
 };
 
 /// @brief Helper: build a SentinelStaticConfig from a RedisGroup.
-inline SentinelStaticConfig MakeSentinelStaticConfig(const RedisGroup& group) {
+inline SentinelStaticConfig MakeSentinelStaticConfig(
+    const RedisGroup& group,
+    const SubscribeRedisGroup* subscribe_group = nullptr
+) {
+    CommandControl cc{};
+    cc.allow_reads_from_master = group.allow_reads_from_master;
+    auto config = SentinelStaticConfig{
+        group.db,
+        KeyShardFactory{group.sharding_strategy},
+        cc,
+        group.topology_update_method,
+        group.required_mode,
+        group.max_failed_shards,
+        group.max_failed_shards_percent,
+        group.max_disconnect_time,
+        group.enable_subscriptions ? ConnectionMode::kCommandsAndSubscriptions : ConnectionMode::kCommands,
+        group.per_channel_stats_enabled
+    };
+    if (subscribe_group) {
+        config.connection_mode = ConnectionMode::kCommandsAndSubscriptions;
+        config.per_channel_stats_enabled = subscribe_group->per_channel_stats_enabled;
+        config.subscription_command_control.emplace()
+            .allow_reads_from_master = subscribe_group->allow_reads_from_master;
+    }
+    return config;
+}
+
+/// @brief Build the configuration for a subscription group.
+inline SentinelStaticConfig MakeSentinelStaticConfig(const SubscribeRedisGroup& group) {
     CommandControl cc{};
     cc.allow_reads_from_master = group.allow_reads_from_master;
     return SentinelStaticConfig{
@@ -100,24 +125,9 @@ inline SentinelStaticConfig MakeSentinelStaticConfig(const RedisGroup& group) {
         group.required_mode,
         group.max_failed_shards,
         group.max_failed_shards_percent,
-        group.max_disconnect_time
-    };
-}
-
-/// @brief Helper: build a SubscribeSentinelStaticConfig from a SubscribeRedisGroup.
-inline SubscribeSentinelStaticConfig MakeSubscribeSentinelStaticConfig(const SubscribeRedisGroup& group) {
-    CommandControl cc{};
-    cc.allow_reads_from_master = group.allow_reads_from_master;
-    return SubscribeSentinelStaticConfig{
-        group.db,
-        KeyShardFactory{group.sharding_strategy},
-        cc,
-        group.topology_update_method,
-        group.per_channel_stats_enabled,
-        group.required_mode,
-        group.max_failed_shards,
-        group.max_failed_shards_percent,
-        group.max_disconnect_time
+        group.max_disconnect_time,
+        ConnectionMode::kSubscriptions,
+        group.per_channel_stats_enabled
     };
 }
 

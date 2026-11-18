@@ -17,6 +17,7 @@
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/keyshard.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
@@ -80,10 +81,10 @@ public:
         const CommandControl& cc /*= {}*/
     ) const;
 
-    void WaitConnectedDebug(bool allow_empty_slaves);
+    void WaitConnectedDebug(bool allow_empty_slaves, ConnectionKind kind = ConnectionKind::kCommand);
 
-    void WaitConnectedOnce(RedisWaitConnected wait_connected);
-    bool IsReady(const HealthCheckParams& params) const;
+    void WaitConnectedOnce(RedisWaitConnected wait_connected, ConnectionKind kind = ConnectionKind::kCommand);
+    bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const;
 
     void ForceUpdateHosts();
 

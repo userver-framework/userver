@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 #include <userver/concurrent/queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,14 +43,14 @@ template <typename Item>
 class SubscriptionQueue {
 public:
     SubscriptionQueue(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> patterns,
         const CommandControl& command_control
     )
     requires std::is_same_v<Item, PatternSubscriptionQueueItem>;
 
     SubscriptionQueue(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> channels,
         const CommandControl& command_control,
         ChannelSubscriptionMode mode
@@ -82,7 +82,7 @@ private:
     };
 
     TokenType GetSubscriptionToken(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> channels,
         const CommandControl& command_control,
         ChannelSubscriptionMode mode
@@ -90,7 +90,7 @@ private:
     requires std::is_same_v<Item, ChannelSubscriptionQueueItem>;
 
     TokenType GetSubscriptionToken(
-        impl::SubscribeSentinel& subscribe_sentinel,
+        impl::Sentinel& subscribe_sentinel,
         std::vector<std::string> patterns,
         const CommandControl& command_control
     )

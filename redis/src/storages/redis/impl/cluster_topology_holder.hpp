@@ -5,6 +5,8 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/periodic_watcher.hpp>
+#include <storages/redis/impl/connection_kind.hpp>
+#include <storages/redis/impl/redis_connection_defaults.hpp>
 #include <userver/engine/pulse_event.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
@@ -36,7 +38,8 @@ public:
         ConnectionSecurity connection_security,
         TopologyUpdateMethod topology_update_method,
         Hysteresis::Config hysteresis_config,
-        std::chrono::seconds max_disconnect_time
+        std::chrono::seconds max_disconnect_time,
+        ConnectionMode connection_mode = ConnectionMode::kCommands
     );
 
     ~ClusterTopologyHolder() override = default;
@@ -44,12 +47,16 @@ public:
     void Init() override;
     void Start() override;
     void Stop() override;
-    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
-    bool IsReady(const HealthCheckParams& params) const override;
+    bool WaitReadyOnce(
+        engine::Deadline deadline,
+        WaitConnectedMode mode,
+        ConnectionKind kind = ConnectionKind::kCommand
+    ) override;
+    bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const override;
 
     rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const override;
     void SendUpdateClusterTopology() override;
-    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
+    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const override;
     void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
     void SetCommandsBufferingSettings(CommandsBufferingSettings settings) override;
     void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) override;
@@ -59,7 +66,7 @@ public:
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
     void UpdateCredentials(const Credentials& credentials) override;
     Credentials GetCredentials() override;
-    std::string GetReadinessInfo() const override;
+    std::string GetReadinessInfo(ConnectionKind kind = ConnectionKind::kCommand) const override;
 
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter.load(std::memory_order_relaxed); }
 
@@ -131,7 +138,8 @@ private:
 
     const ConnectionSecurity connection_security_;
     Hysteresis::Config hysteresis_config_;
-    const std::chrono::seconds max_disconnect_time_{35};
+    const std::chrono::seconds max_disconnect_time_{kDefaultMaxDisconnectTime};
+    const ConnectionMode connection_mode_;
 };
 
 }  // namespace storages::redis::impl

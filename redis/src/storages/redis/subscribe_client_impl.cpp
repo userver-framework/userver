@@ -1,6 +1,7 @@
 #include "subscribe_client_impl.hpp"
+#include <storages/redis/impl/connection_kind.hpp>
 
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/subscription_token_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,7 +10,7 @@ namespace storages::redis {
 
 SubscribeClient::~SubscribeClient() = default;
 
-SubscribeClientImpl::SubscribeClientImpl(std::unique_ptr<impl::SubscribeSentinel> subscribe_sentinel)
+SubscribeClientImpl::SubscribeClientImpl(std::shared_ptr<impl::Sentinel> subscribe_sentinel)
     : redis_client_(std::move(subscribe_sentinel))
 {}
 
@@ -77,16 +78,18 @@ SubscriptionToken SubscribeClientImpl::Ssubscribe(
 }
 
 void SubscribeClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
-    redis_client_->WaitConnectedOnce(wait_connected);
+    redis_client_->WaitConnectedOnce(wait_connected, impl::ConnectionKind::kSubscription);
 }
 
-bool SubscribeClientImpl::IsReady(const HealthCheckParams& params) const { return redis_client_->IsReady(params); }
+bool SubscribeClientImpl::IsReady(const HealthCheckParams& params) const {
+    return redis_client_->IsReady(params, impl::ConnectionKind::kSubscription);
+}
 
 size_t SubscribeClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
 
 bool SubscribeClientImpl::IsInClusterMode() const { return redis_client_->IsInClusterMode(); }
 
-impl::SubscribeSentinel& SubscribeClientImpl::GetNative() const { return *redis_client_; }
+impl::Sentinel& SubscribeClientImpl::GetNative() const { return *redis_client_; }
 
 }  // namespace storages::redis
 

@@ -44,18 +44,18 @@ ClusterShard& ClusterShard::operator=(ClusterShard&& other) noexcept {
     return *this;
 }
 
-bool ClusterShard::IsReady(WaitConnectedMode mode) const {
+bool ClusterShard::IsReady(WaitConnectedMode mode, ConnectionKind kind) const {
     switch (mode) {
         case WaitConnectedMode::kNoWait:
             return true;
         case WaitConnectedMode::kMaster:
-            return IsMasterReady();
+            return IsMasterReady(kind);
         case WaitConnectedMode::kMasterOrSlave:
-            return IsMasterReady() || IsReplicaReady();
+            return IsMasterReady(kind) || IsReplicaReady(kind);
         case WaitConnectedMode::kSlave:
-            return IsReplicaReady();
+            return IsReplicaReady(kind);
         case WaitConnectedMode::kMasterAndSlave:
-            return IsMasterReady() && IsReplicaReady();
+            return IsMasterReady(kind) && IsReplicaReady(kind);
     }
 
     UINVARIANT(false, "Unexpected WaitConnectedMode value");
@@ -64,16 +64,20 @@ bool ClusterShard::IsReady(WaitConnectedMode mode) const {
 bool ClusterShard::AsyncCommand(CommandPtr command) const {
     const CommandControlImpl cc{command->control};
     const auto read_only = command->read_only;
+    const auto kind =
+        command->args.GetCommandCount() == 1 && command->args.begin()->IsSubscribesCommand()
+            ? ConnectionKind::kSubscription
+            : ConnectionKind::kCommand;
 
     if (!read_only || !cc.force_server_id.IsAny()) {
-        if (const auto& instance = GetAvailableServer(command->control, read_only); instance) {
+        if (const auto& instance = GetAvailableServer(command->control, read_only, kind); instance) {
             return instance->AsyncCommand(command);
         }
         return false;
     }
 
     const auto current = current_++;
-    const auto& available_servers = GetAvailableServers(command->control);
+    const auto& available_servers = GetAvailableServers(command->control, kind);
     const auto servers_count = available_servers.size();
     const auto is_nearest_ping_server = IsNearestServerPing(cc);
     const auto is_retry = command->counter != 0;
@@ -100,6 +104,7 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
             is_nearest_ping_server,
             cc.best_dc_count,
             consider_ping,
+            kind,
             &idx
         );
         if (!instance) {
@@ -120,11 +125,15 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
 void ClusterShard::GetConnStats(bool master, ConnStateStatistic& stats) const {
     if (master) {
         if (master_) {
-            stats.Add(master_->GetState());
+            if (const auto connection = master_->GetConnection(ConnectionKind::kCommand)) {
+                stats.Add(connection->GetState());
+            }
         }
     } else {
         for (const auto& replica : replicas_) {
-            stats.Add(replica->GetState());
+            if (const auto connection = replica->GetConnection(ConnectionKind::kCommand)) {
+                stats.Add(connection->GetState());
+            }
         }
     }
 }
@@ -145,7 +154,8 @@ void ClusterShard::GetCommandsCounter(bool master, size_t& stats) const {
 /// Leave others to be able to fallback
 void ClusterShard::GetNearestServersPing(
     const CommandControl& command_control,
-    std::vector<RedisConnectionPtr>& instances
+    std::vector<RedisConnectionPtr>& instances,
+    ConnectionKind kind
 ) {
     const CommandControlImpl cc{command_control};
     const auto num_instances = std::min(cc.best_dc_count, instances.size());
@@ -156,19 +166,28 @@ void ClusterShard::GetNearestServersPing(
     std::ranges::partial_sort(
         instances,
         instances.begin() + num_instances,
-        [](const RedisConnectionPtr& l, const RedisConnectionPtr& r) {
-            UASSERT(r->Get() && l->Get());
-            return l->Get()->GetPingLatency() < r->Get()->GetPingLatency();
+        [kind](const RedisConnectionPtr& l, const RedisConnectionPtr& r) {
+            const auto left = l ? l->GetConnection(kind) : nullptr;
+            const auto right = r ? r->GetConnection(kind) : nullptr;
+            if (!left || !right) {
+                return static_cast<bool>(left);
+            }
+            return left->GetPingLatency() < right->GetPingLatency();
         }
     );
 }
 
-ClusterShard::RedisPtr ClusterShard::GetAvailableServer(const CommandControl& command_control, bool read_only) const {
+ClusterShard::RedisPtr ClusterShard::GetAvailableServer(
+    const CommandControl& command_control,
+    bool read_only,
+    ConnectionKind kind
+) const {
+    const auto get = [kind](const RedisConnectionPtr& connection) { return connection->GetConnection(kind); };
     if (!read_only) {
         if (!master_) {
             return {};
         }
-        return master_->Get();
+        return get(master_);
     }
 
     const CommandControlImpl cc{command_control};
@@ -177,8 +196,8 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(const CommandControl& co
     }
 
     if (master_) {
-        auto master = master_->Get();
-        if (master->GetServerId() == cc.force_server_id) {
+        auto master = get(master_);
+        if (master && master->GetServerId() == cc.force_server_id) {
             return master;
         }
     }
@@ -187,8 +206,8 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(const CommandControl& co
         if (!replica_connection) {
             continue;
         }
-        auto replica = replica_connection->Get();
-        if (replica->GetServerId() == cc.force_server_id) {
+        auto replica = get(replica_connection);
+        if (replica && replica->GetServerId() == cc.force_server_id) {
             return replica;
         }
     }
@@ -197,7 +216,9 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(const CommandControl& co
     return {};
 }
 
-std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(const CommandControl& command_control
+std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(
+    const CommandControl& command_control,
+    ConnectionKind kind
 ) const {
     const CommandControlImpl cc{command_control};
     if (!IsNearestServerPing(cc)) {
@@ -209,12 +230,12 @@ std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(
 
     if (cc.allow_reads_from_master) {
         auto ret = MakeReadonlyWithMasters();
-        ClusterShard::GetNearestServersPing(command_control, ret);
+        ClusterShard::GetNearestServersPing(command_control, ret, kind);
         return ret;
     }
 
     auto ret = replicas_;
-    ClusterShard::GetNearestServersPing(command_control, ret);
+    ClusterShard::GetNearestServersPing(command_control, ret, kind);
     ret.push_back(master_);
     return ret;
 }
@@ -227,6 +248,7 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
     bool is_nearest_ping_server,
     size_t best_dc_count,
     bool consider_ping,
+    ConnectionKind kind,
     size_t* pinstance_idx
 ) {
     RedisPtr ret;
@@ -240,7 +262,7 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
         if (!cur) {
             continue;
         }
-        const auto& cur_inst = cur->Get();
+        const auto cur_inst = cur->GetConnection(kind);
 
         if (cur_inst && cur_inst->IsAvailable() && (!retry || cur_inst->CanRetry()) &&
             (!ret || ret->IsDestroying() ||
@@ -257,10 +279,10 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
 
 // If a node is in failed state, we can ignore its connection state because the problem is on the remote side, not with
 // our connection.
-bool ClusterShard::IsMasterReady() const { return master_ && master_->IsReady(); }
+bool ClusterShard::IsMasterReady(ConnectionKind kind) const { return master_ && master_->IsReady(kind); }
 
-bool ClusterShard::IsReplicaReady() const {
-    return std::ranges::any_of(replicas_, [](const auto& replica) { return replica && replica->IsReady(); });
+bool ClusterShard::IsReplicaReady(ConnectionKind kind) const {
+    return std::ranges::any_of(replicas_, [kind](const auto& replica) { return replica && replica->IsReady(kind); });
 }
 
 size_t GetStartIndex(
@@ -322,7 +344,7 @@ ClusterShard::RedisPtr GetRedisIfAvailable(
         return {};
     }
 
-    auto ret = connection->Get();
+    auto ret = connection->GetConnection(ConnectionKind::kSubscription);
 
     if (!ret || !ret->IsAvailable() ||
         (!command_control.force_server_id.IsAny() && ret->GetServerId() != command_control.force_server_id))

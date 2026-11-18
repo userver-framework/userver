@@ -12,7 +12,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
-class SubscribeSentinel;
+class Sentinel;
 }  // namespace storages::redis::impl
 
 namespace storages::redis {
@@ -31,7 +31,7 @@ namespace storages::redis {
 /// `Psubscribe()` return as it happens in a separate task.
 class SubscribeClientImpl final : public SubscribeClient {
 public:
-    explicit SubscribeClientImpl(std::unique_ptr<impl::SubscribeSentinel> subscribe_sentinel);
+    explicit SubscribeClientImpl(std::shared_ptr<impl::Sentinel> subscribe_sentinel);
     ~SubscribeClientImpl() override;
 
     SubscriptionToken Subscribe(
@@ -77,10 +77,10 @@ public:
     void WaitConnectedOnce(RedisWaitConnected wait_connected);
 
     // For internal usage, don't use it
-    impl::SubscribeSentinel& GetNative() const;
+    impl::Sentinel& GetNative() const;
 
 private:
-    std::unique_ptr<impl::SubscribeSentinel> redis_client_;
+    std::shared_ptr<impl::Sentinel> redis_client_;
 };
 
 }  // namespace storages::redis

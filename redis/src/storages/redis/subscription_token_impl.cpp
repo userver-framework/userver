@@ -16,7 +16,7 @@ constexpr std::string_view kProcessRedisSubscriptionMessage = "process redis sub
 }  // namespace
 
 SubscriptionTokenImpl::SubscriptionTokenImpl(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> channels,
     OnMessageCb on_message_cb,
     const CommandControl& command_control,
@@ -48,7 +48,7 @@ void SubscriptionTokenImpl::ProcessMessages() {
 }
 
 PsubscriptionTokenImpl::PsubscriptionTokenImpl(
-    impl::SubscribeSentinel& subscribe_sentinel,
+    impl::Sentinel& subscribe_sentinel,
     std::vector<std::string> patterns,
     OnPmessageCb on_pmessage_cb,
     const CommandControl& command_control

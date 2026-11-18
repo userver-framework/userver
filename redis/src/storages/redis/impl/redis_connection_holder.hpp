@@ -2,12 +2,13 @@
 #include <memory>
 
 #include <engine/ev/watcher/periodic_watcher.hpp>
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/redis.hpp>
+#include <storages/redis/impl/redis_connection_defaults.hpp>
 #include <storages/redis/impl/redis_creation_settings.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/statistics_holder.hpp>
-#include <userver/rcu/rcu.hpp>
 
 #include "hysteresis.hpp"
 
@@ -47,7 +48,8 @@ public:
         redis::RedisCreationSettings redis_creation_settings,
         StatisticsHolder::Stats& stats,
         Hysteresis::Config config = Hysteresis::Config(),
-        std::chrono::seconds max_disconnect_time = std::chrono::seconds(35)
+        std::chrono::seconds max_disconnect_time = kDefaultMaxDisconnectTime,
+        ConnectionKind kind = ConnectionKind::kCommand
     );
     ~RedisConnectionHolder();
     RedisConnectionHolder(const RedisConnectionHolder&) = delete;
@@ -67,38 +69,43 @@ public:
         StatisticsHolder::Stats& stats,
         redis::RedisCreationSettings redis_creation_settings = makeClusterNodeRedisCreationSettings(),
         Hysteresis::Config config = Hysteresis::Config(),
-        std::chrono::seconds max_disconnect_time = std::chrono::seconds(35)
+        std::chrono::seconds max_disconnect_time = kDefaultMaxDisconnectTime,
+        ConnectionKind kind = ConnectionKind::kCommand
     );
 
-    std::shared_ptr<Redis> Get() const;
+    std::shared_ptr<Redis> GetConnection(ConnectionKind kind) const;
+
+    void EnableSubscriptions(Statistics& subscription_statistics);
 
     void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings);
     void SetCommandsBufferingSettings(CommandsBufferingSettings settings);
     void SetRetryBudgetSettings(utils::RetryBudgetSettings settings);
+    void UpdateCredentials(const Credentials& credentials);
 
-    Redis::State GetState() const;
-    size_t GetCommandsCounter() const;
+    Redis::State GetState(ConnectionKind kind = ConnectionKind::kCommand) const;
+    size_t GetCommandsCounter(ConnectionKind kind = ConnectionKind::kCommand) const;
 
     // Failed state control using external source (for example CLUSTER NODES)
     void SetFailed(bool failed) noexcept { failed_hysteresis_.SetFailed(failed); }
     void AccountFail(bool fail) noexcept { failed_hysteresis_.AccountFail(fail); }
 
     // Get the health state of the host, taking into account the connection state and other data.
-    bool IsReady() const noexcept;
+    bool IsReady(ConnectionKind kind = ConnectionKind::kCommand) const noexcept;
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(Redis::State)> signal_state_change;
 
 private:
-    struct ReadinessState {
-        bool was_ever_connected{false};
-        std::chrono::steady_clock::time_point disconnected_time;
-    };
+    struct ConnectionState;
 
-    void CreateConnection();
+    ConnectionState* GetConnectionState(ConnectionKind kind) const;
+
+    void CreateConnection(ConnectionKind kind, ConnectionState& connection);
+
     /// Checks if redis connected. If not recreate connection
     void EnsureConnected();
-    void OnStateChanged(Redis::State state);
+
+    void OnStateChanged(ConnectionState& connection, Redis::State state);
 
     std::optional<CommandsBufferingSettings> commands_buffering_settings_;
     ReplicationMonitoringSettings replication_monitoring_settings_;
@@ -108,18 +115,17 @@ private:
     const std::string shard_group_name_;
     const std::string host_;
     const uint16_t port_;
-    const Credentials credentials_;
+    Credentials credentials_;
     const std::size_t database_index_;
-    Statistics& statistics_;
-    rcu::Variable<std::shared_ptr<Redis>, rcu::ExclusiveRcuTraits> redis_;
-    rcu::Variable<ReadinessState, rcu::ExclusiveRcuTraits> readiness_state_;
+    std::unique_ptr<ConnectionState> command_connection_;
+    std::unique_ptr<ConnectionState> subscription_connection_;
     engine::ev::PeriodicWatcher connection_check_timer_;
     const RedisCreationSettings redis_creation_settings_;
 
     /// Responsible for tracking the failed state of the host we are connecting to.
     /// This information is obtained from an external source - from other connections.
     Hysteresis failed_hysteresis_;
-    const std::chrono::seconds max_disconnect_time_{35};
+    const std::chrono::seconds max_disconnect_time_{kDefaultMaxDisconnectTime};
 };
 
 }  // namespace storages::redis::impl

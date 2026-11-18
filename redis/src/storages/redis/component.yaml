@@ -15,10 +15,10 @@ properties:
                 description: thread count to serve sentinel requests
     groups:
         type: array
-        description: array of redis clusters to work with excluding subscribers
+        description: array of redis clusters to work with
         items:
             type: object
-            description: redis cluster to work with excluding subscribers
+            description: redis cluster to work with
             additionalProperties: false
             properties:
                 config_name:
@@ -39,8 +39,17 @@ properties:
                       - RedisStandalone
                 allow_reads_from_master:
                     type: boolean
-                    description: allows read requests from master instance
+                    description: allows read requests and subscriptions to master instances
                     default: false
+                enable_subscriptions:
+                    type: boolean
+                    description: |
+                        Enable subscriptions for this group using separate subscription connections.
+                    default: false
+                per_channel_statistics:
+                    type: boolean
+                    description: enables statistics for each redis pub/sub channel
+                    default: true
                 topology_update_method:
                     type: string
                     description: |
@@ -97,7 +106,12 @@ properties:
           - instance
     subscribe_groups:
         type: array
-        description: array of redis clusters to work with in subscribe mode
+        description: |
+            Array of redis clusters to work with in subscribe mode.
+            An entry shares topology with a groups entry having the same db and config_name
+            when sharding_strategy, topology_update_method and max_disconnect_time match.
+            For Redis Cluster both entries must also agree on whether required is no_wait.
+            Subscription settings and health checks are taken from this entry.
         items:
             type: object
             description: redis cluster to work with in subscribe mode

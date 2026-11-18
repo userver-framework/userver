@@ -1,5 +1,6 @@
 #pragma once
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <userver/engine/pulse_event.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -21,7 +22,8 @@ public:
         const std::string& shard_group_name,
         const Credentials& credentials,
         std::size_t database_index,
-        ConnectionInfo conn
+        ConnectionInfo conn,
+        ConnectionMode connection_mode = ConnectionMode::kCommands
     );
 
     ~StandaloneTopologyHolder() override;
@@ -32,14 +34,18 @@ public:
 
     void Stop() override;
 
-    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
-    bool IsReady(const HealthCheckParams& params) const override;
+    bool WaitReadyOnce(
+        engine::Deadline deadline,
+        WaitConnectedMode mode,
+        ConnectionKind kind = ConnectionKind::kCommand
+    ) override;
+    bool IsReady(const HealthCheckParams& params, ConnectionKind kind = ConnectionKind::kCommand) const override;
 
     rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const override;
 
     void SendUpdateClusterTopology() override;
 
-    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
+    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const override;
 
     void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
 
@@ -59,7 +65,7 @@ public:
 
     Credentials GetCredentials() override;
 
-    std::string GetReadinessInfo() const override;
+    std::string GetReadinessInfo(ConnectionKind kind = ConnectionKind::kCommand) const override;
 
 private:
     std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfoInt& info);
@@ -76,6 +82,7 @@ private:
     const std::string shard_group_name_;
     Credentials credentials_;
     const std::size_t database_index_;
+    const ConnectionMode connection_mode_;
 
     ///{ Wait ready
     engine::PulseEvent readiness_event_;

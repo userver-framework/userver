@@ -47,7 +47,8 @@ SentinelTopologyHolder::SentinelTopologyHolder(
     const std::vector<std::string>& shard_names,
     const std::vector<ConnectionInfo>& conns,
     ConnectionSecurity connection_security,
-    std::chrono::seconds max_disconnect_time
+    std::chrono::seconds max_disconnect_time,
+    ConnectionMode connection_mode
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
@@ -101,7 +102,8 @@ SentinelTopologyHolder::SentinelTopologyHolder(
               sentinels_process_state_update_watch_.Start();
           }
       ),
-      connection_security_(connection_security)
+      connection_security_(connection_security),
+      connection_mode_(connection_mode)
 {
     log_extra_.Extend("shard_group_name", shard_group_name_);
     LOG_DEBUG() << log_extra_ << "Created ClusterTopologyHolder";
@@ -178,18 +180,15 @@ void SentinelTopologyHolder::Stop() {
     nodes_.Clear();
 }
 
-bool SentinelTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
-    return readiness_event_.WaitUntil(deadline, [this, mode] {
-        return IsReady(HealthCheckParams{mode, 0, 0});
+bool SentinelTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode, ConnectionKind kind) {
+    return readiness_event_.WaitUntil(deadline, [this, mode, kind] {
+        return IsReady(HealthCheckParams{mode, 0, 0}, kind);
     }) == engine::FutureStatus::kReady;
 }
 
-bool SentinelTopologyHolder::IsReady(const HealthCheckParams& params) const {
-    if (!is_topology_received_.load()) {
-        return false;
-    }
-    auto ptr = topology_.Read();
-    return ptr->IsReady(params);
+bool SentinelTopologyHolder::IsReady(const HealthCheckParams& params, ConnectionKind kind) const {
+    const auto topology = topology_.Read();
+    return is_topology_received_.load() && topology->IsReady(params, kind);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> SentinelTopologyHolder::GetTopology() const {
@@ -198,15 +197,15 @@ rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> SentinelTopologyHolde
 
 void SentinelTopologyHolder::SendUpdateClusterTopology() { update_topology_watch_.Send(); }
 
-std::shared_ptr<Redis> SentinelTopologyHolder::GetRedisInstance(const HostPort& host_port) const {
+std::shared_ptr<Redis> SentinelTopologyHolder::GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const {
     const auto connection = nodes_.Get(host_port);
     if (connection) {
-        return std::const_pointer_cast<Redis>(connection->Get());
+        return connection->GetConnection(kind);
     }
     if (auto ip = ip_by_fqdn_.Get(host_port); ip) {
         const auto connection = nodes_.Get(*ip);
         if (connection) {
-            return std::const_pointer_cast<Redis>(connection->Get());
+            return connection->GetConnection(kind);
         }
     }
 
@@ -273,6 +272,9 @@ boost::signals2::signal<void(size_t)>& SentinelTopologyHolder::GetSignalTopology
 void SentinelTopologyHolder::UpdateCredentials(const Credentials& credentials) {
     UASSERT(ev_thread_.IsInEvThread());
     credentials_ = credentials;
+    for (const auto& node : nodes_) {
+        node.second->UpdateCredentials(credentials);
+    }
 }
 
 Credentials SentinelTopologyHolder::GetCredentials() {
@@ -280,7 +282,7 @@ Credentials SentinelTopologyHolder::GetCredentials() {
     return credentials_;
 }
 
-std::string SentinelTopologyHolder::GetReadinessInfo() const {
+std::string SentinelTopologyHolder::GetReadinessInfo(ConnectionKind /*kind*/) const {
     return fmt::format("Nodes received: false; topology received: {}.", is_topology_received_.load());
 }
 
@@ -294,7 +296,12 @@ std::shared_ptr<RedisConnectionHolder> SentinelTopologyHolder::CreateRedisInstan
     LOG_DEBUG() << log_extra_ << "Create new redis instance " << host_port;
     auto creation_settings = RedisConnectionHolder::makeSentinelNodeRedisCreationSettings();
     creation_settings.connection_security = connection_security_;
-    return RedisConnectionHolder::Create(
+    const auto kind = HasCommands(connection_mode_) ? ConnectionKind::kCommand : ConnectionKind::kSubscription;
+    auto& statistics =
+        kind == ConnectionKind::kCommand
+            ? statistics_holder_.MakeInstanceStats()
+            : statistics_holder_.MakeSubscriptionInstanceStats();
+    auto instance = RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
         shard_group_name_,
@@ -305,11 +312,16 @@ std::shared_ptr<RedisConnectionHolder> SentinelTopologyHolder::CreateRedisInstan
         commands_buffering_settings_.value_or(CommandsBufferingSettings{}),
         monitoring_settings_,
         retry_budget_settings_,
-        statistics_holder_.MakeInstanceStats(),
+        statistics,
         creation_settings,
         Hysteresis::Config{},
-        max_disconnect_time_
+        max_disconnect_time_,
+        kind
     );
+    if (HasCommands(connection_mode_) && HasSubscriptions(connection_mode_)) {
+        instance->EnableSubscriptions(statistics_holder_.MakeSubscriptionInstanceStats());
+    }
+    return instance;
 }
 
 void SentinelTopologyHolder::CreateInstancesAndUpdateTopology() {

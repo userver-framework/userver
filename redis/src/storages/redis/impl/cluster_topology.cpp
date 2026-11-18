@@ -76,14 +76,14 @@ ClusterTopology::ClusterTopology(
 
 ClusterTopology::~ClusterTopology() = default;
 
-bool ClusterTopology::IsReady(const HealthCheckParams& params) const {
+bool ClusterTopology::IsReady(const HealthCheckParams& params, ConnectionKind kind) const {
     if (cluster_shards_.empty()) {
         return false;
     }
 
     const size_t shards_count = cluster_shards_.size();
-    const size_t failed_shards = std::ranges::count_if(cluster_shards_, [&params](const auto& shard) {
-        return !shard.IsReady(params.mode);
+    const size_t failed_shards = std::ranges::count_if(cluster_shards_, [&params, kind](const auto& shard) {
+        return !shard.IsReady(params.mode, kind);
     });
 
     if (params.max_failed_shards && failed_shards <= params.max_failed_shards) {
@@ -98,12 +98,12 @@ bool ClusterTopology::IsReady(const HealthCheckParams& params) const {
     return failed_shards == 0;
 }
 
-std::string ClusterTopology::GetReadinessInfo() const {
+std::string ClusterTopology::GetReadinessInfo(ConnectionKind kind) const {
     std::string result = "Shards readiness: [";
     bool at_least_one_is_fine = false;
     for (const auto& shard : cluster_shards_) {
-        const auto master_ready = shard.IsReady(WaitConnectedMode::kMaster);
-        const auto replica_ready = shard.IsReady(WaitConnectedMode::kSlave);
+        const auto master_ready = shard.IsReady(WaitConnectedMode::kMaster, kind);
+        const auto replica_ready = shard.IsReady(WaitConnectedMode::kSlave, kind);
         fmt::format_to(
             std::back_inserter(result),
             "{{master: {}, replicas: {}}},",

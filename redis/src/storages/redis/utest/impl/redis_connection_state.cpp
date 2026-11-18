@@ -12,6 +12,7 @@
 #include <userver/storages/redis/exception.hpp>
 #include <userver/utils/text.hpp>
 
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
@@ -21,7 +22,6 @@ USERVER_NAMESPACE_BEGIN
 
 using ThreadPools = USERVER_NAMESPACE::storages::redis::impl::ThreadPools;
 using Sentinel = USERVER_NAMESPACE::storages::redis::impl::Sentinel;
-using SubscribeSentinel = USERVER_NAMESPACE::storages::redis::impl::SubscribeSentinel;
 using KeyShardFactory = USERVER_NAMESPACE::storages::redis::impl::KeyShardFactory;
 
 namespace storages::redis::utest::impl {
@@ -177,25 +177,13 @@ RedisConnectionState::RedisConnectionState() {
     );
 
     const auto sharding_strategy = storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32;
-    sentinel_ = Sentinel::CreateSentinel(
-        thread_pools_,
-        GetRedisSettings(),
-        "none",
-        configs_source,
-        storages::redis::impl::SentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}}
-    );
+    auto static_config = storages::redis::impl::SentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}};
+    static_config.connection_mode = storages::redis::impl::ConnectionMode::kCommandsAndSubscriptions;
+    sentinel_ = Sentinel::CreateSentinel(thread_pools_, GetRedisSettings(), "none", configs_source, static_config);
     WaitConnectedWithRetries(sentinel_);
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
-    auto subscribe_sentinel = SubscribeSentinel::Create(
-        thread_pools_,
-        GetRedisSettings(),
-        "none",
-        configs_source,
-        storages::redis::impl::SubscribeSentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}}
-    );
-    WaitConnectedWithRetries(subscribe_sentinel);
-    subscribe_client_ = std::make_shared<SubscribeClientImpl>(std::move(subscribe_sentinel));
+    subscribe_client_ = std::make_shared<SubscribeClientImpl>(sentinel_);
 }
 
 RedisConnectionState::RedisConnectionState(InClusterMode) {
@@ -206,37 +194,21 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         USERVER_NAMESPACE::storages::redis::impl::kDefaultRedisThreadPoolSize
     );
 
-    sentinel_ = Sentinel::CreateSentinel(
-        thread_pools_,
-        GetRedisClusterSettings(),
-        "none",
-        configs_source,
-        storages::redis::impl::SentinelStaticConfig{
-            "pub",
-            KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster},
-            {},
-            {},
-        }
-    );
+    auto static_config = storages::redis::impl::SentinelStaticConfig{
+        "pub",
+        KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster},
+        {},
+        {}
+    };
+    static_config.connection_mode = storages::redis::impl::ConnectionMode::kCommandsAndSubscriptions;
+    sentinel_ =
+        Sentinel::CreateSentinel(thread_pools_, GetRedisClusterSettings(), "none", configs_source, static_config);
     WaitConnectedWithRetries(sentinel_);
     UASSERT(sentinel_->ShardsCount() != 0);
 
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
-    auto subscribe_sentinel = SubscribeSentinel::Create(
-        thread_pools_,
-        GetRedisClusterSettings(),
-        "none",
-        configs_source,
-        storages::redis::impl::SubscribeSentinelStaticConfig{
-            "pub",
-            KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster},
-            {},
-            {},
-        }
-    );
-    WaitConnectedWithRetries(subscribe_sentinel);
-    subscribe_client_ = std::make_shared<SubscribeClientImpl>(std::move(subscribe_sentinel));
+    subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(sentinel_);
 }
 
 }  // namespace storages::redis::utest::impl

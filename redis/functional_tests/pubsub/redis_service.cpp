@@ -1,6 +1,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -13,6 +14,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
@@ -24,6 +26,10 @@
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <storages/redis/client_impl.hpp>
+#include <storages/redis/subscribe_client_impl.hpp>
+
 #include "userver/logging/log.hpp"
 
 namespace chaos {
@@ -40,7 +46,7 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    std::string Get() const;
+    std::string Get(const server::http::HttpRequest& request) const;
     std::string Delete() const;
     std::string Update() const;
 
@@ -49,6 +55,7 @@ private:
     using Data = concurrent::Variable<std::vector<std::string>>;
 
     const std::shared_ptr<storages::redis::SubscribeClient> redis_client_;
+    bool command_client_available_{false};
 
     mutable Data accumulated_data_with_queue_;
     mutable storages::redis::SubscriptionToken token_with_queue_;
@@ -59,7 +66,14 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config, cons
       redis_client_{context.FindComponent<components::Redis>("key-value-database")
                         .GetSubscribeClient(config["db"].As<std::string>())},
       token_with_queue_(Subscribe())
-{}
+{
+    try {
+        context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>());
+        command_client_available_ = true;
+    } catch (const std::runtime_error&) {
+        // Some test groups only expose a subscription client.
+    }
+}
 
 ReadStoreReturn::~ReadStoreReturn() { token_with_queue_.Unsubscribe(); }
 
@@ -69,7 +83,7 @@ std::string ReadStoreReturn::HandleRequestThrow(
 ) const {
     switch (request.GetMethod()) {
         case server::http::HttpMethod::kGet:
-            return Get();
+            return Get(request);
         case server::http::HttpMethod::kDelete:
             return Delete();
         case server::http::HttpMethod::kPut:
@@ -93,10 +107,13 @@ properties:
 )");
 }
 
-std::string ReadStoreReturn::Get() const {
+std::string ReadStoreReturn::Get(const server::http::HttpRequest& request) const {
     formats::json::ValueBuilder builder{formats::common::Type::kObject};
     const auto locked = accumulated_data_with_queue_.Lock();
     builder["data"] = *locked;
+    if (request.GetArg("check-command-client") == "true") {
+        builder["command_client_available"] = command_client_available_;
+    }
 
     return formats::json::ToString(builder.ExtractValue());
 }
@@ -137,6 +154,7 @@ public:
 
 private:
     const std::shared_ptr<storages::redis::Client> redis_client_;
+    bool shared_sentinel_{false};
 };
 
 Publisher::Publisher(const components::ComponentConfig& config, const components::ComponentContext& context)
@@ -144,12 +162,27 @@ Publisher::Publisher(const components::ComponentConfig& config, const components
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())
       }
-{}
+{
+    const auto& subscribe_client =
+        *context.FindComponent<components::Redis>("key-value-database")
+             .GetSubscribeClient(config["db"].As<std::string>());
+    shared_sentinel_ =
+        &static_cast<storages::redis::ClientImpl&>(*redis_client_).GetNative() ==
+        &static_cast<const storages::redis::SubscribeClientImpl&>(subscribe_client).GetNative();
+}
 
 std::string Publisher::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
     const {
-    redis_client_->Publish("output-channel", request.GetArg("message"), {});
-    return "";
+    const auto& message = request.GetArg("message");
+    redis_client_->Set("pubsub-command-key", message, {}).Get();
+    storages::redis::CommandControl cc;
+    cc.force_request_to_master = true;
+    const auto stored = redis_client_->Get("pubsub-command-key", cc).Get();
+    redis_client_->Publish("output-channel", message, {});
+    formats::json::ValueBuilder result;
+    result["value"] = stored.value();
+    result["shared_sentinel"] = shared_sentinel_;
+    return formats::json::ToString(result.ExtractValue());
 }
 
 yaml_config::Schema Publisher::GetStaticConfigSchema() {
@@ -265,6 +298,8 @@ int main(int argc, char* argv[]) {
             .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
             .Append<chaos::ReadStoreReturn>("handler-standalone")
             .Append<chaos::Publisher>("handler-publisher")
+            .Append<chaos::Publisher>("handler-standalone-publisher")
+            .Append<chaos::Publisher>("handler-cluster-publisher")
             .Append<chaos::ManySubscriptions>("handler-many-subscriptions")
             .AppendComponentList(clients::http::ComponentList())
             .Append<components::Secdist>()

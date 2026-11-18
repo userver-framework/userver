@@ -11,6 +11,7 @@
 #include <userver/utils/rand.hpp>
 
 #include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/sentinel_query.hpp>
 
@@ -46,7 +47,7 @@ public:
           shard_(other.shard_) {}
     ClusterShard& operator=(const ClusterShard& other) = delete;
     ClusterShard& operator=(ClusterShard&& other) noexcept;
-    bool IsReady(WaitConnectedMode mode) const;
+    bool IsReady(WaitConnectedMode mode, ConnectionKind kind = ConnectionKind::kCommand) const;
     bool AsyncCommand(CommandPtr command) const;
     void GetConnStats(bool master, ConnStateStatistic& stats) const;
     void GetCommandsCounter(bool master, size_t& stats) const;
@@ -57,13 +58,15 @@ public:
 private:
     static void GetNearestServersPing(
         const CommandControl& command_control,
-        std::vector<RedisConnectionPtr>& instances
+        std::vector<RedisConnectionPtr>& instances,
+        ConnectionKind kind
     );
     /// Return suitable instance if it is the only suitable instance.
     /// If there no suitable or multiple suitable instances then method return
     /// nullptr
-    RedisPtr GetAvailableServer(const CommandControl& command_control, bool read_only) const;
-    std::vector<RedisConnectionPtr> GetAvailableServers(const CommandControl& command_control) const;
+    RedisPtr GetAvailableServer(const CommandControl& command_control, bool read_only, ConnectionKind kind) const;
+    std::vector<RedisConnectionPtr> GetAvailableServers(const CommandControl& command_control, ConnectionKind kind)
+        const;
     static RedisPtr GetInstance(
         const std::vector<RedisConnectionPtr>& instances,
         bool is_retry,
@@ -72,11 +75,12 @@ private:
         bool is_nearest_ping_server,
         size_t best_dc_count,
         bool consider_ping,
+        ConnectionKind kind,
         size_t* pinstance_idx
     );
     std::vector<RedisConnectionPtr> MakeReadonlyWithMasters() const;
-    bool IsMasterReady() const;
-    bool IsReplicaReady() const;
+    bool IsMasterReady(ConnectionKind kind) const;
+    bool IsReplicaReady(ConnectionKind kind) const;
 
     std::vector<RedisConnectionPtr> replicas_;
     RedisConnectionPtr master_;

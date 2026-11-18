@@ -79,6 +79,15 @@ async def test_happy_path_cluster(service_client, redis_cluster_store):
         assert False, f'Failed after multiple retries: {failed}'
 
 
+@pytest.mark.parametrize('redis_group_mode', ['paired'], indirect=True)
+@pytest.mark.uservice_oneshot(config_hooks=['empty_cluster_shards_config'])
+async def test_paired_cluster_with_empty_shards(service_client, redis_cluster_store):
+    assert await _validate_pubsub(redis_cluster_store, service_client, 'empty_shards_message', 'cluster')
+    response = await service_client.get('/redis-cluster', params={'check-command-client': 'true'})
+    assert response.status == 200
+    assert response.json()['command_client_available'] is False
+
+
 async def test_happy_path_standalone(service_client, redis_standalone_store):
     msg = 'sentinel_message'
     assert await _validate_pubsub(redis_standalone_store, service_client, msg, 'standalone')
@@ -91,11 +100,18 @@ async def test_happy_path_standalone_with_resubscription(service_client, redis_s
     assert await _validate_pubsub(redis_standalone_store, service_client, msg, 'standalone')
 
 
-async def test_publisher(service_client, redis_store):
-    p = redis_store.pubsub()
+@pytest.mark.parametrize('redis_type', ['sentinel', 'standalone', 'cluster'])
+async def test_publisher(
+    service_client, redis_store, redis_standalone_store, redis_cluster_store, redis_type, redis_group_mode
+):
+    store = {'sentinel': redis_store, 'standalone': redis_standalone_store, 'cluster': redis_cluster_store}[redis_type]
+    assert await _validate_pubsub(store, service_client, 'ready', redis_type)
+    p = store.pubsub()
     p.subscribe('output-channel')
-    response = await service_client.get('/publisher?message=hello')
+    path = '/publisher' if redis_type == 'sentinel' else f'/{redis_type}-publisher'
+    response = await service_client.get(f'{path}?message=hello')
     assert response.status == 200
+    assert response.json() == {'value': 'hello', 'shared_sentinel': redis_group_mode != 'separate'}
 
     def get_message(p):
         for i in range(15):

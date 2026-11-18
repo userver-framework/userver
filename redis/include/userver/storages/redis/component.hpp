@@ -42,6 +42,16 @@ namespace components {
 /// @brief Valkey and Redis client component
 ///
 /// Provides access to a valkey or redis cluster.
+/// Set `enable_subscriptions: true` on a `groups` entry to use both
+/// @ref components::Redis::GetClient and @ref components::Redis::GetSubscribeClient
+/// with the same database name and topology. Commands and subscriptions use
+/// separate connections to the Redis nodes.
+/// Alternatively, entries in `groups` and `subscribe_groups` with the same `db`
+/// and `config_name` share topology automatically when their `sharding_strategy`,
+/// `topology_update_method` and `max_disconnect_time` match. For Redis Cluster,
+/// both entries must also agree on whether `required` is `no_wait`.
+/// Subscription settings come from `subscribe_groups`, including
+/// `allow_reads_from_master`, `per_channel_statistics` and health checks.
 ///
 /// ## Dynamic options:
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS

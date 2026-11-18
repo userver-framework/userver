@@ -4,24 +4,33 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <boost/signals2/connection.hpp>
+
 #include <userver/engine/async.hpp>
+#include <userver/engine/condition_variable.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 
 #include <storages/redis/impl/cmd_args.hpp>
 #include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/connection_kind.hpp>
+#include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 #include <storages/redis/impl/thread_pools.hpp>
 #include <storages/redis/subscribe_client_impl.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
@@ -49,6 +58,27 @@ constexpr std::size_t kDatabaseIndex = 0;
 const std::string kDbName = "redis_db";
 const std::string kLocalhost = "127.0.0.1";
 const std::string kPendingUnsubscribeChannel = "pending-unsubscribe";
+
+class RedisServerForConnectionLifecycle final : public MockRedisServer {
+public:
+    RedisServerForConnectionLifecycle()
+        : MockRedisServer(kDbName)
+    {}
+
+    ~RedisServerForConnectionLifecycle() override { Stop(); }
+
+protected:
+    void OnCommand(ConnectionPtr connection, const storages::redis::Reply& command) override {
+        const auto& name = command.data.GetArray().front().GetString();
+        if (name == "PING") {
+            SendReplyOk(std::move(connection), "PONG");
+        } else if (name == "AUTH") {
+            SendReplyOk(std::move(connection), "OK");
+        } else {
+            MockRedisServer::OnCommand(std::move(connection), command);
+        }
+    }
+};
 
 class RedisServerWithPendingUnsubscribe : public MockRedisServer {
 public:
@@ -100,6 +130,51 @@ private:
     engine::SingleConsumerEvent disconnected_;
 };
 
+class RedisServerWithReplicationMonitoring final : public MockRedisServer {
+public:
+    RedisServerWithReplicationMonitoring()
+        : MockRedisServer(kDbName)
+    {
+        RegisterPingHandler();
+        RegisterHandlerWithConstReply("INFO", {"REPLICATION"}, std::string{"master_sync_in_progress:1\r\n"});
+    }
+
+    ~RedisServerWithReplicationMonitoring() override { Stop(); }
+
+    bool WaitForInfoRequests(size_t count) {
+        std::unique_lock lock{mutex_};
+        return info_received_.WaitFor(lock, kSuccessTimeout, [&] { return info_requests_ >= count; });
+    }
+
+    size_t GetInfoConnectionCount() const {
+        std::lock_guard lock{mutex_};
+        return info_connections_.size();
+    }
+
+    void ResetInfoRequests() {
+        std::lock_guard lock{mutex_};
+        info_connections_.clear();
+        info_requests_ = 0;
+    }
+
+protected:
+    void OnCommand(ConnectionPtr connection, const storages::redis::Reply& command) override {
+        if (command.data.GetArray().front().GetString() == "INFO") {
+            std::lock_guard lock{mutex_};
+            info_connections_.insert(connection.get());
+            ++info_requests_;
+            info_received_.NotifyAll();
+        }
+        MockRedisServer::OnCommand(std::move(connection), command);
+    }
+
+private:
+    mutable engine::Mutex mutex_;
+    engine::ConditionVariable info_received_;
+    std::unordered_set<const Connection*> info_connections_;
+    size_t info_requests_{0};
+};
+
 template <typename Predicate>
 void PeriodicCheck(Predicate predicate) {
     for (int i = 0; i < kCheckCount; i++) {
@@ -121,6 +196,135 @@ void PeriodicWait(Predicate predicate) {
 
 bool IsConnected(const storages::redis::impl::Redis& redis) {
     return redis.GetState() == storages::redis::RedisState::kConnected;
+}
+
+void RegisterSubscriptionHandlers(MockRedisServer& server, const std::string& channel) {
+    using storages::redis::ReplyData;
+    server.RegisterHandlerWithConstReply(
+        "SUBSCRIBE",
+        {channel},
+        ReplyData::Array{ReplyData("subscribe"), ReplyData(channel), ReplyData(1)}
+    );
+    server.RegisterHandlerWithConstReply(
+        "UNSUBSCRIBE",
+        {channel},
+        ReplyData::Array{ReplyData("unsubscribe"), ReplyData(channel), ReplyData(0)}
+    );
+}
+
+void CheckSubscriptionsBypassBuffering(
+    storages::redis::impl::RedisConnectionHolder& holder,
+    const MockRedisServer::Handler& get_handler,
+    const std::string& channel,
+    storages::redis::impl::ConnectionMode mode
+) {
+    using namespace storages::redis;
+    const bool has_command_connection = impl::HasCommands(mode);
+    struct Replies {
+        engine::SingleConsumerEvent subscribed;
+        engine::SingleConsumerEvent unsubscribed;
+        engine::SingleConsumerEvent first_get;
+        engine::SingleConsumerEvent second_get;
+        std::atomic_bool valid{true};
+    };
+    const auto replies = std::make_shared<Replies>();
+    const auto before_gets = get_handler.GetReplyCount();
+    if (has_command_connection) {
+        ASSERT_TRUE(holder.GetConnection(impl::ConnectionKind::kCommand)
+                        ->AsyncCommand(impl::PrepareCommand(
+                            {"GET", "first"},
+                            [replies](const auto&, const auto& reply) {
+                                if (!reply->IsOk() || !reply->data.IsString() || reply->data.GetString() != "value") {
+                                    replies->valid = false;
+                                }
+                                replies->first_get.Send();
+                            }
+                        )));
+    }
+    ASSERT_TRUE(holder.GetConnection(impl::ConnectionKind::kSubscription)
+                    ->AsyncCommand(impl::PrepareCommand(
+                        {"SUBSCRIBE", channel},
+                        [replies](const auto&, const auto& reply) {
+                            if (!reply->IsOk() || !reply->data.IsArray()) {
+                                replies->valid = false;
+                                return;
+                            }
+                            const auto& kind = reply->data.GetArray().front().GetString();
+                            if (kind == "subscribe") {
+                                replies->subscribed.Send();
+                            } else if (kind == "unsubscribe") {
+                                replies->unsubscribed.Send();
+                            }
+                        }
+                    )));
+    ASSERT_TRUE(replies->subscribed.WaitForEventFor(kSuccessTimeout));
+    // The ordinary connection still waits for the second command to reach its threshold.
+    EXPECT_EQ(get_handler.GetReplyCount(), before_gets);
+    if (has_command_connection) {
+        ASSERT_TRUE(holder.GetConnection(impl::ConnectionKind::kCommand)
+                        ->AsyncCommand(impl::PrepareCommand(
+                            {"GET", "second"},
+                            [replies](const auto&, const auto& reply) {
+                                if (!reply->IsOk() || !reply->data.IsString() || reply->data.GetString() != "value") {
+                                    replies->valid = false;
+                                }
+                                replies->second_get.Send();
+                            }
+                        )));
+        ASSERT_TRUE(replies->first_get.WaitForEventFor(kSuccessTimeout));
+        ASSERT_TRUE(replies->second_get.WaitForEventFor(kSuccessTimeout));
+    }
+    ASSERT_TRUE(holder.GetConnection(impl::ConnectionKind::kSubscription)
+                    ->AsyncCommand(impl::PrepareCommand({"UNSUBSCRIBE", channel}, impl::ReplyCallback{})));
+    ASSERT_TRUE(replies->unsubscribed.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(replies->valid.load());
+    EXPECT_EQ(get_handler.GetReplyCount(), before_gets + (has_command_connection ? 2 : 0));
+}
+
+void CheckSubscriptionRouting(
+    storages::redis::impl::Sentinel& sentinel,
+    const std::string& channel,
+    storages::redis::CommandControl cc,
+    storages::redis::ServerId& selected_server
+) {
+    using namespace storages::redis;
+    struct Replies {
+        engine::SingleConsumerEvent subscribed;
+        engine::SingleConsumerEvent unsubscribed;
+        ServerId server_id;
+        std::atomic_bool valid{true};
+    };
+    const auto replies = std::make_shared<Replies>();
+    sentinel.AsyncCommand(
+        impl::PrepareCommand(
+            {"SUBSCRIBE", channel},
+            [replies](const auto&, const auto& reply) {
+                if (!reply->IsOk() || !reply->data.IsArray()) {
+                    replies->valid = false;
+                    return;
+                }
+                const auto& kind = reply->data.GetArray().front().GetString();
+                if (kind == "subscribe") {
+                    replies->server_id = reply->server_id;
+                    replies->subscribed.Send();
+                } else if (kind == "unsubscribe") {
+                    replies->unsubscribed.Send();
+                }
+            },
+            cc
+        ),
+        false,
+        0
+    );
+    ASSERT_TRUE(replies->subscribed.WaitForEventFor(kSuccessTimeout));
+    if (cc.force_server_id) {
+        EXPECT_EQ(replies->server_id, *cc.force_server_id);
+    }
+    selected_server = replies->server_id;
+    cc.force_server_id = replies->server_id;
+    sentinel.AsyncCommand(impl::PrepareCommand({"UNSUBSCRIBE", channel}, impl::ReplyCallback{}, cc), false, 0);
+    ASSERT_TRUE(replies->unsubscribed.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(replies->valid.load());
 }
 
 struct MockSentinelServers {
@@ -180,20 +384,17 @@ struct MockSentinelServers {
         }
 
         auto dynconf = dynamic_config::GetDefaultSource();
-        using storages::redis::impl::SubscribeSentinel;
-        auto subscribe_sentinel = SubscribeSentinel::Create(
+        storages::redis::impl::SubscribeRedisGroup group;
+        group.db = "test_client_name";
+        auto subscribe_sentinel = storages::redis::impl::Sentinel::CreateSentinel(
             thread_pool,
             settings,
             "test_shard_group_name",
             dynconf,
-            storages::redis::impl::SubscribeSentinelStaticConfig{
-                "test_client_name",
-                {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32},
-                {},
-                {},
-            }
+            storages::redis::impl::MakeSentinelStaticConfig(group)
         );
-        subscribe_sentinel->WaitConnectedDebug(std::empty(slaves));
+        subscribe_sentinel
+            ->WaitConnectedDebug(std::empty(slaves), storages::redis::impl::ConnectionKind::kSubscription);
 
         storages::redis::SubscribeClientImpl client{std::move(subscribe_sentinel)};
 
@@ -686,6 +887,437 @@ UTEST(Redis, SentinelAuth) {
 
     for (const auto& sentinel : sentinels) {
         EXPECT_TRUE(sentinel.WaitForFirstPingReply(kSuccessTimeout));
+    }
+}
+
+UTEST(Redis, SubscriptionDefaultsAreIndependentFromCommandDefaults) {
+    using namespace storages::redis;
+    MockRedisServer server{"standalone"};
+    server.RegisterPingHandler();
+    const auto subscribed = server.RegisterHandlerWithConstReply(
+        "SUBSCRIBE",
+        {"independent-defaults"},
+        ReplyData::Array{ReplyData("subscribe"), ReplyData("independent-defaults"), ReplyData(1)}
+    );
+    server.RegisterHandlerWithConstReply(
+        "UNSUBSCRIBE",
+        {"independent-defaults"},
+        ReplyData::Array{ReplyData("unsubscribe"), ReplyData("independent-defaults"), ReplyData(0)}
+    );
+    const auto thread_pool = std::make_shared<impl::ThreadPools>(1, 1);
+    secdist::RedisSettings settings;
+    settings.shards = {"standalone"};
+    settings.sentinels.emplace_back(kLocalhost, server.GetPort());
+    auto config = impl::SentinelStaticConfig{"test", {ShardingStrategy::kRedisStandalone}, {}, {}};
+    config.connection_mode = impl::ConnectionMode::kCommandsAndSubscriptions;
+    // A command-only server constraint must never leak into subscriptions.
+    config.command_control.force_server_id = ServerId::Generate();
+    config.subscription_command_control.emplace().allow_reads_from_master = true;
+    const auto sentinel =
+        impl::Sentinel::CreateSentinel(thread_pool, settings, "standalone", dynamic_config::GetDefaultSource(), config);
+    const RedisWaitConnected wait{WaitConnectedMode::kMaster, true, kSuccessTimeout};
+    sentinel->WaitConnectedOnce(wait);
+    sentinel->WaitConnectedOnce(wait, impl::ConnectionKind::kSubscription);
+
+    auto command_defaults = std::make_shared<CommandControl>();
+    command_defaults->force_server_id = ServerId::Generate();
+    sentinel->SetConfigDefaultCommandControl(command_defaults);
+    CommandControl subscription_defaults;
+    subscription_defaults.force_server_id = ServerId::Generate();
+    sentinel->SetSubscriberDefaultCommandControl(subscription_defaults);
+    subscription_defaults.force_server_id.reset();
+    subscription_defaults.max_retries = 5;
+    sentinel->SetSubscriberDefaultCommandControl(subscription_defaults);
+    EXPECT_EQ(sentinel->GetCommandControl({}).force_server_id, command_defaults->force_server_id);
+    EXPECT_NE(sentinel->GetCommandControl({}).max_retries, subscription_defaults.max_retries);
+
+    auto token = sentinel->Subscribe("independent-defaults", [](const auto&, const auto&) {
+        return impl::Sentinel::Outcome::kOk;
+    });
+    EXPECT_TRUE(subscribed->WaitForFirstReply(kSuccessTimeout));
+}
+
+UTEST(Redis, SubscriptionConnectionsDoNotMonitorReplication) {
+    using namespace storages::redis;
+    RedisServerWithReplicationMonitoring server;
+    const auto auth = server.RegisterStatusReplyHandler("AUTH", {"new-password"}, "OK");
+    impl::Statistics command_statistics;
+    impl::Statistics subscription_statistics;
+    const auto pool = std::make_shared<impl::ThreadPools>(1, 1);
+    auto ev_thread = pool->GetSentinelThreadPool().NextThread();
+    const ReplicationMonitoringSettings monitoring{true, true};
+    const auto holder = ev_thread.RunInEvLoopSyncWithResult([&] {
+        auto connection = impl::RedisConnectionHolder::Create(
+            ev_thread,
+            pool->GetRedisThreadPool(),
+            kDbName,
+            kLocalhost,
+            server.GetPort(),
+            Credentials{"", Password{""}},
+            kDatabaseIndex,
+            {},
+            monitoring,
+            {},
+            command_statistics,
+            impl::RedisConnectionHolder::makeSentinelNodeRedisCreationSettings()
+        );
+        connection->EnableSubscriptions(subscription_statistics);
+        // Exercise dynamic updates as well as the initial connection settings.
+        connection->SetReplicationMonitoringSettings(monitoring);
+        return connection;
+    });
+
+    // Before SUBSCRIBE, an accidentally enabled monitor can still send INFO on
+    // the subscription connection. Two INFO rounds give both timers a chance to run.
+    ASSERT_TRUE(server.WaitForInfoRequests(2));
+    EXPECT_EQ(server.GetInfoConnectionCount(), 1);
+    EXPECT_TRUE(holder->GetConnection(impl::ConnectionKind::kCommand)->IsSyncing());
+    EXPECT_FALSE(holder->GetConnection(impl::ConnectionKind::kSubscription)->IsSyncing());
+
+    ev_thread.RunInEvLoopSync([&] { holder->UpdateCredentials(Credentials{"", Password{"new-password"}}); });
+    const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+    while (auth->GetReplyCount() < 2 && !deadline.IsReached()) {
+        engine::SleepFor(kWaitPeriod);
+    }
+    ASSERT_EQ(auth->GetReplyCount(), 2);
+    pool->SynchronizeEventLoops();
+    server.ResetInfoRequests();
+
+    ASSERT_TRUE(server.WaitForInfoRequests(2));
+    EXPECT_EQ(server.GetInfoConnectionCount(), 1);
+    EXPECT_TRUE(holder->GetConnection(impl::ConnectionKind::kCommand)->IsSyncing());
+    EXPECT_FALSE(holder->GetConnection(impl::ConnectionKind::kSubscription)->IsSyncing());
+}
+
+UTEST(Redis, SubscriptionCommandsBypassCommandBuffering) {
+    using namespace storages::redis;
+    for (const auto mode : {impl::ConnectionMode::kCommandsAndSubscriptions, impl::ConnectionMode::kSubscriptions}) {
+        const bool has_commands = impl::HasCommands(mode);
+        SCOPED_TRACE(has_commands ? "shared" : "subscription-only");
+        MockRedisServer server{kDbName};
+        server.RegisterPingHandler();
+        for (const auto* channel : {"buffering-initial", "buffering-dynamic", "buffering-reconnect"}) {
+            RegisterSubscriptionHandlers(server, channel);
+        }
+        RegisterSubscriptionHandlers(server, std::string{impl::CmdWithArgs::kSubscriberPingChannelName});
+        const auto gets = server.RegisterHandlerWithConstReply("GET", std::string{"value"});
+        const auto auth = server.RegisterStatusReplyHandler("AUTH", {"new-password"}, "OK");
+        impl::Statistics command_statistics;
+        impl::Statistics subscription_statistics;
+        const auto pool = std::make_shared<impl::ThreadPools>(1, 1);
+        auto ev_thread = pool->GetSentinelThreadPool().NextThread();
+        CommandsBufferingSettings buffering;
+        buffering.buffering_enabled = true;
+        buffering.commands_buffering_threshold = 2;
+        buffering
+            .watch_command_timer_interval = std::chrono::duration_cast<std::chrono::microseconds>(kSuccessTimeout * 2);
+        const auto holder = ev_thread.RunInEvLoopSyncWithResult([&] {
+            auto connection = impl::RedisConnectionHolder::Create(
+                ev_thread,
+                pool->GetRedisThreadPool(),
+                kDbName,
+                kLocalhost,
+                server.GetPort(),
+                Credentials{"", Password{""}},
+                kDatabaseIndex,
+                buffering,
+                {},
+                {},
+                has_commands ? command_statistics : subscription_statistics,
+                impl::RedisConnectionHolder::makeSentinelNodeRedisCreationSettings(),
+                {},
+                std::chrono::seconds{35},
+                has_commands ? impl::ConnectionKind::kCommand : impl::ConnectionKind::kSubscription
+            );
+            if (has_commands) {
+                connection->EnableSubscriptions(subscription_statistics);
+            }
+            return connection;
+        });
+        ASSERT_NO_FATAL_FAILURE(CheckSubscriptionsBypassBuffering(*holder, *gets, "buffering-initial", mode));
+        buffering.watch_command_timer_interval *= 2;
+        ev_thread.RunInEvLoopSync([&] { holder->SetCommandsBufferingSettings(buffering); });
+        pool->SynchronizeEventLoops();
+        ASSERT_NO_FATAL_FAILURE(CheckSubscriptionsBypassBuffering(*holder, *gets, "buffering-dynamic", mode));
+
+        ev_thread.RunInEvLoopSync([&] { holder->UpdateCredentials(Credentials{"", Password{"new-password"}}); });
+        const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+        const size_t expected_auths = has_commands ? 2 : 1;
+        while (auth->GetReplyCount() < expected_auths && !deadline.IsReached()) {
+            engine::SleepFor(kWaitPeriod);
+        }
+        ASSERT_EQ(auth->GetReplyCount(), expected_auths);
+        ASSERT_NO_FATAL_FAILURE(CheckSubscriptionsBypassBuffering(*holder, *gets, "buffering-reconnect", mode));
+    }
+}
+
+UTEST(Redis, ConnectionModesCreateOnlyRequestedDataConnections) {
+    using namespace storages::redis;
+    for (const auto mode :
+         {impl::ConnectionMode::kCommands,
+          impl::ConnectionMode::kSubscriptions,
+          impl::ConnectionMode::kCommandsAndSubscriptions})
+    {
+        SCOPED_TRACE(static_cast<int>(mode));
+        MockRedisServer server{kDbName};
+        server.RegisterPingHandler();
+        const auto auth = server.RegisterStatusReplyHandler("AUTH", {"password"}, "OK");
+        const auto pool = std::make_shared<impl::ThreadPools>(1, 1);
+        secdist::RedisSettings settings;
+        settings.shards = {"standalone"};
+        settings.sentinels.emplace_back(kLocalhost, server.GetPort());
+        settings.password = Password{"password"};
+        auto config = impl::SentinelStaticConfig{"test", {ShardingStrategy::kRedisStandalone}, {}, {}};
+        config.connection_mode = mode;
+        const auto sentinel =
+            impl::Sentinel::CreateSentinel(pool, settings, kDbName, dynamic_config::GetDefaultSource(), config);
+        const RedisWaitConnected wait{WaitConnectedMode::kMaster, true, kSuccessTimeout};
+        const bool commands = mode != impl::ConnectionMode::kSubscriptions;
+        const bool subscriptions = mode != impl::ConnectionMode::kCommands;
+        if (commands) {
+            sentinel->WaitConnectedOnce(wait, impl::ConnectionKind::kCommand);
+        }
+        if (subscriptions) {
+            sentinel->WaitConnectedOnce(wait, impl::ConnectionKind::kSubscription);
+        }
+        const HealthCheckParams health{WaitConnectedMode::kMaster, 0, 0};
+        EXPECT_EQ(sentinel->IsReady(health, impl::ConnectionKind::kCommand), commands);
+        EXPECT_EQ(sentinel->IsReady(health, impl::ConnectionKind::kSubscription), subscriptions);
+        EXPECT_EQ(auth->GetReplyCount(), static_cast<size_t>(commands) + static_cast<size_t>(subscriptions));
+    }
+}
+
+UTEST(Redis, SubscriptionOnlySupportsNearestAndForcedServerRouting) {
+    using namespace storages::redis;
+    MockSentinelServers mock;
+    mock.RegisterSentinelMastersSlaves();
+    mock.ForEachServer([](auto& server) { server.RegisterPingHandler(); });
+    const auto register_subscriptions = [](auto& server) {
+        RegisterSubscriptionHandlers(server, "nearest-subscriber");
+        RegisterSubscriptionHandlers(server, "forced-subscriber");
+        RegisterSubscriptionHandlers(server, std::string{impl::CmdWithArgs::kSubscriberPingChannelName});
+    };
+    for (auto& server : mock.masters) {
+        register_subscriptions(server);
+    }
+    for (auto& server : mock.slaves) {
+        register_subscriptions(server);
+    }
+    secdist::RedisSettings settings;
+    settings.shards = {std::string{MockSentinelServers::kRedisName}};
+    for (const auto& server : mock.sentinels) {
+        settings.sentinels.emplace_back(kLocalhost, server.GetPort());
+    }
+    impl::SubscribeRedisGroup group;
+    group.db = "subscriber";
+    const auto sentinel = impl::Sentinel::CreateSentinel(
+        mock.thread_pool,
+        settings,
+        kDbName,
+        dynamic_config::GetDefaultSource(),
+        impl::MakeSentinelStaticConfig(group)
+    );
+    sentinel->WaitConnectedDebug(false, impl::ConnectionKind::kSubscription);
+    const HealthCheckParams health{WaitConnectedMode::kMasterAndSlave, 0, 0};
+    EXPECT_TRUE(sentinel->IsReady(health, impl::ConnectionKind::kSubscription));
+    EXPECT_FALSE(sentinel->IsReady(health, impl::ConnectionKind::kCommand));
+
+    CommandControl cc;
+    cc.strategy = CommandControl::Strategy::kNearestServerPing;
+    cc.best_dc_count = 1;
+    ServerId selected_server;
+    ASSERT_NO_FATAL_FAILURE(CheckSubscriptionRouting(*sentinel, "nearest-subscriber", cc, selected_server));
+
+    cc.force_server_id = selected_server;
+    ASSERT_NO_FATAL_FAILURE(CheckSubscriptionRouting(*sentinel, "forced-subscriber", cc, selected_server));
+}
+
+UTEST(Redis, SubscriptionConnectionsUpdateCredentials) {
+    MockRedisServer server{"standalone"};
+    server.RegisterPingHandler();
+    const auto auth = server.RegisterStatusReplyHandler("AUTH", {"new-password"}, "OK");
+    const auto thread_pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+
+    secdist::RedisSettings settings;
+    settings.shards = {"standalone"};
+    settings.sentinels.emplace_back(kLocalhost, server.GetPort());
+    auto config = storages::redis::impl::SentinelStaticConfig{
+        "test_client_name",
+        {storages::redis::ShardingStrategy::kRedisStandalone},
+        {},
+        {}
+    };
+    config.connection_mode = storages::redis::impl::ConnectionMode::kCommandsAndSubscriptions;
+    auto sentinel = storages::redis::impl::Sentinel::CreateSentinel(
+        thread_pool,
+        settings,
+        "standalone",
+        dynamic_config::GetDefaultSource(),
+        config
+    );
+    const storages::redis::RedisWaitConnected wait{storages::redis::WaitConnectedMode::kMaster, true, kSuccessTimeout};
+    sentinel->WaitConnectedOnce(wait);
+    sentinel->WaitConnectedOnce(wait, storages::redis::impl::ConnectionKind::kSubscription);
+
+    settings.password = storages::redis::Password{"new-password"};
+    sentinel->UpdateSettings(settings);
+    const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+    while (auth->GetReplyCount() < 2 && !deadline.IsReached()) {
+        engine::SleepFor(std::chrono::milliseconds{10});
+    }
+    EXPECT_EQ(auth->GetReplyCount(), 2);
+}
+
+UTEST(Redis, ConnectionHolderPreservesRoleStateAcrossReconnects) {
+    using namespace storages::redis;
+    for (const auto kind : {impl::ConnectionKind::kCommand, impl::ConnectionKind::kSubscription}) {
+        SCOPED_TRACE(kind == impl::ConnectionKind::kCommand ? "command" : "subscription");
+        RedisServerForConnectionLifecycle server;
+        impl::Statistics command_statistics;
+        impl::Statistics subscription_statistics;
+        const auto pool = std::make_shared<impl::ThreadPools>(1, 1);
+        auto ev_thread = pool->GetSentinelThreadPool().NextThread();
+        auto holder = ev_thread.RunInEvLoopSyncWithResult([&] {
+            auto connection = impl::RedisConnectionHolder::Create(
+                ev_thread,
+                pool->GetRedisThreadPool(),
+                kDbName,
+                kLocalhost,
+                server.GetPort(),
+                {},
+                kDatabaseIndex,
+                {},
+                {},
+                {},
+                command_statistics,
+                impl::RedisConnectionHolder::makeSentinelNodeRedisCreationSettings(),
+                {},
+                std::chrono::seconds::zero()
+            );
+            connection->EnableSubscriptions(subscription_statistics);
+            return connection;
+        });
+        const auto wait_connected = [&](const std::shared_ptr<impl::Redis>& redis) {
+            ASSERT_TRUE(redis);
+            const auto connected = std::make_shared<engine::SingleConsumerEvent>();
+            const boost::signals2::scoped_connection observer{
+                redis->signal_state_change.connect([connected](impl::Redis::State state) {
+                    if (state == impl::Redis::State::kConnected) {
+                        connected->Send();
+                    }
+                })
+            };
+            if (redis->GetState() != impl::Redis::State::kConnected) {
+                ASSERT_TRUE(connected->WaitForEventFor(kSuccessTimeout));
+            }
+            pool->SynchronizeEventLoops();
+        };
+        const auto pause_disconnect =
+            [&](const std::shared_ptr<impl::Redis>& redis, MockRedisServer::PausedReplyPtr& reply) {
+                reply = server.RegisterPausedReplyHandler(
+                    "GET",
+                    ReplyData::CreateError("READONLY You can't write against a read only slave")
+                );
+                CommandControl control;
+                control.timeout_single = kSuccessTimeout * 4;
+                ASSERT_TRUE(redis->AsyncCommand(
+                    impl::PrepareCommand({"GET", "disconnect"}, [](const auto&, const auto&) {}, control)
+                ));
+                ASSERT_TRUE(reply->WaitForRequest(kSuccessTimeout));
+            };
+        const auto watch_disconnect =
+            [](const std::shared_ptr<impl::Redis>& redis,
+               const std::shared_ptr<engine::SingleConsumerEvent>& disconnected) {
+                return boost::signals2::scoped_connection{
+                    redis->signal_state_change.connect([disconnected](impl::Redis::State state) {
+                        if (state == impl::Redis::State::kDisconnected || state == impl::Redis::State::kDisconnectError)
+                        {
+                            disconnected->Send();
+                        }
+                    })
+                };
+            };
+        for (const auto role : {impl::ConnectionKind::kCommand, impl::ConnectionKind::kSubscription}) {
+            ASSERT_NO_FATAL_FAILURE(wait_connected(holder->GetConnection(role)));
+        }
+        {
+            const auto previous = holder->GetConnection(kind);
+            const auto sibling_kind =
+                kind == impl::ConnectionKind::kCommand
+                    ? impl::ConnectionKind::kSubscription
+                    : impl::ConnectionKind::kCommand;
+            const auto sibling = holder->GetConnection(sibling_kind);
+            MockRedisServer::PausedReplyPtr reply;
+            ASSERT_NO_FATAL_FAILURE(pause_disconnect(previous, reply));
+            const auto reconnected = std::make_shared<engine::SingleConsumerEvent>();
+            const boost::signals2::scoped_connection observer{
+                holder->signal_state_change
+                    .connect([weak_holder = std::weak_ptr{holder}, kind, previous, reconnected](impl::Redis::State state
+                             ) {
+                        const auto holder = weak_holder.lock();
+                        if (!holder) {
+                            return;
+                        }
+                        const auto current = holder->GetConnection(kind);
+                        if (state == impl::Redis::State::kConnected && current != previous &&
+                            current->GetState() == impl::Redis::State::kConnected)
+                        {
+                            reconnected->Send();
+                        }
+                    })
+            };
+            reply->ReleaseReply();
+            ASSERT_TRUE(reconnected->WaitForEventFor(kSuccessTimeout));
+            pool->SynchronizeEventLoops();
+            EXPECT_NE(holder->GetConnection(kind), previous);
+            EXPECT_EQ(holder->GetConnection(sibling_kind), sibling);
+            EXPECT_TRUE(holder->IsReady(kind));
+            EXPECT_TRUE(holder->IsReady(sibling_kind));
+        }
+        {
+            const auto previous = holder->GetConnection(kind);
+            MockRedisServer::PausedReplyPtr reply;
+            ASSERT_NO_FATAL_FAILURE(pause_disconnect(previous, reply));
+            const auto disconnected = std::make_shared<engine::SingleConsumerEvent>();
+            const auto disconnect_observer = watch_disconnect(previous, disconnected);
+            const auto forwarded_disconnects = std::make_shared<std::atomic<std::size_t>>(0);
+            const boost::signals2::scoped_connection observer{
+                holder->signal_state_change.connect([forwarded_disconnects](impl::Redis::State state) {
+                    if (state == impl::Redis::State::kDisconnecting || state == impl::Redis::State::kDisconnected ||
+                        state == impl::Redis::State::kDisconnectError)
+                    {
+                        ++*forwarded_disconnects;
+                    }
+                })
+            };
+            ev_thread.RunInEvLoopSync([&] { holder->UpdateCredentials(Credentials{"", Password{"new-password"}}); });
+            for (const auto role : {impl::ConnectionKind::kCommand, impl::ConnectionKind::kSubscription}) {
+                ASSERT_NO_FATAL_FAILURE(wait_connected(holder->GetConnection(role)));
+            }
+            ASSERT_NE(holder->GetConnection(kind), previous);
+            ASSERT_EQ(forwarded_disconnects->load(), 0);
+            reply->ReleaseReply();
+            ASSERT_TRUE(disconnected->WaitForEventFor(kSuccessTimeout));
+            pool->SynchronizeEventLoops();
+            EXPECT_EQ(forwarded_disconnects->load(), 0);
+            for (const auto role : {impl::ConnectionKind::kCommand, impl::ConnectionKind::kSubscription}) {
+                EXPECT_EQ(holder->GetState(role), impl::Redis::State::kConnected);
+                EXPECT_TRUE(holder->IsReady(role));
+            }
+        }
+        {
+            const auto redis = holder->GetConnection(kind);
+            MockRedisServer::PausedReplyPtr reply;
+            ASSERT_NO_FATAL_FAILURE(pause_disconnect(redis, reply));
+            const auto disconnected = std::make_shared<engine::SingleConsumerEvent>();
+            const auto observer = watch_disconnect(redis, disconnected);
+            const std::weak_ptr<impl::RedisConnectionHolder> weak_holder{holder};
+            holder.reset();
+            EXPECT_TRUE(weak_holder.expired());
+            reply->ReleaseReply();
+            ASSERT_TRUE(disconnected->WaitForEventFor(kSuccessTimeout));
+            pool->SynchronizeEventLoops();
+        }
     }
 }
 

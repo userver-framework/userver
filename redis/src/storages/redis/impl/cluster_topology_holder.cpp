@@ -161,7 +161,8 @@ ClusterTopologyHolder::ClusterTopologyHolder(
     ConnectionSecurity connection_security,
     TopologyUpdateMethod topology_update_method,
     Hysteresis::Config hysteresis_config,
-    std::chrono::seconds max_disconnect_time
+    std::chrono::seconds max_disconnect_time,
+    ConnectionMode connection_mode
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
@@ -226,7 +227,8 @@ ClusterTopologyHolder::ClusterTopologyHolder(
       is_topology_received_(false),
       connection_security_(connection_security),
       hysteresis_config_(hysteresis_config),
-      max_disconnect_time_(max_disconnect_time)
+      max_disconnect_time_(max_disconnect_time),
+      connection_mode_(connection_mode)
 {
     log_extra_.Extend("shard_group_name", shard_group_name_);
     LOG_DEBUG() << log_extra_ << "Created ClusterTopologyHolder";
@@ -303,22 +305,15 @@ void ClusterTopologyHolder::Stop() {
     nodes_.Clear();
 }
 
-bool ClusterTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
-    return readiness_event_.WaitUntil(deadline, [this, mode] {
-        return IsReady(HealthCheckParams{mode, 0, 0});
+bool ClusterTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode, ConnectionKind kind) {
+    return readiness_event_.WaitUntil(deadline, [this, mode, kind] {
+        return IsReady(HealthCheckParams{mode, 0, 0}, kind);
     }) == engine::FutureStatus::kReady;
 }
 
-bool ClusterTopologyHolder::IsReady(const HealthCheckParams& params) const {
-    if (!is_nodes_received_.load()) {
-        return false;
-    }
-    if (!is_topology_received_.load()) {
-        return false;
-    }
-
-    auto ptr = topology_.Read();
-    return ptr->IsReady(params);
+bool ClusterTopologyHolder::IsReady(const HealthCheckParams& params, ConnectionKind kind) const {
+    const auto topology = topology_.Read();
+    return is_nodes_received_.load() && is_topology_received_.load() && topology->IsReady(params, kind);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> ClusterTopologyHolder::GetTopology() const {
@@ -327,15 +322,15 @@ rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> ClusterTopologyHolder
 
 void ClusterTopologyHolder::SendUpdateClusterTopology() { update_topology_watch_.Send(); }
 
-std::shared_ptr<Redis> ClusterTopologyHolder::GetRedisInstance(const HostPort& host_port) const {
+std::shared_ptr<Redis> ClusterTopologyHolder::GetRedisInstance(const HostPort& host_port, ConnectionKind kind) const {
     const auto connection = nodes_.Get(host_port);
     if (connection) {
-        return std::const_pointer_cast<Redis>(connection->Get());
+        return connection->GetConnection(kind);
     }
     if (auto ip = ip_by_fqdn_.Get(host_port); ip) {
         const auto connection = nodes_.Get(*ip);
         if (connection) {
-            return std::const_pointer_cast<Redis>(connection->Get());
+            return connection->GetConnection(kind);
         }
     }
 
@@ -384,6 +379,9 @@ boost::signals2::signal<void(size_t)>& ClusterTopologyHolder::GetSignalTopologyC
 void ClusterTopologyHolder::UpdateCredentials(const Credentials& credentials) {
     UASSERT(ev_thread_.IsInEvThread());
     credentials_ = credentials;
+    for (const auto& node : nodes_) {
+        node.second->UpdateCredentials(credentials);
+    }
 }
 
 Credentials ClusterTopologyHolder::GetCredentials() {
@@ -391,7 +389,7 @@ Credentials ClusterTopologyHolder::GetCredentials() {
     return credentials_;
 }
 
-std::string ClusterTopologyHolder::GetReadinessInfo() const {
+std::string ClusterTopologyHolder::GetReadinessInfo(ConnectionKind /*kind*/) const {
     return fmt::format(
         "Nodes received: {}; topology received: {}.",
         is_nodes_received_.load(),
@@ -517,7 +515,12 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
     LOG_DEBUG() << log_extra_ << "Create new redis instance " << host_port;
     auto creation_settings = RedisConnectionHolder::makeClusterNodeRedisCreationSettings();
     creation_settings.connection_security = connection_security_;
-    return RedisConnectionHolder::Create(
+    const auto kind = HasCommands(connection_mode_) ? ConnectionKind::kCommand : ConnectionKind::kSubscription;
+    auto& statistics =
+        kind == ConnectionKind::kCommand
+            ? statistics_holder_.MakeInstanceStats()
+            : statistics_holder_.MakeSubscriptionInstanceStats();
+    auto instance = RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
         shard_group_name_,
@@ -528,11 +531,16 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         commands_buffering_settings_.value_or(CommandsBufferingSettings{}),
         monitoring_settings_,
         retry_budget_settings_,
-        statistics_holder_.MakeInstanceStats(),
+        statistics,
         creation_settings,
         hysteresis_config_,
-        max_disconnect_time_
+        max_disconnect_time_,
+        kind
     );
+    if (HasCommands(connection_mode_) && HasSubscriptions(connection_mode_)) {
+        instance->EnableSubscriptions(statistics_holder_.MakeSubscriptionInstanceStats());
+    }
+    return instance;
 }
 
 void ClusterTopologyHolder::UpdateClusterTopology() {
