@@ -50,7 +50,10 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
     if(USERVER_DOWNLOAD_PACKAGE_PROTOBUF)
         find_package(Protobuf QUIET)
     else()
-        find_package(Protobuf)
+        find_package(Protobuf CONFIG QUIET)
+        if (NOT Protobuf_FOUND)
+            find_package(Protobuf)
+        endif()
         if(NOT Protobuf_FOUND)
             message(
                 FATAL_ERROR
