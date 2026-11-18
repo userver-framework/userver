@@ -71,17 +71,15 @@ template <class T>
 void B3FillWithTracingContext(const tracing::Span& span, T& target) {
     namespace b3 = http::headers::b3;
 
-    if (const auto span_id = span.GetSpanIdForChildLogs()) {
-        target.SetHeader(b3::kTraceId, std::string{span.GetTraceId()});
-        target.SetHeader(b3::kSpanId, std::string{*span_id});
-        target.SetHeader(b3::kParentSpanId, std::string{span.GetParentId()});
+    target.SetHeader(b3::kTraceId, std::string{span.GetTraceId()});
+    target.SetHeader(b3::kSpanId, std::string{span.GetSpanIdForPropagation()});
+    target.SetHeader(b3::kParentSpanId, std::string{span.GetParentId()});
 
-        const auto* sampled = kB3TracingSampledInheritedData.GetOptional();
-        if (sampled && !sampled->empty()) {
-            target.SetHeader(b3::kSampled, *sampled);
-        } else {
-            target.SetHeader(b3::kSampled, "1");
-        }
+    const auto* sampled = kB3TracingSampledInheritedData.GetOptional();
+    if (sampled && !sampled->empty()) {
+        target.SetHeader(b3::kSampled, *sampled);
+    } else {
+        target.SetHeader(b3::kSampled, "1");
     }
 }
 
@@ -119,12 +117,9 @@ template <class T>
 void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target, const logging::Level log_level) {
     static constexpr std::string_view kDefaultFlagsHex{"01"};
     const auto* data = kOtelTracingHeadersInheritedData.GetOptional();
-    const auto span_id = span.GetSpanIdForChildLogs();
-    if (!span_id) {
-        return;
-    }
     const auto traceflags_hex = data ? std::string_view{data->traceflags_hex} : kDefaultFlagsHex;
-    auto traceparent_result = opentelemetry::BuildTraceParentHeader(span.GetTraceId(), *span_id, traceflags_hex);
+    auto traceparent_result =
+        opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanIdForPropagation(), traceflags_hex);
 
     if (!traceparent_result.has_value()) {
         LOG_LIMITED(log_level
@@ -162,11 +157,9 @@ bool YandexTaxiTryFillSpanBuilderFromRequest(
 
 template <class T>
 void YandexTaxiFillWithTracingContext(const tracing::Span& span, T& target) {
-    if (const auto span_id = span.GetSpanIdForChildLogs()) {
-        target.SetHeader(http::headers::kXYaRequestId, std::string{span.GetLink()});
-        target.SetHeader(http::headers::kXYaTraceId, std::string{span.GetTraceId()});
-        target.SetHeader(http::headers::kXYaSpanId, std::string{*span_id});
-    }
+    target.SetHeader(http::headers::kXYaRequestId, std::string{span.GetLink()});
+    target.SetHeader(http::headers::kXYaTraceId, std::string{span.GetTraceId()});
+    target.SetHeader(http::headers::kXYaSpanId, std::string{span.GetSpanIdForPropagation()});
 }
 
 bool YandexTryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, tracing::SpanBuilder& span_builder) {

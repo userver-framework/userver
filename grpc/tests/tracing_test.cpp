@@ -7,6 +7,7 @@
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tracer.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 
@@ -189,6 +190,28 @@ UTEST_F(GrpcTracing, BackgroundTaskPreservesOtelContext) {
             }).Get();
         }
     }
+}
+
+UTEST_F(GrpcTracing, NotLoggableSpansPropagateTraceId) {
+    const tracing::TracingStateGuard tracing_state_guard;
+    tracing::SetSpanLogLevel(logging::Level::kWarning);
+    const auto root_span = tracing::Span::MakeRootSpan("not-loggable-root");
+    ASSERT_FALSE(root_span.GetSpanIdForChildLogs().has_value());
+
+    auto future = GetClient().AsyncSayHello(sample::ugrpc::GreetingRequest{});
+    UEXPECT_NO_THROW(future.Get());
+    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+
+    EXPECT_EQ(GetMetadataValue(metadata, kClientTraceIdEcho), root_span.GetTraceId());
+    EXPECT_EQ(GetMetadataValue(metadata, kServerTraceId), root_span.GetTraceId());
+    EXPECT_FALSE(GetMetadataValue(metadata, kClientSpanIdEcho).empty());
+    EXPECT_EQ(GetMetadataValue(metadata, kClientSpanIdEcho), GetMetadataValue(metadata, kServerParentSpanId));
+
+    const auto traceparent = GetMetadataValue(metadata, kClientTraceparentEcho);
+    const auto parsed = tracing::opentelemetry::ExtractTraceParentDataView(traceparent);
+    ASSERT_TRUE(parsed.has_value()) << parsed.error();
+    EXPECT_EQ(parsed->trace_id, root_span.GetTraceId());
+    EXPECT_EQ(parsed->span_id, GetMetadataValue(metadata, kClientSpanIdEcho));
 }
 
 UTEST_F(GrpcTracing, BackgroundTaskWithoutOtelContextDefaultsToSampled) {

@@ -96,7 +96,7 @@ UTEST_F(SpanLogContext, UnsampledSpan) {
     EXPECT_EQ(Capture(context).GetTag("trace_sampled"), "0");
 }
 
-UTEST_F(SpanLogContext, ReplacingWithUnloggableSpanClearsIds) {
+UTEST_F(SpanLogContext, ReplacingWithUnloggableSpanClearsSpanId) {
     auto span = MakeSpan();
     auto context = MakeContext(span);
     const auto original_context = context;
@@ -109,10 +109,13 @@ UTEST_F(SpanLogContext, ReplacingWithUnloggableSpanClearsIds) {
     EXPECT_NE(context, original_context);
     EXPECT_NE(context, tracing::SpanLogContext{});
     EXPECT_FALSE(context.IsEmpty());
+    EXPECT_EQ(context.GetTraceId(), kTraceId);
+    EXPECT_TRUE(context.GetSpanId().empty());
+    EXPECT_EQ(context.GetLink(), kLink);
     const auto log = Capture(context);
-    EXPECT_FALSE(log.GetTagOptional("trace_id").has_value());
+    EXPECT_EQ(log.GetTag("trace_id"), kTraceId);
     EXPECT_FALSE(log.GetTagOptional("span_id").has_value());
-    EXPECT_FALSE(log.GetTagOptional("link").has_value());
+    EXPECT_EQ(log.GetTag("link"), kLink);
 }
 
 UTEST_F(SpanLogContext, UsesParentIdForUnloggableSpan) {

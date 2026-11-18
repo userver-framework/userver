@@ -28,7 +28,7 @@ utils::Flags<Format> GetFormats() { return {Format::kYandexTaxi, Format::kOpenTe
 
 }  // namespace
 
-UTEST(GenericTracingManager, HiddenSpanDoesNotProduceResponseHeaders) {
+UTEST(GenericTracingManager, HiddenSpanProducesResponseHeaders) {
     SetInheritedOtelTracingData({}, "00");
     auto span = Span::MakeRootSpan("test-span");
     span.SetLogLevel(logging::Level::kNone);
@@ -38,8 +38,32 @@ UTEST(GenericTracingManager, HiddenSpanDoesNotProduceResponseHeaders) {
     manager.FillResponseWithTracingContext(span, request->GetHttpResponse());
 
     const auto& response = request->GetHttpResponse();
-    EXPECT_TRUE(response.GetHeader(http::headers::kXYaTraceId).empty());
-    EXPECT_TRUE(response.GetHeader(http::headers::opentelemetry::kTraceParent).empty());
+    EXPECT_EQ(response.GetHeader(http::headers::kXYaTraceId), span.GetTraceId());
+    EXPECT_EQ(response.GetHeader(http::headers::kXYaSpanId), span.GetSpanId());
+    EXPECT_EQ(response.GetHeader(http::headers::kXYaRequestId), span.GetLink());
+    const auto traceparent =
+        opentelemetry::ExtractTraceParentDataView(response.GetHeader(http::headers::opentelemetry::kTraceParent));
+    ASSERT_TRUE(traceparent.has_value());
+    EXPECT_EQ(traceparent.value().trace_id, span.GetTraceId());
+    EXPECT_EQ(traceparent.value().span_id, span.GetSpanId());
+}
+
+UTEST(GenericTracingManager, HiddenChildSpanPropagatesNearestLoggableSpanId) {
+    const TracingStateGuard tracing_state_guard;
+    const logging::DefaultLoggerLevelScope default_logger_level{logging::Level::kInfo};
+    SetInheritedOtelTracingData({}, "00");
+    const auto parent = Span::MakeRootSpan("parent-span");
+    ASSERT_TRUE(parent.ShouldLogDefault());
+    Span child{"child-span"};
+    child.SetLogLevel(logging::Level::kNone);
+    const GenericTracingManager manager{GetFormats(), Format{}};
+    auto request = server::http::HttpRequestBuilder{}.Build();
+
+    manager.FillResponseWithTracingContext(child, request->GetHttpResponse());
+
+    const auto& response = request->GetHttpResponse();
+    EXPECT_EQ(response.GetHeader(http::headers::kXYaTraceId), parent.GetTraceId());
+    EXPECT_EQ(response.GetHeader(http::headers::kXYaSpanId), parent.GetSpanId());
 }
 
 UTEST(GenericTracingManager, IndependentSpanLogLevelKeepsResponseHeaders) {

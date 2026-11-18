@@ -252,6 +252,11 @@ public:
     /// If the current span and all parent spans will not be logged, returns `std::nullopt`.
     std::optional<std::string_view> GetSpanIdForChildLogs() const noexcept;
 
+    /// Span ID to pass in tracing headers of outgoing requests and responses.
+    /// Same as GetSpanIdForChildLogs() if it has a value, otherwise the ID of the current span.
+    /// Tracing context is propagated even if no span in the chain will be logged.
+    std::string_view GetSpanIdForPropagation() const noexcept;
+
     /// Get name the Span was created with
     std::string_view GetName() const noexcept;
 

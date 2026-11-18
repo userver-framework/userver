@@ -28,15 +28,17 @@ namespace tracing {
 class SpanLogContext final {
 public:
     /// Replaces the captured context with the span's current logging context.
+    /// The trace ID and the link are always captured.
     /// Uses Span::GetSpanIdForChildLogs() to select the span ID, which may belong
-    /// to a parent span if the supplied span is not loggable.
+    /// to a parent span if the supplied span is not loggable, or be absent
+    /// if no span in the chain is loggable.
     void SetFromSpan(const Span& span);
 
-    /// Returns the captured trace ID, or an empty string if no ID was captured.
+    /// Returns the captured trace ID, or an empty string if no context was captured.
     std::string_view GetTraceId() const noexcept USERVER_IMPL_LIFETIME_BOUND;
-    /// Returns the captured logging span ID, or an empty string if no ID was captured.
+    /// Returns the captured logging span ID, or an empty string if no span in the chain was loggable.
     std::string_view GetSpanId() const noexcept USERVER_IMPL_LIFETIME_BOUND;
-    /// Returns the captured link, or an empty string if no link was captured.
+    /// Returns the captured link, or an empty string if no context was captured.
     std::string_view GetLink() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// Returns true if no context has been captured with SetFromSpan().

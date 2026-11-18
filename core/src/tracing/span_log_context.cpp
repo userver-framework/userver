@@ -13,10 +13,10 @@ void SpanLogContext::SetFromSpan(const Span& span) {
     span_id_.clear();
     link_.clear();
     trace_sampled_ = span.IsSampled();
+    trace_id_ = span.GetTraceId();
+    link_ = span.GetLink();
     if (const auto span_id = span.GetSpanIdForChildLogs()) {
-        trace_id_ = span.GetTraceId();
         span_id_ = span_id.value();
-        link_ = span.GetLink();
     }
 }
 
@@ -35,13 +35,11 @@ logging::LogExtra SpanLogContext::GetLogExtra() const {
         return {};
     }
     logging::LogExtra context{{"trace_sampled", IsSampled()}};
+    context.Extend("trace_id", std::string{GetTraceId()});
     if (!span_id_.empty()) {
-        context.Extend({
-            {"trace_id", GetTraceId()},
-            {"span_id", GetSpanId()},
-            {"link", GetLink()},
-        });
+        context.Extend("span_id", std::string{GetSpanId()});
     }
+    context.Extend("link", std::string{GetLink()});
     return context;
 }
 

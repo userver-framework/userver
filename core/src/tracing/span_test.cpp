@@ -324,6 +324,36 @@ UTEST_F(Span, GlobalSpanLogLevelCanSuppressSpan) {
     EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=info_span")));
 }
 
+UTEST_F(Span, NotLoggableRootSpanKeepsTraceIdInLogs) {
+    tracing::SetSpanLogLevel(logging::Level::kWarning);
+
+    std::string trace_id;
+    std::string span_id;
+    std::string link;
+    {
+        const tracing::Span span{"info_span"};
+        ASSERT_FALSE(span.GetSpanIdForChildLogs().has_value());
+        EXPECT_EQ(span.GetSpanIdForPropagation(), span.GetSpanId());
+        trace_id = span.GetTraceId();
+        span_id = span.GetSpanId();
+        link = span.GetLink();
+        LOG_WARNING() << "warning_message";
+    }
+    logging::LogFlush();
+
+    EXPECT_THAT(
+        GetStreamString(),
+        testing::AllOf(
+            HasSubstr("text=warning_message"),
+            HasSubstr("trace_id=" + trace_id),
+            HasSubstr("link=" + link),
+            Not(HasSubstr("span_id=")),
+            Not(HasSubstr(span_id)),
+            Not(HasSubstr("stopwatch_name=info_span"))
+        )
+    );
+}
+
 UTEST_F(Span, NoLogNames) {
     constexpr const char* kLogFirstSpan = "first_span_to_log";
     constexpr const char* kLogSecondSpan = "second_span_to_log";

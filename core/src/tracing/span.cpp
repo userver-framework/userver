@@ -206,11 +206,11 @@ void Span::Impl::LogTo(logging::impl::TagWriter writer) const {
     writer.PutLogExtra(log_extra_inheritable_);
     writer.PutTag(kTraceSampledTag, is_sampled_);
 
+    writer.PutTag(kTraceIdTag, GetTraceId());
     if (const auto span_id = GetSpanIdForChildLogs()) {
-        writer.PutTag(kTraceIdTag, GetTraceId());
         writer.PutTag(kSpanIdTag, *span_id);
-        writer.PutTag(kLinkTag, GetLink());
     }
+    writer.PutTag(kLinkTag, GetLink());
 }
 
 void Span::Impl::DetachFromCoroStack() noexcept { unlink(); }
@@ -475,6 +475,10 @@ std::string_view Span::GetLink() const noexcept { return pimpl_->GetLink(); }
 std::string_view Span::GetParentLink() const noexcept { return pimpl_->GetParentLink(); }
 
 std::optional<std::string_view> Span::GetSpanIdForChildLogs() const noexcept { return pimpl_->GetSpanIdForChildLogs(); }
+
+std::string_view Span::GetSpanIdForPropagation() const noexcept {
+    return pimpl_->GetSpanIdForChildLogs().value_or(pimpl_->GetSpanId());
+}
 
 std::string_view Span::GetName() const noexcept { return pimpl_->GetName(); }
 
