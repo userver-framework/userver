@@ -170,6 +170,14 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request, req
         throw handlers::ClientError();
     }
 
+    // RFC 7616, 3.4.6: https://www.rfc-editor.org/rfc/rfc7616.html#section-3.4.6
+    // The `uri` directive must designate the request target. Exact equality also preserves its request-target form.
+    if (request.GetUrl() != client_context.uri) {
+        response.SetStatus(http::HttpStatus::kBadRequest);
+        LOG_WARNING() << fmt::format("The '{}' directive does not designate the request target", directives::kUri);
+        throw handlers::ClientError();
+    }
+
     // Check if user have been registered.
     auto user_data_opt = FetchUserData(client_context.username);
     if (!user_data_opt.has_value()) {

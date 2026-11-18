@@ -13,7 +13,12 @@ async def test_authenticate_base_proxy(service_client):
     auth_utils.auth_directives_assert(auth_directives)
 
     challenge = auth_utils.construct_challenge(auth_directives)
-    auth_header = auth_utils.construct_header('username', 'pswd', challenge)
+    auth_header = auth_utils.construct_header(
+        'username',
+        'pswd',
+        challenge,
+        '/v1/hello-proxy',
+    )
 
     response = await service_client.get(
         '/v1/hello-proxy',
@@ -38,6 +43,7 @@ async def test_postgres_wrong_data_proxy(service_client):
         'username',
         'wrong-password',
         challenge,
+        '/v1/hello-proxy',
     )
 
     response = await service_client.get(

@@ -1,19 +1,28 @@
 #include <exception>
+#include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
 
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/context.hpp>
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/standalone_checker.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/http/http_method.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_status.hpp>
+#include <userver/server/request/request_context.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -35,6 +44,28 @@ const auto kValidHA1 = HA1{"939e7578ed9e3c518a452acee763bce9"};
 const std::string kValidNonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
 constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
 
+constexpr std::string_view kUsername = "Mufasa";
+constexpr std::string_view kRequestTarget = "/dir/index.html";
+
+// credentials of the example exchange of RFC 2617, 3.5 for `GET /dir/index.html`
+constexpr std::string_view kAuthorizationHeader =
+    "Digest username=\"Mufasa\", realm=\"testrealm@host.com\", "
+    "nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\", uri=\"/dir/index.html\", "
+    "qop=auth, nc=00000001, cnonce=\"0a4f113b\", "
+    "response=\"6629fae49393a05397450978507c4ef1\", "
+    "opaque=\"5ccc069c403ebaf9f0171e9517f40e41\"";
+
+std::shared_ptr<server::http::HttpRequest> MakeAuthorizedRequest(
+    std::string_view request_target,
+    std::string_view authorization_header = kAuthorizationHeader
+) {
+    return server::http::HttpRequestBuilder{}
+        .SetMethod(server::http::HttpMethod::kGet)
+        .SetUrl(std::string{request_target})
+        .AddHeader(std::string{USERVER_NAMESPACE::http::headers::kAuthorization}, std::string{authorization_header})
+        .Build();
+}
+
 class StandAloneChecker final : public AuthStandaloneCheckerBase {
 public:
     StandAloneChecker(
@@ -53,7 +84,7 @@ public:
     std::optional<HA1> GetHA1(std::string_view) const override { return kValidHA1; }
 };
 
-class StandAloneCheckerTest : public ::testing::Test {
+class StandAloneCheckerTest : public utest::LogCaptureFixture<> {
 public:
     struct TempFileProvider {
         TempFileProvider() { fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson); }
@@ -101,6 +132,20 @@ public:
           })
     {
         client_context = correct_client_context;
+    }
+
+    std::string MakeAuthorizationHeader(std::string_view uri) const {
+        const Hasher hasher{"MD5", secdist_config};
+        const auto ha2 = hasher.GetHash({"GET:", uri});
+        const auto
+            response = hasher.GetHash({kValidHA1.GetUnderlying(), ":", kValidNonce, ":00000001:0a4f113b:auth:", ha2});
+        return fmt::format(
+            R"(Digest username="Mufasa", realm="testrealm@host.com", nonce="{}", uri="{}", )"
+            R"(qop=auth, nc=00000001, cnonce="0a4f113b", response="{}", opaque="5ccc069c403ebaf9f0171e9517f40e41")",
+            kValidNonce,
+            uri,
+            response
+        );
     }
 
     TempFileProvider temp_file_provider;
@@ -301,6 +346,67 @@ UTEST_F(StandAloneCheckerTest, FreshChallengeCommitsItsOwnReplayState) {
     EXPECT_EQ(data->nonce, kValidNonce);
     EXPECT_EQ(data->nonce_count, 1);
     EXPECT_EQ(data->timestamp, timestamp);
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthUriDirectiveMatchesRequestTarget) {
+    utils::datetime::MockNowSet(utils::datetime::Now());
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+
+    const auto origin_request = MakeAuthorizedRequest(kRequestTarget);
+    request::RequestContext origin_context;
+    EXPECT_EQ(checker.CheckAuth(*origin_request, origin_context).status, AuthCheckResult::Status::kOk);
+
+    constexpr std::string_view kAbsoluteTarget = "http://host/dir/index.html";
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+    const auto absolute_request = MakeAuthorizedRequest(kAbsoluteTarget, MakeAuthorizationHeader(kAbsoluteTarget));
+    request::RequestContext absolute_context;
+    EXPECT_EQ(checker.CheckAuth(*absolute_request, absolute_context).status, AuthCheckResult::Status::kOk);
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthUriDirectiveDiffersFromRequestTarget) {
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+
+    const auto request = MakeAuthorizedRequest(
+        "/dir/other.html?token=request-secret",
+        MakeAuthorizationHeader("/dir/index.html?token=directive-secret")
+    );
+    request::RequestContext context;
+
+    UEXPECT_THROW((void)checker.CheckAuth(*request, context), handlers::ClientError);
+    EXPECT_EQ(request->GetHttpResponse().GetStatus(), server::http::HttpStatus::kBadRequest);
+    EXPECT_EQ(GetLogCapture().Filter("does not designate the request target").size(), 1);
+    EXPECT_TRUE(GetLogCapture().Filter("request-secret").empty());
+    EXPECT_TRUE(GetLogCapture().Filter("directive-secret").empty());
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthRejectsMismatchedAbsoluteUri) {
+    utils::datetime::MockNowSet(utils::datetime::Now());
+    const auto timestamp = utils::datetime::Now();
+    request::RequestContext context;
+
+    const auto expect_bad_request = [&](std::string_view request_target, std::string_view uri) {
+        checker.SetUserData(std::string{kUsername}, kValidNonce, 0, timestamp);
+        const auto request = MakeAuthorizedRequest(request_target, MakeAuthorizationHeader(uri));
+        UEXPECT_THROW((void)checker.CheckAuth(*request, context), handlers::ClientError);
+        EXPECT_EQ(request->GetHttpResponse().GetStatus(), http::HttpStatus::kBadRequest);
+    };
+
+    // Absolute request-targets require an absolute uri directive, and both the authority and scheme must agree.
+    expect_bad_request("http://host/dir/index.html", kRequestTarget);
+    expect_bad_request("http://host/dir/index.html", "http://other-host/dir/index.html");
+    expect_bad_request("https://host/dir/index.html", "http://host/dir/index.html");
+    expect_bad_request(kRequestTarget, "http://other-host/dir/index.html");
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthRejectsSchemeSeparatorInRequestPath) {
+    utils::datetime::MockNowSet(utils::datetime::Now());
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+
+    const auto request = MakeAuthorizedRequest("/x://host/dir/index.html");
+    request::RequestContext context;
+
+    UEXPECT_THROW((void)checker.CheckAuth(*request, context), handlers::ClientError);
+    EXPECT_EQ(request->GetHttpResponse().GetStatus(), http::HttpStatus::kBadRequest);
 }
 
 }  // namespace server::handlers::auth::digest::test
