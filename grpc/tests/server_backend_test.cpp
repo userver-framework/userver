@@ -9,7 +9,6 @@
 #include <grpcpp/support/server_callback.h>
 #include <grpcpp/support/slice.h>
 #include <grpcpp/support/status.h>
-#include <grpcpp/version_info.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
@@ -82,35 +81,22 @@ sample::ugrpc::StreamGreetingResponse MakeStreamResponse(int number) {
     return response;
 }
 
-class TestWriteReactor final : public grpc::ServerWriteReactor<grpc::ByteBuffer> {
+class CapturingWriteReactor final {
 public:
-    void OnDone() override {}
-};
-
-class DelayedBindWriter final : public grpc::ServerCallbackWriter<grpc::ByteBuffer> {
-public:
-    void Bind(TestWriteReactor& reactor) {
-        reactor_ = &reactor;
-        BindReactor(&reactor);
+    void StartWriteAndFinish(const grpc::ByteBuffer* response, grpc::WriteOptions, const grpc::Status&) {
+        captured_response_ = response;
     }
 
     const grpc::ByteBuffer* GetCapturedResponse() const { return captured_response_; }
 
 private:
-    void Finish(grpc::Status) override {}
-    void SendInitialMetadata() override {}
-    void Write(const grpc::ByteBuffer*, grpc::WriteOptions) override {}
-    void WriteAndFinish(const grpc::ByteBuffer* response, grpc::WriteOptions, grpc::Status) override {
-        captured_response_ = response;
-    }
-    grpc::internal::ServerReactor* reactor() override { return reactor_; }
-#if GRPC_CPP_VERSION_MAJOR > 1 || (GRPC_CPP_VERSION_MAJOR == 1 && GRPC_CPP_VERSION_MINOR >= 63)
-    grpc_call* call() override { return nullptr; }
-#endif
-    void CallOnDone() override {}
-
-    TestWriteReactor* reactor_{nullptr};
+    // Do not retain the slices: their lifetime must be provided by the responder being tested.
     const grpc::ByteBuffer* captured_response_{nullptr};
+};
+
+struct CapturingWriteTraits {
+    using ReactorBase = CapturingWriteReactor;
+    using SerializedFinalResponse = ugrpc::server::impl::NoFinalResponse;
 };
 
 class CancelOnFinishReactor final {
@@ -353,16 +339,12 @@ UTEST(GrpcCallbackResponder, CancellationDuringFinishIsReported) {
 }
 
 UTEST(GrpcCallbackResponder, WriteAndFinishBufferOutlivesCaller) {
-    using Traits = ugrpc::server::impl::CallbackCallTraits<
-        ugrpc::server::impl::CallTraits<decltype(&sample::ugrpc::UnitTestServiceBase::ReadMany)>>;
-
     std::string payload = MakeStreamResponse(kFinalResponseNumber).SerializeAsString();
     std::size_t destruction_count = 0;
     {
         grpc::CallbackServerContext server_context;
-        TestWriteReactor reactor;
-        DelayedBindWriter writer;
-        ugrpc::server::impl::CallbackResponder<Traits>
+        CapturingWriteReactor reactor;
+        ugrpc::server::impl::CallbackResponder<CapturingWriteTraits>
             responder{reactor, server_context, ugrpc::server::impl::no_final_response};
         {
             auto buffer = MakeTrackedBuffer(payload, destruction_count);
@@ -375,10 +357,9 @@ UTEST(GrpcCallbackResponder, WriteAndFinishBufferOutlivesCaller) {
         }
         ASSERT_EQ(destruction_count, 0);
 
-        writer.Bind(reactor);
-        ASSERT_NE(writer.GetCapturedResponse(), nullptr);
+        ASSERT_NE(reactor.GetCapturedResponse(), nullptr);
         sample::ugrpc::StreamGreetingResponse response;
-        ASSERT_TRUE(ugrpc::ParseFromByteBuffer(grpc::ByteBuffer{*writer.GetCapturedResponse()}, response));
+        ASSERT_TRUE(ugrpc::ParseFromByteBuffer(grpc::ByteBuffer{*reactor.GetCapturedResponse()}, response));
         EXPECT_EQ(response.number(), kFinalResponseNumber);
         EXPECT_EQ(response.name(), kMessageName);
         EXPECT_EQ(destruction_count, 0);
