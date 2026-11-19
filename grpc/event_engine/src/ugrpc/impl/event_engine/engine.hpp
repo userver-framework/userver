@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <grpc/event_engine/event_engine.h>
 #include <y_absl/functional/any_invocable.h>
 #include <y_absl/status/status.h>
@@ -79,5 +77,3 @@ private:
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/tcp_options.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <algorithm>
 #include <stdexcept>
 
@@ -43,5 +41,3 @@ PosixTcpOptions TcpOptionsFromEndpointConfig(const grpc_event_engine::experiment
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

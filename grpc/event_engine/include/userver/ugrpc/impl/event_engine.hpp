@@ -6,80 +6,66 @@
 #include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/ugrpc/impl/grpc_init.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl::event_engine {
 
-/// Whether the process-wide EventEngine runtime settings have been configured.
-bool IsRuntimeConfigured() noexcept;
-
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
-/// Initialize process-wide settings before constructing gRPC objects.
-void EnsureRuntimeConfigured();
-
 class PosixEventEngine;
 
-/// Owns and drains the shared server engine. The target task processor must outlive the owner.
+// Owns and drains the shared server engine. The target task processor must outlive the owner.
+//
+// Configures the process-wide runtime and keeps gRPC initialized while it exists.
+// Available only in Arcadia Linux builds.
+// Construct the first owner or a GrpcInit before gRPC initialization or experiment lookup.
 class PosixEventEngineOwner final {
 public:
-    /// Construct from a coroutine so initialization failures can drain safely.
+    // Construct from a coroutine so initialization failures can drain safely.
+    // Throws std::runtime_error if the required gRPC experiments conflict with the environment.
+    // An incompatible gRPC I/O poller fails UINVARIANT.
     explicit PosixEventEngineOwner(engine::TaskProcessor& task_processor);
 
-    /// Destroy from a coroutine unless shutdown has already completed.
+    // Destroy from a coroutine unless shutdown has already completed.
     ~PosixEventEngineOwner();
 
     PosixEventEngineOwner(const PosixEventEngineOwner&) = delete;
     PosixEventEngineOwner& operator=(const PosixEventEngineOwner&) = delete;
 
-    /// Return the public gRPC interface without exposing the concrete engine implementation.
+    // Return the public gRPC interface without exposing the concrete engine implementation.
     std::shared_ptr<grpc_event_engine::experimental::EventEngine> GetEventEngine() const noexcept;
 
-    /// Stop dependent servers and listeners first; call from one coroutine outside gRPC callbacks.
-    /// Drains pending work. Repeated calls after completion are allowed.
+    // Stop dependent servers and listeners first; call from one coroutine outside gRPC callbacks.
+    // Drains pending work. Repeated calls after completion are allowed.
     void Shutdown() noexcept;
 
 private:
+    // Keep gRPC initialized until the engine is released.
+    GrpcInit grpc_init_;
     std::shared_ptr<PosixEventEngine> engine_;
 };
 
-/// Construct after @ref ugrpc::impl::event_engine::EnsureRuntimeConfigured and grpc_init().
-/// The callback CQ setup relies on gRPC's own `epoll1` I/O poller.
-/// Retain the gRPC initialization reference until the owner finishes shutdown.
-std::unique_ptr<PosixEventEngineOwner> CreateEventEngine(engine::TaskProcessor& task_processor);
+// Create an engine and its owner, see PosixEventEngineOwner for the requirements.
+// The callback CQ setup relies on gRPC's own `epoll1` I/O poller.
+std::unique_ptr<PosixEventEngineOwner> CreateEventEngineOwner(engine::TaskProcessor& task_processor);
 
-/// @brief Register the argument adapter used by @ref ugrpc::impl::event_engine::SetEventEngine.
-///
-/// The bundled gRPC strips `grpc.internal.*` arguments before custom preconditioning stages.
-/// This adapter converts `grpc.userver.event_engine` to gRPC's typed EventEngine argument after that
-/// filtering, preserving shared ownership of the engine. Call before grpc_init() or constructing
-/// any gRPC objects.
-///
-/// On gRPC upgrades, recheck argument filtering, stage order and shared ownership. Replace this
-/// adapter when the public per-server EventEngine API becomes available.
-void RegisterEventEngineArgument();
-
-/// @brief Select a nonempty EventEngine for one server, leaving the process-wide default unchanged.
-///
-/// Provides the per-server setter described by upstream but absent from the bundled grpc::ServerBuilder.
-/// The builder carries shared ownership through `grpc.userver.event_engine`; the adapter registered by
-/// @ref ugrpc::impl::event_engine::RegisterEventEngineArgument converts it to gRPC's native argument.
-///
-/// Call @ref ugrpc::impl::event_engine::EnsureRuntimeConfigured and
-/// @ref ugrpc::impl::event_engine::RegisterEventEngineArgument before gRPC initialization.
-/// Call this function before grpc::ServerBuilder::BuildAndStart(). For a userver engine, stop and destroy
-/// the server and builder before shutting down its owner. Keep the owner's task processor and EV threads
-/// running until that shutdown completes.
-///
-/// @see gRPC's proposed per-server EventEngine API:
-/// https://github.com/grpc/grpc/blob/b4dd253f3aba2076b171ebe3b9f639f514c034ab/include/grpc/event_engine/event_engine.h#L84
+// Select a nonempty EventEngine for one server, leaving the process-wide default unchanged.
+//
+// Provides the per-server setter described by upstream but absent from the bundled grpc::ServerBuilder.
+// The builder carries shared ownership through `grpc.userver.event_engine`; runtime initialization
+// registers an adapter that converts it to gRPC's native argument.
+//
+// Create a PosixEventEngineOwner or GrpcInit to prepare the runtime before using this function.
+// Call this function before grpc::ServerBuilder::BuildAndStart(). For a userver engine, stop and destroy
+// the server and builder before shutting down its owner. Keep the owner's task processor and EV threads
+// running until that shutdown completes.
+//
+// gRPC's proposed per-server EventEngine API:
+// https://github.com/grpc/grpc/blob/b4dd253f3aba2076b171ebe3b9f639f514c034ab/include/grpc/event_engine/event_engine.h#L84
 void SetEventEngine(
     grpc::ServerBuilder& builder,
     std::shared_ptr<grpc_event_engine::experimental::EventEngine> event_engine
 );
-
-#endif
 
 }  // namespace ugrpc::impl::event_engine
 

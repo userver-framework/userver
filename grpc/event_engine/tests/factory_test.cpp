@@ -136,15 +136,13 @@ void CheckEcho(int port, const std::vector<std::string>& messages) {
 }
 
 TEST(GrpcEventEngineFactory, CallbackRpcAndShutdownWorkWithOneWorkerAndTheSameBlockingProcessor) {
-    EnsureRuntimeConfigured();
-    EXPECT_TRUE(IsRuntimeConfigured());
     engine::tests::TwoStandaloneTaskProcessors processors;
     EchoService service{&processors.GetMain()};
     std::unique_ptr<PosixEventEngineOwner> owner;
     processors.RunBlocking([&] {
         EXPECT_EQ(&engine::current_task::GetBlockingTaskProcessor(), &processors.GetMain());
         owner = engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [&] {
-                    return CreateEventEngine(processors.GetMain());
+                    return CreateEventEngineOwner(processors.GetMain());
                 }).Get();
     });
     const auto ee = GetPosixEventEngine(*owner);
@@ -180,8 +178,8 @@ TEST(GrpcEventEngineFactory, SeparateOwnersKeepTheirTaskProcessorsAndLifetimes) 
     std::unique_ptr<PosixEventEngineOwner> first;
     std::unique_ptr<PosixEventEngineOwner> second;
     processors.RunBlocking([&] {
-        first = CreateEventEngine(processors.GetMain());
-        second = CreateEventEngine(processors.GetSecondary());
+        first = CreateEventEngineOwner(processors.GetMain());
+        second = CreateEventEngineOwner(processors.GetSecondary());
     });
     auto first_engine = GetPosixEventEngine(*first);
     auto second_engine = GetPosixEventEngine(*second);

@@ -60,6 +60,20 @@ engine::TaskProcessor& ParseTaskProcessor(
     return context.GetTaskProcessor(field.As<std::string>());
 }
 
+EventEngineConfig ParseEventEngineConfig(
+    const yaml_config::YamlConfig& value,
+    const components::ComponentContext& context
+) {
+    EventEngineConfig config;
+    config.enabled = value["enabled"].As<bool>(config.enabled);
+    if (config.enabled) {
+        if (const auto task_processor = value[kTaskProcessorKey]; !task_processor.IsMissing()) {
+            config.task_processor = &ParseTaskProcessor(task_processor, context);
+        }
+    }
+    return config;
+}
+
 }  // namespace
 
 ServiceDefaults ParseServiceDefaults(
@@ -95,6 +109,7 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const compo
     config.channel_args = value["channel-args"].As<decltype(config.channel_args)>({});
     config.native_log_level = value["native-log-level"].As<logging::Level>(logging::Level::kError);
     config.enable_channelz = value["enable-channelz"].As<bool>(false);
+    config.event_engine = ParseEventEngineConfig(value["event-engine"], context);
 
     const auto ca = value["tls"]["ca"].As<std::optional<std::string>>();
     if (ca) {

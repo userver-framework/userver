@@ -6,6 +6,7 @@
 #include <exception>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <thread>
 #include <vector>
@@ -19,6 +20,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fixed_array.hpp>
+#include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/resource_scopes.hpp>
 
@@ -33,6 +35,11 @@
 #include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/time_utils.hpp>
+
+#if defined(ARCADIA_ROOT) && defined(__linux__)
+#include <userver/engine/task/current_task.hpp>
+#include <userver/ugrpc/impl/event_engine.hpp>
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -78,6 +85,24 @@ bool AreServicesUnique(const std::vector<std::unique_ptr<impl::ServiceWorker>>& 
     return std::ranges::adjacent_find(names) == std::ranges::end(names);
 }
 
+void RunInThread(utils::function_ref<void()> func) {
+    std::exception_ptr exception;
+    engine::SingleUseEvent finished;
+    std::thread thread([&] {
+        try {
+            func();
+        } catch (...) {
+            exception = std::current_exception();
+        }
+        finished.Send();
+    });
+    finished.WaitNonCancellable();
+    thread.join();
+    if (exception) {
+        std::rethrow_exception(exception);
+    }
+}
+
 }  // namespace
 
 class Server::Impl final {
@@ -121,6 +146,10 @@ private:
 
     impl::ServiceInternals MakeServiceInternals(ServiceConfig&& config);
 
+    void SetupEventEngine(const EventEngineConfig& config);
+
+    void ShutdownEventEngine() noexcept;
+
     void AddListeningPort(int port, const TlsConfig& tls_config);
 
     void AddListeningUnixSocket(std::string_view path, const TlsConfig& tls_config);
@@ -130,6 +159,9 @@ private:
     void ShutdownServer(std::optional<engine::Deadline> serving_shutdown_deadline) noexcept;
 
     State state_{State::kConfiguration};
+#if defined(ARCADIA_ROOT) && defined(__linux__)
+    std::unique_ptr<ugrpc::impl::event_engine::PosixEventEngineOwner> event_engine_owner_;
+#endif
     std::optional<grpc::ServerBuilder> server_builder_;
     std::optional<int> port_;
     std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
@@ -165,6 +197,7 @@ Server::Impl::Impl(
 #endif
     }
     server_builder_.emplace();
+    SetupEventEngine(config.event_engine);
     AddChannelArguments(*server_builder_, config.channel_args);
     if (use_callback_api_) {
         server_builder_->SetContextAllocator(std::make_unique<impl::ContextAllocator>());
@@ -189,46 +222,6 @@ Server::Impl::~Impl() {
                "ensure that it is destroyed before services.";
         Stop();
     }
-}
-
-void Server::Impl::AddListeningPort(int port, const TlsConfig& tls_config) {
-    const std::lock_guard lock(configuration_mutex_);
-    UASSERT(state_ == State::kConfiguration);
-
-    UASSERT_MSG(!port_, "As of now, AddListeningPort can be called no more than once");
-    port_ = port;
-    UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
-
-    const auto uri = fmt::format("[::]:{}", port);
-    server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri), BuildCredentials(tls_config), &*port_);
-}
-
-void Server::Impl::AddListeningUnixSocket(std::string_view path, const TlsConfig& tls_config) {
-    const std::lock_guard lock(configuration_mutex_);
-    UASSERT(state_ == State::kConfiguration);
-
-    UASSERT_MSG(!path.empty(), "Empty unix socket path is not allowed");
-    UASSERT_MSG(path[0] == '/', "Unix socket path must be absolute");
-    UINVARIANT(
-        path.size() <= kMaxSocketPathLength,
-        fmt::format("Unix socket path cannot contain more than {} characters", kMaxSocketPathLength)
-    );
-
-    const auto uri = fmt::format("unix:{}", path);
-    server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri), BuildCredentials(tls_config));
-}
-
-impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config) {
-    return impl::ServiceInternals{
-        completion_queues_ ? &*completion_queues_ : nullptr,
-        config.task_processor,
-        statistics_storage_,
-        std::move(config.middlewares),
-        config.config_source,
-        std::move(config.status_codes_log_level),
-        otel_trace_sampling_enabled_,
-        use_callback_api_,
-    };
 }
 
 void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
@@ -289,6 +282,17 @@ int Server::Impl::GetPort() const noexcept {
     return *port_;
 }
 
+void Server::Impl::StopServing(std::optional<engine::Deadline> serving_shutdown_deadline) noexcept {
+    UASSERT(state_ != State::kStopped);
+    if (server_) {
+        ShutdownServer(serving_shutdown_deadline);
+    }
+    service_workers_.clear();
+    generic_service_workers_.clear();
+
+    state_ = State::kServingStopped;
+}
+
 void Server::Impl::Stop() noexcept {
     // Note 1: Stop must be idempotent, so that the 'Stop' invocation after a
     // 'Start' failure is optional.
@@ -304,19 +308,10 @@ void Server::Impl::Stop() noexcept {
     generic_service_workers_.clear();
     completion_queues_.reset();
     server_.reset();
+    server_builder_.reset();
+    ShutdownEventEngine();
 
     state_ = State::kStopped;
-}
-
-void Server::Impl::StopServing(std::optional<engine::Deadline> serving_shutdown_deadline) noexcept {
-    UASSERT(state_ != State::kStopped);
-    if (server_) {
-        ShutdownServer(serving_shutdown_deadline);
-    }
-    service_workers_.clear();
-    generic_service_workers_.clear();
-
-    state_ = State::kServingStopped;
 }
 
 std::uint64_t Server::Impl::GetTotalRequests() const { return statistics_storage_.GetStartedRequests(); }
@@ -342,6 +337,77 @@ std::shared_ptr<grpc::ServerCredentials> Server::Impl::BuildCredentials(const Tl
     return grpc::InsecureServerCredentials();
 }
 
+impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config) {
+    return impl::ServiceInternals{
+        completion_queues_ ? &*completion_queues_ : nullptr,
+        config.task_processor,
+        statistics_storage_,
+        std::move(config.middlewares),
+        config.config_source,
+        std::move(config.status_codes_log_level),
+        otel_trace_sampling_enabled_,
+        use_callback_api_,
+    };
+}
+
+void Server::Impl::SetupEventEngine(const EventEngineConfig& config) {
+    if (config.enabled) {
+        UINVARIANT(
+            use_callback_api_,
+            "'event-engine.enabled: true' requires 'use-callback-api: true' in the 'grpc-server' config"
+        );
+#if defined(ARCADIA_ROOT) && defined(__linux__)
+        // The first engine in the process must be created before gRPC is initialized. The constructor of
+        // grpc::ServerBuilder does not initialize it; call this before creating listening port credentials.
+        event_engine_owner_ = ugrpc::impl::event_engine::CreateEventEngineOwner(
+            config.task_processor ? *config.task_processor : engine::current_task::GetTaskProcessor()
+        );
+        ugrpc::impl::event_engine::SetEventEngine(*server_builder_, event_engine_owner_->GetEventEngine());
+#else
+        UINVARIANT(
+            false,
+            "The userver EventEngine is not supported in this build, "
+            "disable 'event-engine.enabled' in the 'grpc-server' config"
+        );
+#endif
+    }
+}
+
+void Server::Impl::ShutdownEventEngine() noexcept {
+#if defined(ARCADIA_ROOT) && defined(__linux__)
+    if (event_engine_owner_) {
+        event_engine_owner_->Shutdown();
+    }
+#endif
+}
+
+void Server::Impl::AddListeningPort(int port, const TlsConfig& tls_config) {
+    const std::lock_guard lock(configuration_mutex_);
+    UASSERT(state_ == State::kConfiguration);
+
+    UASSERT_MSG(!port_, "As of now, AddListeningPort can be called no more than once");
+    port_ = port;
+    UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
+
+    const auto uri = fmt::format("[::]:{}", port);
+    server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri), BuildCredentials(tls_config), &*port_);
+}
+
+void Server::Impl::AddListeningUnixSocket(std::string_view path, const TlsConfig& tls_config) {
+    const std::lock_guard lock(configuration_mutex_);
+    UASSERT(state_ == State::kConfiguration);
+
+    UASSERT_MSG(!path.empty(), "Empty unix socket path is not allowed");
+    UASSERT_MSG(path[0] == '/', "Unix socket path must be absolute");
+    UINVARIANT(
+        path.size() <= kMaxSocketPathLength,
+        fmt::format("Unix socket path cannot contain more than {} characters", kMaxSocketPathLength)
+    );
+
+    const auto uri = fmt::format("unix:{}", path);
+    server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri), BuildCredentials(tls_config));
+}
+
 void Server::Impl::DoStart() {
     LOG_INFO() << "Starting the gRPC server";
 
@@ -365,12 +431,9 @@ void Server::Impl::DoStart() {
         completion_queues_.emplace(completion_queue_num_, *server_builder_);
     }
 
-    server_ =
-        engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [this] {
-            return server_builder_->BuildAndStart();
-        }).Get();
-    UINVARIANT(server_, "See grpcpp logs for details");
+    RunInThread([this] { server_ = server_builder_->BuildAndStart(); });
     server_builder_.reset();
+    UINVARIANT(server_, "See grpcpp logs for details");
 
     if (!use_callback_api_) {
         for (auto& worker : service_workers_) {
@@ -395,13 +458,7 @@ void Server::Impl::ShutdownServer(std::optional<engine::Deadline> serving_shutdo
     }
 
     // Shutdown blocks thread.
-    engine::SingleUseEvent finished;
-    std::thread thread([&] {
-        server_->Shutdown(*serving_shutdown_deadline);
-        finished.Send();
-    });
-    finished.WaitNonCancellable();
-    thread.join();
+    RunInThread([&] { server_->Shutdown(*serving_shutdown_deadline); });
 }
 
 Server::Server(

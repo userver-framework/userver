@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/ev_epoll1_linux.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <fmt/format.h>
 #include <y_absl/status/status.h>
 #include <y_absl/strings/string_view.h>
@@ -191,5 +189,3 @@ std::size_t Epoll1Poller::Work() noexcept {
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/nonblocking_socket.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <array>
 #include <climits>
 #include <csignal>
@@ -51,5 +49,3 @@ TEST(GrpcNonblockingSocket, SkipsLeadingEmptyBuffersBeforeApplyingIovecLimit) {
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

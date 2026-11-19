@@ -205,12 +205,7 @@ To register your service:
 ### Callback API
 
 Server services use completion queues by default. Set `grpc-server.use-callback-api`
-to `true` to enable the gRPC callback/reactor API for a particular server:
-
-```yaml
-grpc-server:
-    use-callback-api: true
-```
+to `true` to select the gRPC callback/reactor API.
 
 The corresponding C++ option is `ugrpc::server::ServerConfig::use_callback_api`.
 Both backends support typed and generic services. User handlers and middlewares run
@@ -220,6 +215,43 @@ With completion queues, `grpc-server.completion-queue-count` configures the serv
 queues that clients can also use. With the callback API and registered services,
 clients have their own queues, configured through `grpc-client-common.completion-queue-count`.
 An empty callback server still creates fallback completion queues.
+
+### userver EventEngine
+
+@warning This backend is experimental and available only in Linux builds using `ya.make`.
+
+With the callback API, a server can run gRPC's socket I/O and timers on a userver task processor
+instead of gRPC's own threads. This backend is disabled by default.
+Set both `grpc-server.use-callback-api` and `grpc-server.event-engine.enabled` to `true`
+to enable it for a particular server.
+
+The corresponding C++ option is `ugrpc::server::ServerConfig::event_engine`.
+The engine cannot be switched at runtime.
+It is not available in CMake builds yet: there the server refuses to start with the engine enabled.
+
+By default the engine runs on the task processor that constructs the server. For the component that is
+`components_manager.default_task_processor`, which is `main-task-processor` unless configured otherwise.
+If the service handlers run on another task processor, set `grpc-server.event-engine.task-processor` to
+its name. That option has no effect unless the engine is enabled.
+
+Enabling the engine for one server changes gRPC settings for the whole process:
+
+* all gRPC servers of the process accept connections through EventEngine listeners;
+  servers without the userver engine use gRPC's own EventEngine;
+* gRPC no longer starts its own threads for callback completion queues and for client backup polling.
+  Clients that poll their completion queues, including userver gRPC clients, keep working.
+  Clients that rely on gRPC's own polling threads, for example the ones built on the gRPC callback API,
+  may stop making progress.
+
+These settings can only be applied before gRPC is first used in the process:
+
+* the first server with the engine enabled must be constructed before anything else in the process uses gRPC.
+  If gRPC has already been used, the server refuses to start; using gRPC concurrently with that construction
+  is a data race. A component that uses gRPC directly should depend on `grpc-server`, for example by
+  calling `context.FindComponentOptional<components::RawComponentBase>("grpc-server")` before creating
+  gRPC objects;
+* the `GRPC_POLL_STRATEGY` environment variable must be unset or select `epoll1`, and `GRPC_EXPERIMENTS`
+  must not disable the `event_engine_listener` experiment or enable `event_engine_client` and `event_engine_dns`.
 
 ### Service method handling
 

@@ -24,8 +24,8 @@ namespace ugrpc::client {
 struct ClientFactorySettings final {
     AuthType auth_type{AuthType::kInsecure};
 
-    /// gRPC channel credentials, none by default
-    std::shared_ptr<grpc::ChannelCredentials> credentials{grpc::InsecureChannelCredentials()};
+    /// gRPC channel credentials. If not set, grpc::InsecureChannelCredentials() is used by default.
+    std::shared_ptr<grpc::ChannelCredentials> credentials;
 
     /// gRPC channel credentials by client_name. If not set, default `credentials`
     /// is used instead.
@@ -53,6 +53,8 @@ struct ClientFactorySettings final {
     ProxySettings proxy_settings;
 };
 
+/// @brief Returns the client's credential override, or the factory default if no override exists.
+/// If the factory default is not set, creates grpc::InsecureChannelCredentials().
 std::shared_ptr<grpc::ChannelCredentials> GetClientCredentials(
     const ClientFactorySettings& client_factory_settings,
     const std::string& client_name

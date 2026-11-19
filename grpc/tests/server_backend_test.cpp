@@ -26,6 +26,7 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/invariant_error.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -45,6 +46,7 @@ constexpr char kCompletionQueueApiName[] = "CompletionQueue";
 constexpr char kUnterminatedProtobufVarint[] = "\x80";
 constexpr char kResponseMetadataKey[] = "backend-initial-metadata";
 constexpr char kResponseMetadataValue[] = "sent-with-first-response";
+constexpr char kReusePortArg[] = "grpc.so_reuseport";
 
 grpc::ByteBuffer MakeTrackedBuffer(std::string& payload, std::size_t& destruction_count) {
     const grpc::Slice slice{
@@ -273,7 +275,11 @@ class BackendFixture
 
 public:
     BackendFixture()
-        : Base({.server_config = {.use_callback_api = GetParam()}}, std::in_place, GetParam())
+        : Base(
+              {.server_config = {.use_callback_api = GetParam(), .event_engine = {.enabled = false}}},
+              std::in_place,
+              GetParam()
+          )
     {}
 };
 
@@ -283,13 +289,28 @@ using GrpcGenericServerBackendTest = BackendFixture<GenericBackendService>;
 class GrpcEmptyServerBackendTest : public ugrpc::tests::ServiceFixtureBase, public testing::WithParamInterface<bool> {
 public:
     GrpcEmptyServerBackendTest()
-        : ServiceFixtureBase(ugrpc::server::ServerConfig{.use_callback_api = GetParam()})
+        : ServiceFixtureBase(ugrpc::server::ServerConfig{
+              .use_callback_api = GetParam(),
+              .event_engine = {.enabled = false}
+          })
     {
         StartServer();
     }
 
     ~GrpcEmptyServerBackendTest() override { StopServer(); }
 };
+
+class GrpcServerStartFailureDeathTest : public testing::TestWithParam<bool> {};
+
+// Without SO_REUSEPORT a second server cannot share the listening port of the first one.
+ugrpc::server::ServerConfig MakeExclusivePortConfig(bool use_callback_api, int port) {
+    return ugrpc::server::ServerConfig{
+        .port = port,
+        .use_callback_api = use_callback_api,
+        .channel_args = {{kReusePortArg, "0"}},
+        .event_engine = {.enabled = false},
+    };
+}
 
 std::string GetApiName(const testing::TestParamInfo<bool>& info) {
     return info.param ? kCallbackApiName : kCompletionQueueApiName;
@@ -320,8 +341,11 @@ UTEST(GrpcCallbackResponder, CancellationDuringFinishIsReported) {
         FinishOperation::kWriteAndFinish,
     };
     for (const auto operation : kFinishOperations) {
-        ugrpc::tests::Service<CancelDuringFinishService>
-            service({.server_config = {.use_callback_api = true}}, std::in_place, operation);
+        ugrpc::tests::Service<CancelDuringFinishService> service(
+            {.server_config = {.use_callback_api = true, .event_engine = {.enabled = false}}},
+            std::in_place,
+            operation
+        );
         auto client = service.MakeClient<sample::ugrpc::UnitTestServiceClient>();
         UEXPECT_THROW(client.SayHello({}), ugrpc::client::CancelledError);
         service.GetServer().StopServing();
@@ -498,8 +522,21 @@ UTEST_P(GrpcEmptyServerBackendTest, StartsWithCompletionQueues) {
     UEXPECT_THROW(client.SayHello({}), ugrpc::client::UnimplementedError);
 }
 
+UTEST_P_DEATH(GrpcServerStartFailureDeathTest, BusyPortIsRejectedAndStopIsIdempotent) {
+    ugrpc::tests::ServiceBase listening{MakeExclusivePortConfig(GetParam(), 0)};
+    listening.StartServer();
+
+    ugrpc::tests::ServiceBase failing{MakeExclusivePortConfig(GetParam(), listening.GetServer().GetPort())};
+    EXPECT_UINVARIANT_FAILURE_MSG(failing.StartServer(), "See grpcpp logs for details");
+    failing.StopServer();
+    failing.StopServer();
+
+    listening.StopServer();
+}
+
 INSTANTIATE_UTEST_SUITE_P(BothApis, GrpcServerBackendTest, testing::Bool(), GetApiName);
 INSTANTIATE_UTEST_SUITE_P(BothApis, GrpcGenericServerBackendTest, testing::Bool(), GetApiName);
 INSTANTIATE_UTEST_SUITE_P(BothApis, GrpcEmptyServerBackendTest, testing::Bool(), GetApiName);
+INSTANTIATE_UTEST_SUITE_P(BothApis, GrpcServerStartFailureDeathTest, testing::Bool(), GetApiName);
 
 USERVER_NAMESPACE_END

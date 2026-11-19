@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/executor.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <optional>
 #include <utility>
 
@@ -108,5 +106,3 @@ void Executor::Quiesce() noexcept {
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END
-
-#endif

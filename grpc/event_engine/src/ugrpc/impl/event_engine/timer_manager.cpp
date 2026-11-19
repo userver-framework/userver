@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/timer_manager.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -202,5 +200,3 @@ void TimerManager::Shutdown() {
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END
-
-#endif

@@ -45,6 +45,24 @@ struct TlsConfig {
     std::optional<std::string> cert;
 };
 
+/// Settings of the userver-based gRPC EventEngine of a server.
+struct EventEngineConfig final {
+    /// @brief Use the userver-based gRPC EventEngine for the server.
+    ///
+    /// The server's socket I/O and timers then run on a userver task processor instead of gRPC's own threads.
+    /// Requires @ref ugrpc::server::ServerConfig::use_callback_api. Enabling it changes gRPC settings for
+    /// the whole process, see @ref scripts/docs/en/userver/grpc/grpc.md. Such a server must be created,
+    /// stopped and destroyed in a coroutine.
+    /// Disabled by default.
+    bool enabled{false};
+
+    /// @brief Task processor for the EventEngine enabled by @ref ugrpc::server::EventEngineConfig::enabled.
+    ///
+    /// If null, the task processor that constructs the server is used. The task processor must outlive
+    /// the server.
+    engine::TaskProcessor* task_processor{nullptr};
+};
+
 /// Settings relating to the whole gRPC server
 struct ServerConfig final {
     /// The port to listen to. If `0`, a free port will be picked automatically.
@@ -79,6 +97,9 @@ struct ServerConfig final {
 
     /// Whether to apply OpenTelemetry trace-sampling to incoming gRPC requests.
     bool otel_trace_sampling_enabled{false};
+
+    /// userver EventEngine settings.
+    EventEngineConfig event_engine{};
 };
 
 /// @brief Manages the gRPC server

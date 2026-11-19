@@ -2,8 +2,6 @@
 
 #include "test_utils.hpp"
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -153,5 +151,3 @@ UTEST(GrpcServerEventEngine, ShutdownWaitsForPostedTaskCleanup) {
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

@@ -12,6 +12,25 @@ properties:
         type: boolean
         description: Use the gRPC callback/reactor API for server RPCs instead of completion queues.
         default: false
+    event-engine:
+        type: object
+        description: settings of the userver EventEngine of this server
+        additionalProperties: false
+        properties:
+            enabled:
+                type: boolean
+                description: |
+                    Run the socket I/O and timers of this server on a userver task processor
+                    (userver EventEngine) instead of gRPC's own threads. Enabling it changes
+                    gRPC settings for the whole process, including other gRPC servers and
+                    clients. Requires use-callback-api. Not available in CMake builds yet.
+                default: false
+            task-processor:
+                type: string
+                description: |
+                    Task processor for the userver EventEngine. Has no effect unless
+                    the engine is enabled.
+                defaultDescription: components_manager.default_task_processor
     completion-queue-count:
         type: integer
         description: |

@@ -1,18 +1,31 @@
 # EventEngine listener contract
 
 This backend is compiled in Arcadia Linux builds. `PosixEventEngineOwner` owns
-and drains the shared server engine independently of the component system.
+and drains the shared server engine independently of the component system. The
+factory API is provided by a Linux-only `ya.make` target. Enabling the backend in an
+unsupported server build fails an invariant with a message explaining how to
+disable the option: it aborts in Debug and throws `utils::InvariantError` in Release.
+The backend and the callback API are disabled by default.
+To use this backend, explicitly enable both `event-engine.enabled` and `use-callback-api`.
 
 Private core, libev and gRPC headers are confined to the `grpc/event_engine`
-library. Other modules use `<userver/ugrpc/impl/event_engine.hpp>` to initialize
-the runtime and obtain the public gRPC engine interface from its owner.
+library. Other modules use `<userver/ugrpc/impl/event_engine.hpp>` to create
+the engine and obtain the public gRPC engine interface from its owner.
 `SetEventEngine` attaches the engine to a gRPC server builder. The owner retains
-responsibility for shutdown even when other shared references exist. Call
-`EnsureRuntimeConfigured()` and `RegisterEventEngineArgument()` explicitly before
-`grpc_init()` or constructing gRPC objects. Retain a gRPC initialization reference
-until owner shutdown completes. Construct and shut down the owner in
-a coroutine while its task processor and EV threads are still running. Stop
-dependent servers and listeners before shutting down the owner.
+responsibility for shutdown even when other shared references exist. Its
+private member of the internal `GrpcInit` type configures the runtime and registers
+the channel argument once per process. It then keeps gRPC initialized until the owner is destroyed.
+Create the first owner or `GrpcInit` before gRPC initialization or experiment loading; gRPC
+rejects late configuration with an assertion. Runtime setup is local to
+`grpc_init.cpp`. The dedicated `grpc/event_engine/tests` binary holds its own `GrpcInit`
+for the engine tests. Server integration tests belong to `grpc/tests`, whose parent
+process keeps the standard gRPC runtime. EventEngine server scenarios run in fresh
+child processes so that runtime configuration precedes the first gRPC use.
+Creating the owner also fails an invariant unless gRPC has
+selected the configured `epoll1` I/O poller, so `GRPC_POLL_STRATEGY` must not
+select another one. Construct and shut down the owner in a coroutine while its
+task processor and EV threads are still running. Stop dependent servers and
+listeners before shutting down the owner.
 The embedding runtime must ignore `SIGPIPE`, as the userver component runtime
 does for socket I/O.
 

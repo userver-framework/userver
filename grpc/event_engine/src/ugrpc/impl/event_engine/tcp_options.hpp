@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <limits>
 #include <optional>
 
@@ -41,5 +39,3 @@ inline std::optional<int> ServerTcpUserTimeoutMs(const PosixTcpOptions& options)
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif

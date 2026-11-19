@@ -1,7 +1,5 @@
 #include <ugrpc/impl/event_engine/nonblocking_socket.hpp>
 
-#if defined(ARCADIA_ROOT) && defined(__linux__)
-
 #include <y_absl/status/status.h>
 #include <y_absl/status/statusor.h>
 #include <y_absl/strings/str_cat.h>
@@ -232,5 +230,3 @@ std::optional<std::size_t> NonblockingSocket::Send(std::span<const iovec> buffer
 }  // namespace ugrpc::impl::event_engine
 
 USERVER_NAMESPACE_END
-
-#endif
