@@ -12,6 +12,8 @@
 #include <grpc/impl/channel_arg_names.h>
 #include <src/core/lib/channel/channel_args.h>
 #include <src/core/lib/event_engine/channel_args_endpoint_config.h>
+#include <src/core/lib/event_engine/extensions/supports_fd.h>
+#include <src/core/lib/event_engine/query_extensions.h>
 #include <src/core/lib/resource_quota/resource_quota.h>
 #include <y_absl/strings/string_view.h>
 
@@ -33,13 +35,13 @@ bool HasIpv6Loopback() {
     return probe && probe->Bind({address.Data(), address.Size()}).ok();
 }
 
-class FailingFactory final : public gee::MemoryAllocatorFactory {
+class FailingFactory final : public grpc_event_engine::experimental::MemoryAllocatorFactory {
 public:
     explicit FailingFactory(unsigned failures)
         : failures_(failures)
     {}
 
-    gee::MemoryAllocator CreateMemoryAllocator(y_absl::string_view name) override {
+    grpc_event_engine::experimental::MemoryAllocator CreateMemoryAllocator(y_absl::string_view name) override {
         if (failures_ != 0) {
             --failures_;
             throw std::bad_alloc{};
@@ -118,8 +120,11 @@ UTEST(GrpcEventEngineListener, CreatedBoundAndStartedListenersAllCloseExactlyOnc
             ASSERT_TRUE(f.listener->Start().ok());
         }
         const auto fds = f.listening_fds;
-        f.listener->ShutdownListeningFds();
-        f.listener->ShutdownListeningFds();
+        auto* listener_ext = grpc_event_engine::experimental::QueryExtension<
+            grpc_event_engine::experimental::ListenerSupportsFdExtension>(f.listener.get());
+        ASSERT_TRUE(listener_ext);
+        listener_ext->ShutdownListeningFds();
+        listener_ext->ShutdownListeningFds();
         EXPECT_FALSE(f.listener->Start().ok());
         f.listener.reset();
         f.owner.Shutdown();
@@ -156,7 +161,7 @@ UTEST(GrpcEventEngineListener, EndpointAllocatorFailureDropsTheConnectionAndKeep
     engine::SingleUseEvent accepted;
     ListenerFixture f{
         [&](int, auto, bool, auto, auto*) { accepted.Send(); },
-        gee::ChannelArgsEndpointConfig{},
+        grpc_event_engine::experimental::ChannelArgsEndpointConfig{},
         std::make_unique<FailingFactory>(kFailures)
     };
     const auto address = f.Bind();
@@ -172,10 +177,15 @@ UTEST(GrpcEventEngineListener, BindConflictReturnsStatusWithoutNotifying) {
     const auto& address = occupant.Getsockname();
     ListenerFixture f{
         [](int, auto, bool, auto, auto*) {},
-        gee::ChannelArgsEndpointConfig{grpc_core::ChannelArgs{}.Set(GRPC_ARG_ALLOW_REUSEPORT, 0)}
+        grpc_event_engine::experimental::ChannelArgsEndpointConfig{
+            grpc_core::ChannelArgs{}.Set(GRPC_ARG_ALLOW_REUSEPORT, 0)
+        }
     };
     int notifications = 0;
-    EXPECT_FALSE(f.listener->BindWithFd({address.Data(), address.Size()}, [&](auto) { ++notifications; }).ok());
+    auto* listener_ext = grpc_event_engine::experimental::QueryExtension<
+        grpc_event_engine::experimental::ListenerSupportsFdExtension>(f.listener.get());
+    ASSERT_TRUE(listener_ext);
+    EXPECT_FALSE(listener_ext->BindWithFd({address.Data(), address.Size()}, [&](auto) { ++notifications; }).ok());
     EXPECT_EQ(notifications, 0);
 }
 
@@ -213,7 +223,10 @@ UTEST(GrpcEventEngineListener, BindDoesNotReplaceARegularFile) {
     const auto address = engine::io::Sockaddr::MakeUnixSocketAddress(path);
     ListenerFixture f;
     int notifications = 0;
-    EXPECT_FALSE(f.listener->BindWithFd({address.Data(), address.Size()}, [&](auto) { ++notifications; }).ok());
+    auto* listener_ext = grpc_event_engine::experimental::QueryExtension<
+        grpc_event_engine::experimental::ListenerSupportsFdExtension>(f.listener.get());
+    ASSERT_TRUE(listener_ext);
+    EXPECT_FALSE(listener_ext->BindWithFd({address.Data(), address.Size()}, [&](auto) { ++notifications; }).ok());
     EXPECT_EQ(notifications, 0);
     struct stat status {};
     ASSERT_EQ(::lstat(path.c_str(), &status), 0);

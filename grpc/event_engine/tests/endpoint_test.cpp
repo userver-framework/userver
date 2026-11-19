@@ -44,7 +44,10 @@ void CheckDestructionCancelsIo(bool write) {
         constexpr int kBufferSize = 4096;
         ASSERT_EQ(::setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &kBufferSize, sizeof(kBufferSize)), 0);
         const std::string payload(1024 * 1024, 'w');
-        completion.buffer.Append(gee::Slice::FromCopiedString(y_absl::string_view{payload.data(), payload.size()}));
+        completion.buffer.Append(grpc_event_engine::experimental::Slice::FromCopiedString(y_absl::string_view{
+            payload.data(),
+            payload.size()
+        }));
         ASSERT_FALSE(f.endpoint
                          ->Write([&](auto status) { completion.Done(std::move(status)); }, &completion.buffer, nullptr)
         );
@@ -67,7 +70,7 @@ UTEST(GrpcEventEngineEndpoint, EmptyAndSmallWritesCompleteInlineWithoutCallback)
     EndpointFixture f;
     auto callback = [](auto) { ADD_FAILURE() << "Synchronous write invoked callback"; };
     EXPECT_TRUE(f.endpoint->Write(callback, &completion.buffer, nullptr));
-    completion.buffer.Append(gee::Slice::FromCopiedString("hello"));
+    completion.buffer.Append(grpc_event_engine::experimental::Slice::FromCopiedString("hello"));
     EXPECT_TRUE(f.endpoint->Write(callback, &completion.buffer, nullptr));
     EXPECT_EQ(completion.buffer.Length(), 0);
     std::string received(5, '\0');
@@ -82,9 +85,12 @@ UTEST(GrpcEventEngineEndpoint, LargeVectoredWriteResumesAfterKernelBackpressure)
     ASSERT_EQ(::setsockopt(f.Posix().GetWrappedFd(), SOL_SOCKET, SO_SNDBUF, &kBufferSize, sizeof(kBufferSize)), 0);
     std::string expected;
     for (int i = 0; i < 600; ++i) {
-        completion.buffer.Append(gee::Slice::FromCopiedString(""));
+        completion.buffer.Append(grpc_event_engine::experimental::Slice::FromCopiedString(""));
         const std::string part(1024, static_cast<char>('a' + i % 26));
-        completion.buffer.Append(gee::Slice::FromCopiedString(y_absl::string_view{part.data(), part.size()}));
+        completion.buffer.Append(grpc_event_engine::experimental::Slice::FromCopiedString(y_absl::string_view{
+            part.data(),
+            part.size()
+        }));
         expected += part;
     }
     ASSERT_FALSE(f.endpoint
@@ -190,7 +196,7 @@ UTEST(GrpcEventEngineEndpoint, ReleaseKeepsTheSocketUsableAfterPendingIoIsCancel
 UTEST(GrpcEventEngineEndpoint, AcceptedEndpointInheritsListenerTcpOptions) {
     constexpr int kUserTimeoutMs = 7'000;
     constexpr int kReceiveBufferSize = 64 * 1024;
-    EndpointFixture f{gee::ChannelArgsEndpointConfig{
+    EndpointFixture f{grpc_event_engine::experimental::ChannelArgsEndpointConfig{
         grpc_core::ChannelArgs{}
             .Set(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, kUserTimeoutMs)
             .Set(GRPC_ARG_TCP_RECEIVE_BUFFER_SIZE, kReceiveBufferSize)
@@ -205,7 +211,9 @@ UTEST(GrpcEventEngineEndpoint, MaxReadBufferSizeKeepsTheReadEstimateAtTheInitial
     constexpr int kLimit = PosixTcpOptions::kDefaultReadChunkSize;
     constexpr std::size_t kBatchSize = 64 * 1024;
     constexpr std::size_t kBatches = 16;
-    EndpointFixture f{gee::ChannelArgsEndpointConfig{grpc_core::ChannelArgs{}.Set(kTcpMaxReadBufferSizeArg, kLimit)}};
+    EndpointFixture f{grpc_event_engine::experimental::ChannelArgsEndpointConfig{
+        grpc_core::ChannelArgs{}.Set(kTcpMaxReadBufferSizeArg, kLimit)
+    }};
     const std::string payload(kBatchSize, 'r');
     for (std::size_t batch = 0; batch < kBatches; ++batch) {
         // On one worker, the next read sees EAGAIN before the queued writer starts the next batch.
@@ -234,7 +242,10 @@ void CheckConcurrentShutdown(bool write) {
                 0
             );
             const std::string data(1024 * 1024, 'w');
-            completion.buffer.Append(gee::Slice::FromCopiedString(y_absl::string_view{data.data(), data.size()}));
+            completion.buffer.Append(grpc_event_engine::experimental::Slice::FromCopiedString(y_absl::string_view{
+                data.data(),
+                data.size()
+            }));
         }
         engine::MultiConsumerEvent start;
         auto reader = engine::AsyncNoTracing([&] {

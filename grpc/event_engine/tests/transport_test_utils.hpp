@@ -7,8 +7,11 @@
 #include <utility>
 #include <vector>
 
+#include <grpc/event_engine/event_engine.h>
 #include <src/core/lib/event_engine/channel_args_endpoint_config.h>
+#include <src/core/lib/event_engine/extensions/supports_fd.h>
 #include <src/core/lib/event_engine/memory_allocator_factory.h>
+#include <src/core/lib/event_engine/query_extensions.h>
 #include <src/core/lib/resource_quota/resource_quota.h>
 
 #include <userver/engine/deadline.hpp>
@@ -26,8 +29,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl::event_engine::tests {
 
-namespace gee = grpc_event_engine::experimental;
-
 inline engine::Deadline Deadline() { return engine::Deadline::FromDuration(utest::kMaxTestWaitTime); }
 
 inline engine::io::Sockaddr AddressOf(int fd) {
@@ -42,15 +43,18 @@ struct ListenerFixture {
     grpc_core::ResourceQuotaRefPtr quota{grpc_core::MakeResourceQuota("event-engine-listener-test")};
     std::atomic<int> stopped{0};
     std::vector<int> listening_fds;
-    std::unique_ptr<gee::PosixListenerWithFdSupport> listener;
+    std::unique_ptr<grpc_event_engine::experimental::EventEngine::Listener> listener;
 
     explicit ListenerFixture(
-        gee::PosixEventEngineWithFdSupport::PosixAcceptCallback accept = [](int, auto, bool, auto, auto*) {},
-        const gee::EndpointConfig& config = gee::ChannelArgsEndpointConfig{},
-        std::unique_ptr<gee::MemoryAllocatorFactory> factory = nullptr
+        grpc_event_engine::experimental::PosixEventEngineWithFdSupport::PosixAcceptCallback accept =
+            [](int, auto, bool, auto, auto*) {},
+        const grpc_event_engine::experimental::EndpointConfig& config =
+            grpc_event_engine::experimental::ChannelArgsEndpointConfig{},
+        std::unique_ptr<grpc_event_engine::experimental::MemoryAllocatorFactory> factory = nullptr
     ) {
         if (!factory) {
-            factory = std::make_unique<gee::MemoryQuotaBasedMemoryAllocatorFactory>(quota->memory_quota());
+            factory = std::make_unique<
+                grpc_event_engine::experimental::MemoryQuotaBasedMemoryAllocatorFactory>(quota->memory_quota());
         }
         auto result = GetPosixEventEngine(owner)->CreatePosixListener(
             std::move(accept),
@@ -63,8 +67,7 @@ struct ListenerFixture {
             std::move(factory)
         );
         UINVARIANT(result.ok(), result.status().ToString());
-        // PosixEventEngine always creates listeners with FD support.
-        listener.reset(static_cast<gee::PosixListenerWithFdSupport*>(result->release()));
+        listener = std::move(*result);
     }
 
     ~ListenerFixture() {
@@ -73,8 +76,12 @@ struct ListenerFixture {
     }
 
     engine::io::Sockaddr Bind(engine::io::Sockaddr address = engine::io::Sockaddr::MakeIPv4LoopbackAddress()) {
+        UINVARIANT(listener, "Listener is not initialized");
+        auto* listener_ext = grpc_event_engine::experimental::QueryExtension<
+            grpc_event_engine::experimental::ListenerSupportsFdExtension>(listener.get());
+        UINVARIANT(listener_ext, "Listener does not support file descriptor operations");
         auto actual = address;
-        const auto result = listener->BindWithFd({address.Data(), address.Size()}, [&](y_absl::StatusOr<int> fd) {
+        const auto result = listener_ext->BindWithFd({address.Data(), address.Size()}, [&](y_absl::StatusOr<int> fd) {
             UINVARIANT(fd.ok(), fd.status().ToString());
             listening_fds.push_back(*fd);
             actual = AddressOf(*fd);
@@ -89,7 +96,7 @@ struct ListenerFixture {
 };
 
 struct Completion {
-    gee::SliceBuffer buffer;
+    grpc_event_engine::experimental::SliceBuffer buffer;
     engine::Promise<y_absl::Status> promise;
     engine::Future<y_absl::Status> result{promise.get_future()};
     std::atomic<int> calls{0};
@@ -110,7 +117,7 @@ struct Completion {
     }
 };
 
-inline std::string Bytes(gee::SliceBuffer& buffer) {
+inline std::string Bytes(grpc_event_engine::experimental::SliceBuffer& buffer) {
     std::string result;
     for (std::size_t i = 0; i < buffer.Count(); ++i) {
         result.append(reinterpret_cast<const char*>(buffer[i].data()), buffer[i].size());
@@ -127,7 +134,10 @@ struct EndpointFixture {
     engine::io::Socket peer{engine::io::AddrDomain::kInet, engine::io::SocketType::kStream};
     std::unique_ptr<grpc_event_engine::experimental::EventEngine::Endpoint> endpoint;
 
-    explicit EndpointFixture(const gee::EndpointConfig& config = gee::ChannelArgsEndpointConfig{})
+    explicit EndpointFixture(
+        const grpc_event_engine::experimental::EndpointConfig& config =
+            grpc_event_engine::experimental::ChannelArgsEndpointConfig{}
+    )
         : listening(
               [this](int, auto ep, bool, auto, auto*) {
                   EXPECT_TRUE(Executor::IsInCallback());
@@ -149,7 +159,9 @@ struct EndpointFixture {
         listening.owner.Shutdown();
     }
 
-    gee::PosixEndpointWithFdSupport& Posix() { return static_cast<gee::PosixEndpointWithFdSupport&>(*endpoint); }
+    grpc_event_engine::experimental::PosixEndpointWithFdSupport& Posix() {
+        return static_cast<grpc_event_engine::experimental::PosixEndpointWithFdSupport&>(*endpoint);
+    }
 
     void Send(const std::string& bytes) {
         UINVARIANT(peer.SendAll(bytes.data(), bytes.size(), Deadline()) == bytes.size(), "Peer send failed");
