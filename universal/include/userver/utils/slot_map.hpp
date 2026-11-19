@@ -107,8 +107,25 @@ public:
     SlotMap(const SlotMap&) = default;
     SlotMap& operator=(const SlotMap&) = default;
 
-    SlotMap(SlotMap&&) noexcept = default;
-    SlotMap& operator=(SlotMap&&) noexcept = default;
+    /// @brief Moves the contents of @a other, leaving it empty and reusable.
+    SlotMap(SlotMap&& other) noexcept
+        : slots_(std::move(other.slots_)),
+          free_list_head_(std::exchange(other.free_list_head_, impl::slot_map::kFreeListEnd)),
+          free_list_size_(std::exchange(other.free_list_size_, 0))
+    {
+        other.slots_ = Container<Slot>{};
+    }
+
+    /// @brief Moves the contents of @a other, leaving it empty and reusable. Self-move is a no-op.
+    SlotMap& operator=(SlotMap&& other) noexcept {
+        if (this != &other) {
+            slots_ = std::move(other.slots_);
+            free_list_head_ = std::exchange(other.free_list_head_, impl::slot_map::kFreeListEnd);
+            free_list_size_ = std::exchange(other.free_list_size_, 0);
+            other.slots_ = Container<Slot>{};
+        }
+        return *this;
+    }
 
     ~SlotMap() = default;
 

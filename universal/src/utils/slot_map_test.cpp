@@ -547,4 +547,76 @@ TYPED_TEST(SlotMapByUnderlyingContainer, MoveAssignmentWithFreeList) {
     ConsumeFreeListFullyAndCheckContents<TypeParam>(assigned, 200);
 }
 
+TYPED_TEST(SlotMapByUnderlyingContainer, MoveConstructionLeavesSourceReusable) {
+    auto original = MakeMapWithFreeList<TypeParam>();
+    auto moved = std::move(original);
+
+    EXPECT_TRUE(original.empty());  // NOLINT(bugprone-use-after-move)
+    EXPECT_EQ(original.emplace(42).index, 0);
+    EXPECT_EQ(original[0], 42);
+    ConsumeFreeListFullyAndCheckContents<TypeParam>(moved, 200);
+}
+
+TYPED_TEST(SlotMapByUnderlyingContainer, MoveAssignmentLeavesSourceReusable) {
+    auto original = MakeMapWithFreeList<TypeParam>();
+    SlotMapFor<TypeParam, int> assigned;
+    assigned.emplace(-1);
+
+    assigned = std::move(original);
+
+    EXPECT_TRUE(original.empty());  // NOLINT(bugprone-use-after-move)
+    EXPECT_EQ(original.emplace(42).index, 0);
+    EXPECT_EQ(original[0], 42);
+    ConsumeFreeListFullyAndCheckContents<TypeParam>(assigned, 200);
+}
+
+TYPED_TEST(SlotMapByUnderlyingContainer, MoveConstructionWithInlineMoveOnlyValues) {
+    SlotMapFor<TypeParam, std::unique_ptr<int>> original;
+    original.emplace(std::make_unique<int>(10));
+    original.emplace(std::make_unique<int>(20));
+    original.emplace(std::make_unique<int>(30));
+    original.erase(1);
+
+    auto moved = std::move(original);
+
+    EXPECT_TRUE(original.empty());  // NOLINT(bugprone-use-after-move)
+    EXPECT_EQ(original.emplace(std::make_unique<int>(42)).index, 0);
+    EXPECT_EQ(*original[0], 42);
+    EXPECT_EQ(moved.size(), 2);
+    EXPECT_EQ(*moved[0], 10);
+    EXPECT_EQ(*moved[2], 30);
+    EXPECT_EQ(moved.emplace(std::make_unique<int>(40)).index, 1);
+    EXPECT_EQ(moved.size(), 3);
+}
+
+TYPED_TEST(SlotMapByUnderlyingContainer, MoveAssignmentWithInlineMoveOnlyValues) {
+    SlotMapFor<TypeParam, std::unique_ptr<int>> original;
+    original.emplace(std::make_unique<int>(10));
+    original.emplace(std::make_unique<int>(20));
+    original.emplace(std::make_unique<int>(30));
+    original.erase(1);
+    SlotMapFor<TypeParam, std::unique_ptr<int>> assigned;
+    assigned.emplace(std::make_unique<int>(-1));
+
+    assigned = std::move(original);
+
+    EXPECT_TRUE(original.empty());  // NOLINT(bugprone-use-after-move)
+    EXPECT_EQ(original.emplace(std::make_unique<int>(42)).index, 0);
+    EXPECT_EQ(*original[0], 42);
+    EXPECT_EQ(assigned.size(), 2);
+    EXPECT_EQ(*assigned[0], 10);
+    EXPECT_EQ(*assigned[2], 30);
+    EXPECT_EQ(assigned.emplace(std::make_unique<int>(40)).index, 1);
+    EXPECT_EQ(assigned.size(), 3);
+}
+
+TYPED_TEST(SlotMapByUnderlyingContainer, SelfMoveAssignmentPreservesContents) {
+    auto original = MakeMapWithFreeList<TypeParam>();
+    auto& alias = original;
+
+    original = std::move(alias);
+
+    ConsumeFreeListFullyAndCheckContents<TypeParam>(original, 200);
+}
+
 USERVER_NAMESPACE_END
