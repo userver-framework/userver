@@ -51,6 +51,7 @@ jobs:
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
                 -DUSERVER_FEATURE_YDB=OFF
                 -DUSERVER_DOWNLOAD_PACKAGES=OFF
+                -DUSERVER_DOWNLOAD_PACKAGE_BASE64=ON
                 -DUSERVER_FEATURE_STACKTRACE=OFF
 
         steps:
