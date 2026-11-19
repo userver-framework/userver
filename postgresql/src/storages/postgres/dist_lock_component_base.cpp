@@ -1,5 +1,7 @@
 #include <userver/storages/postgres/dist_lock_component_base.hpp>
 
+#include <cstddef>
+
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
@@ -62,8 +64,7 @@ DistLockComponentBase::DistLockComponentBase(
     worker_ = std::make_unique<dist_lock::DistLockedWorker>(
         lock_name,
         [this]() {
-            const auto snapshot = config_.GetSnapshot();
-            if (ShouldRunOnHost(snapshot)) {
+            if (!worker_->IsCancelAdvised()) {
                 if (testsuite_enabled_) {
                     DoWorkTestsuite();
                 } else {
@@ -157,30 +158,41 @@ void DistLockComponentBase::OnConfigUpdate(const dynamic_config::Diff& diff) {
             return;
         }
     }
-    auto& worker = GetWorker();
-    if (new_overrides) {
-        dist_lock::DistLockSettings settings;
-        settings.acquire_interval = new_overrides->acquire_interval.value_or(default_settings_.acquire_interval);
-        settings.prolong_interval = new_overrides->prolong_interval.value_or(default_settings_.prolong_interval);
-        settings.lock_ttl = new_overrides->lock_ttl.value_or(default_settings_.lock_ttl);
-        settings.forced_stop_margin = new_overrides->forced_stop_margin.value_or(default_settings_.forced_stop_margin);
-        settings.worker_func_restart_delay =
-            new_overrides->worker_func_restart_delay.value_or(default_settings_.worker_func_restart_delay);
-        settings.is_enabled = ShouldRunOnHost(new_snapshot);
-
-        worker.UpdateSettings(settings);
-    } else {
-        worker.UpdateSettings(default_settings_);
-    }
+    GetWorker().UpdateSettings(MakeSettings(new_snapshot));
 }
-bool DistLockComponentBase::ShouldRunOnHost(const dynamic_config::Snapshot& config) const {
+
+dist_lock::DistLockSettings DistLockComponentBase::MakeSettings(const dynamic_config::Snapshot& config) const {
     const auto& worker_settings_config = config[::dynamic_config::POSTGRES_DISTLOCK_SETTINGS];
-    if (const auto* settings = utils::FindOrNullptr(worker_settings_config.extra, name_)) {
-        if (const auto& hosts = settings->run_on_hosts) {
-            return hosts->count(real_host_name_);
-        }
+    const auto* overrides_ptr = utils::FindOrNullptr(worker_settings_config.extra, name_);
+    if (!overrides_ptr) {
+        return default_settings_;
     }
-    return true;
+
+    const auto& overrides = *overrides_ptr;
+    auto settings = default_settings_;
+    settings.acquire_interval = overrides.acquire_interval.value_or(default_settings_.acquire_interval);
+    settings.prolong_interval = overrides.prolong_interval.value_or(default_settings_.prolong_interval);
+    settings.lock_ttl = overrides.lock_ttl.value_or(default_settings_.lock_ttl);
+    settings.forced_stop_margin = overrides.forced_stop_margin.value_or(default_settings_.forced_stop_margin);
+    settings.worker_func_restart_delay =
+        overrides.worker_func_restart_delay.value_or(default_settings_.worker_func_restart_delay);
+
+    if (!overrides.run_on_hosts) {
+        return settings;
+    }
+
+    const auto& hosts = *overrides.run_on_hosts;
+    if (hosts.empty()) {
+        settings.is_enabled = false;
+        return settings;
+    }
+
+    settings.fallback_policy = dist_lock::DistLockFallbackSettings{
+        .fallback_after_checks = static_cast<std::size_t>(overrides.fallback_heartbeat_checks),
+        .fallback_duration = overrides.fallback_duration,
+    };
+    settings.is_host_deprioritized = !hosts.contains(real_host_name_);
+    return settings;
 }
 
 bool DistLockComponentBase::IsCancelAdvised() const { return worker_->IsCancelAdvised(); }

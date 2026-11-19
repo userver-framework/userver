@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -48,8 +49,19 @@ public:
 
     bool OwnsLock() const noexcept;
 
+    bool IsCancelAdvised() const;
+
 private:
     class LockGuard;
+
+    void ReleaseLock();
+
+    void ReleaseLock(std::unique_lock<engine::Mutex>&& lock);
+
+    void ResetFallback();
+
+    /// Requires state_mutex_ to be locked.
+    void ResetFallback(const std::lock_guard<engine::Mutex>& lock) noexcept;
 
     void Run(LockerMode, dist_lock::DistLockWaitingMode, tracing::Span&& span);
 
@@ -58,14 +70,35 @@ private:
 
     void RunWatchdog();
 
+    void HandleBusyLock(engine::TaskWithResult<void> watchdog_task);
+
+    LockOperation GetLockOperation(const DistLockSettings& settings, std::chrono::steady_clock::time_point now) const;
+
+    LockOperationResult TryLockOperation(
+        const DistLockSettings& settings,
+        LockOperation operation,
+        std::chrono::steady_clock::time_point now
+    );
+
+    LockOperationResult TryFallback(const DistLockSettings& settings);
+
+    LockOperationResult CompleteAcquisition(
+        const DistLockSettings& settings,
+        LockOperation operation,
+        std::chrono::steady_clock::time_point now
+    );
+
     const std::string name_;
     const std::string id_;
     std::shared_ptr<DistLockStrategyBase> strategy_;
     std::function<void()> worker_func_;
 
-    mutable engine::Mutex settings_mutex_;
+    mutable engine::Mutex state_mutex_;
     DistLockSettings settings_;
+    std::size_t negative_heartbeats_{0};
     const DistLockRetryMode retry_mode_;
+
+    std::atomic<std::chrono::steady_clock::duration> fallback_until_{};
 
     std::atomic<bool> is_locked_{false};
     std::atomic<std::chrono::steady_clock::duration> lock_refresh_since_epoch_{};

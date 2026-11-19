@@ -4,6 +4,7 @@
 /// @brief @copybrief storages::postgres::DistLockComponentBase
 
 #include <userver/components/component_base.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
@@ -43,6 +44,35 @@ namespace storages::postgres {
 ///            autostart: true
 /// ```
 /// See config `POSTGRES_DISTLOCK_SETTINGS`, some of parameters can be dynamically overridden.
+///
+/// A nonempty `run_on_hosts` gives priority to the listed hosts. All other hosts
+/// automatically act as fallback hosts and may run the task when the lock stays idle.
+/// An explicitly empty `run_on_hosts` disables all hosts; omitting it allows every
+/// host to acquire the lock immediately.
+/// A fallback host must observe `fallback_heartbeat_checks` consecutive successful
+/// checks with no live lock. Acquisition additionally requires the lock row to
+/// record no activity for `fallback_heartbeat_checks * acquire_interval`.
+/// If the checks finish before that shared idle interval has elapsed, the host
+/// starts another sequence. With regular successful checks, failover can therefore
+/// take nearly twice this interval; errors and scheduling delays can extend it.
+/// The host may then run for `fallback_duration` (10 minutes by default);
+/// expiry is advisory, so
+/// @ref storages::postgres::DistLockComponentBase::DoWork must check
+/// @ref storages::postgres::DistLockComponentBase::IsCancelAdvised and finish its current iteration.
+///
+/// Idle checks share the lock row's history, so a successful lock acquisition by any
+/// host restarts the waiting period for all fallback hosts, including short payload
+/// invocations. With fallback enabled, all participants, including preferred hosts,
+/// retain one expired row per lock key on release. With fallback disabled, release
+/// keeps the original behavior and deletes the row.
+/// Both release operations check the key and the owner, whose ID identifies an
+/// individual locker instance. A delayed release cannot change another owner's lock.
+/// However, an older strategy can delete its own row and lose the shared history.
+/// To enable fallback safely, first deploy support for conditional history retention
+/// to all participants while fallback is disabled (`run_on_hosts` is omitted).
+/// After that rollout completes, enable the same nonempty `run_on_hosts` policy for
+/// all participants of the lock. History retention must not depend on whether a
+/// participant is a preferred or a fallback host.
 ///
 /// ## Static options of storages::postgres::DistLockComponentBase :
 /// @include{doc} scripts/docs/en/components_schema/postgresql/src/storages/postgres/dist_lock_component_base.md
@@ -153,7 +183,8 @@ private:
         AutostartDistlock enable_autostart_at_base
     );
 
-    bool ShouldRunOnHost(const dynamic_config::Snapshot& config) const;
+    dist_lock::DistLockSettings MakeSettings(const dynamic_config::Snapshot& config) const;
+
     void OnConfigUpdate(const dynamic_config::Diff& diff);
 
     dynamic_config::Source config_;

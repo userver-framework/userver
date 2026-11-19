@@ -85,7 +85,7 @@ bool DistLockedWorker::IsRunning() const {
 
 bool DistLockedWorker::OwnsLock() const noexcept { return locker_ptr_->OwnsLock(); }
 
-bool DistLockedWorker::IsCancelAdvised() const { return !locker_ptr_->GetSettings().is_enabled; }
+bool DistLockedWorker::IsCancelAdvised() const { return locker_ptr_->IsCancelAdvised(); }
 
 std::optional<std::chrono::steady_clock::duration> DistLockedWorker::GetLockedDuration() const {
     return locker_ptr_->GetLockedDuration();

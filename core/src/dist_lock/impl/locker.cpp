@@ -1,7 +1,9 @@
 #include <dist_lock/impl/locker.hpp>
 
 #include <atomic>
+#include <limits>
 #include <stdexcept>
+#include <utility>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
@@ -33,6 +35,37 @@ std::string MakeLockerId(const std::string& name) {
     return fmt::format(FMT_COMPILE("{}-{:x}"), name, idx++);
 }
 
+void ValidateSettings(const DistLockSettings& settings) {
+    if (!settings.fallback_policy) {
+        if (settings.is_host_deprioritized) {
+            throw std::invalid_argument("Deprioritized distlock hosts require a fallback policy");
+        }
+        return;
+    }
+    const auto& fallback = *settings.fallback_policy;
+    if (fallback.fallback_after_checks == 0) {
+        throw std::invalid_argument("Distlock fallback_after_checks must be positive");
+    }
+    if (fallback.fallback_duration.count() <= 0) {
+        throw std::invalid_argument("Distlock fallback_duration must be positive");
+    }
+    if (settings.acquire_interval.count() <= 0) {
+        throw std::invalid_argument("Distlock acquire_interval must be positive when fallback is enabled");
+    }
+    const auto max_idle_ms = std::numeric_limits<std::chrono::milliseconds::rep>::max();
+    const auto max_checks = max_idle_ms / settings.acquire_interval.count();
+    if (fallback.fallback_after_checks > static_cast<std::size_t>(max_checks)) {
+        throw std::invalid_argument(fmt::format(
+            "Distlock fallback_after_checks={} exceeds the maximum of {} for acquire_interval={}ms "
+            "(maximum idle interval is {}ms)",
+            fallback.fallback_after_checks,
+            max_checks,
+            settings.acquire_interval.count(),
+            max_idle_ms
+        ));
+    }
+}
+
 }  // namespace
 
 class Locker::LockGuard {
@@ -40,13 +73,16 @@ public:
     LockGuard(Locker& locker)
         : locker_(locker)
     {}
-    ~LockGuard() { TryUnlock(); }
+    ~LockGuard() {
+        TryUnlock();
+        locker_.ResetFallback();
+    }
 
     void TryUnlock() noexcept {
         const engine::TaskCancellationBlocker cancel_blocker;
         try {
             if (locker_.ExchangeLockState(false, utils::datetime::SteadyNow())) {
-                locker_.strategy_->Release(locker_.Id());
+                locker_.ReleaseLock();
             }
         } catch (const std::exception& ex) {
             LOG_WARNING() << "Failed to release lock on stop: " << ex;
@@ -74,6 +110,7 @@ Locker::Locker(
       base_log_level_(base_log_level)
 {
     UASSERT(strategy_);
+    ValidateSettings(settings_);
 }
 
 const std::string& Locker::Name() const { return name_; }
@@ -81,13 +118,129 @@ const std::string& Locker::Name() const { return name_; }
 const std::string& Locker::Id() const { return id_; }
 
 DistLockSettings Locker::GetSettings() const {
-    const std::lock_guard<engine::Mutex> lock(settings_mutex_);
+    const std::lock_guard<engine::Mutex> lock(state_mutex_);
     return settings_;
 }
 
+void Locker::ReleaseLock() { ReleaseLock(std::unique_lock<engine::Mutex>{state_mutex_}); }
+
+void Locker::ReleaseLock(std::unique_lock<engine::Mutex>&& lock) {
+    const ReleaseOptions options{.preserve_history = settings_.fallback_policy.has_value()};
+    lock.unlock();
+    strategy_->Release(Id(), options);
+}
+
+void Locker::ResetFallback() {
+    const std::lock_guard<engine::Mutex> lock(state_mutex_);
+    ResetFallback(lock);
+}
+
+void Locker::ResetFallback(const std::lock_guard<engine::Mutex>&) noexcept {
+    negative_heartbeats_ = 0;
+    fallback_until_.store({});
+}
+
 void Locker::SetSettings(const DistLockSettings& settings) {
-    const std::lock_guard<engine::Mutex> lock(settings_mutex_);
+    ValidateSettings(settings);
+    const std::lock_guard<engine::Mutex> lock(state_mutex_);
+    if (settings_ == settings) {
+        return;
+    }
     settings_ = settings;
+    ResetFallback(lock);
+}
+
+bool Locker::IsCancelAdvised() const {
+    const std::lock_guard<engine::Mutex> lock(state_mutex_);
+    if (!settings_.is_enabled) {
+        return true;
+    }
+    if (!settings_.is_host_deprioritized) {
+        return false;
+    }
+    return utils::datetime::SteadyNow().time_since_epoch() >= fallback_until_.load();
+}
+
+LockOperation Locker::GetLockOperation(const DistLockSettings& settings, std::chrono::steady_clock::time_point now)
+    const {
+    if (is_locked_) {
+        return LockOperation::kProlong;
+    }
+    if (settings.is_host_deprioritized && now.time_since_epoch() >= fallback_until_.load()) {
+        return LockOperation::kFallback;
+    }
+    return LockOperation::kAcquire;
+}
+
+LockOperationResult Locker::TryFallback(const DistLockSettings& settings) {
+    const auto
+        result = strategy_->ExecuteOperation(Id(), {.lock_ttl = settings.lock_ttl, .operation = LockOperation::kCheck});
+    UINVARIANT(result != LockOperationResult::kAcquired, "A liveness check must not acquire the lock");
+    const auto& fallback = settings.fallback_policy.value();
+    {
+        const std::lock_guard<engine::Mutex> lock(state_mutex_);
+        if (result != LockOperationResult::kNotAlive || settings != settings_) {
+            ResetFallback(lock);
+            return result;
+        }
+        if (++negative_heartbeats_ < fallback.fallback_after_checks) {
+            return LockOperationResult::kNotAlive;
+        }
+        ResetFallback(lock);
+    }
+    const auto checks = static_cast<std::chrono::milliseconds::rep>(fallback.fallback_after_checks);
+    return strategy_->ExecuteOperation(
+        Id(),
+        {.lock_ttl = settings.lock_ttl,
+         .operation = LockOperation::kFallback,
+         .min_idle_time_milliseconds = settings.acquire_interval * checks}
+    );
+}
+
+LockOperationResult Locker::CompleteAcquisition(
+    const DistLockSettings& settings,
+    LockOperation operation,
+    std::chrono::steady_clock::time_point now
+) {
+    UASSERT(operation == LockOperation::kAcquire || operation == LockOperation::kFallback);
+    std::unique_lock<engine::Mutex> lock(state_mutex_);
+    if (settings == settings_) {
+        if (operation == LockOperation::kFallback) {
+            fallback_until_ = (now + settings.fallback_policy.value().fallback_duration).time_since_epoch();
+        }
+        return LockOperationResult::kAcquired;
+    }
+    ReleaseLock(std::move(lock));
+    return LockOperationResult::kNotAlive;
+}
+
+LockOperationResult Locker::TryLockOperation(
+    const DistLockSettings& settings,
+    LockOperation operation,
+    std::chrono::steady_clock::time_point now
+) {
+    UASSERT(operation != LockOperation::kCheck);
+    try {
+        auto result = LockOperationResult::kUnsupported;
+        if (operation == LockOperation::kFallback) {
+            result = TryFallback(settings);
+        } else {
+            result = strategy_->ExecuteOperation(Id(), {.lock_ttl = settings.lock_ttl, .operation = operation});
+        }
+        if (result == LockOperationResult::kAcquired) {
+            if (is_locked_) {
+                return LockOperationResult::kAcquired;
+            }
+            return CompleteAcquisition(settings, operation, now);
+        }
+        if (operation != LockOperation::kFallback) {
+            ResetFallback();
+        }
+        return result;
+    } catch (const std::exception&) {
+        ResetFallback();
+        throw;
+    }
 }
 
 std::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration() const {
@@ -99,56 +252,65 @@ std::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration() c
 
 const Statistics& Locker::GetStatistics() const { return stats_; }
 
+void Locker::HandleBusyLock(engine::TaskWithResult<void> watchdog_task) {
+    LOG(base_log_level_) << "Fail to acquire lock. It was acquired by another host";
+    stats_.lock_failures++;
+    if (!is_locked_) {
+        return;
+    }
+    LOG_ERROR()
+        << "DistLockedTask brain split detected! Someone else acquired the "
+           "lock while we're assuming we're holding the lock. It may be "
+           "a brain split in DB backend or missing cancellation point in "
+           "worker code.";
+    stats_.brain_splits++;
+    LOG_DEBUG() << "Terminating watchdog task";
+    if (watchdog_task.IsValid()) {
+        watchdog_task.RequestCancel();
+    }
+    GetTask(watchdog_task, name_, "cancel and watchdog wait after brain split detected");
+    LOG_DEBUG() << "Terminated watchdog task";
+    ExchangeLockState(false, utils::datetime::SteadyNow());
+}
+
 void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, tracing::Span&& span) {
     span.AttachToCoroStack();
     LockGuard lock_guard(*this);
     engine::TaskWithResult<void> watchdog_task;
     bool worker_succeeded = false;
+    bool unsupported_reported = false;
 
     while (!engine::current_task::ShouldCancel() && (mode != LockerMode::kOneshot || !worker_succeeded)) {
         const auto settings = GetSettings();
-        const auto attempt_start = utils::datetime::SteadyNow();
+        const auto start_time = utils::datetime::SteadyNow();
 
         try {
             if (settings.is_enabled || is_locked_) {
-                if (is_locked_) {
-                    strategy_->Prolong(settings.lock_ttl, Id());
-                } else {
-                    strategy_->Acquire(settings.lock_ttl, Id());
-                }
-                stats_.lock_successes++;
-                if (!ExchangeLockState(true, attempt_start)) {
-                    LOG_DEBUG() << "Starting watchdog task";
-                    GetTask(watchdog_task, name_, "watchdog wait stale task");
-                    watchdog_task = utils::CriticalAsync(WatchdogName(name_), [this] { RunWatchdog(); });
-                    LOG_DEBUG() << "Started watchdog task";
+                const auto operation = GetLockOperation(settings, start_time);
+                const auto result = TryLockOperation(settings, operation, start_time);
+                if (result == LockOperationResult::kAcquired) {
+                    stats_.lock_successes++;
+                    if (!ExchangeLockState(true, start_time)) {
+                        LOG_DEBUG() << "Starting watchdog task";
+                        GetTask(watchdog_task, name_, "watchdog wait stale task");
+                        watchdog_task = utils::CriticalAsync(WatchdogName(name_), [this] { RunWatchdog(); });
+                        LOG_DEBUG() << "Started watchdog task";
+                    }
+                } else if (result == LockOperationResult::kBusy || is_locked_) {
+                    HandleBusyLock(std::move(watchdog_task));
+                    if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) {
+                        break;
+                    }
+                } else if (result == LockOperationResult::kUnsupported && !unsupported_reported) {
+                    LOG_WARNING() << "Distlock strategy does not support fallback checks";
+                    unsupported_reported = true;
                 }
             } else if (mode == LockerMode::kOneshot) {
                 // To prevent going to next iteration since worker_succeeded is `false`
                 break;
             }
-        } catch (const LockIsAcquiredByAnotherHostException&) {
-            LOG(base_log_level_) << "Fail to acquire lock. It was acquired by another host";
-            stats_.lock_failures++;
-            if (is_locked_) {
-                LOG_ERROR()
-                    << "DistLockedTask brain split detected! Someone else acquired the "
-                       "lock while we're assuming we're holding the lock. It may be "
-                       "a brain split in DB backend or missing cancellation point in "
-                       "worker code.";
-                stats_.brain_splits++;
-                LOG_DEBUG() << "Terminating watchdog task";
-                if (watchdog_task.IsValid()) {
-                    watchdog_task.RequestCancel();
-                }
-                GetTask(watchdog_task, name_, "cancel and watchdog wait after brain split detected");
-                LOG_DEBUG() << "Terminated watchdog task";
-                ExchangeLockState(false, utils::datetime::SteadyNow());
-            }
-            if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) {
-                break;
-            }
         } catch (const std::exception& ex) {
+            ResetFallback();
             stats_.lock_failures++;
             LOG_WARNING() << "Lock acquisition failed: " << ex;
         }

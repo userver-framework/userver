@@ -18,16 +18,44 @@ schema:
             additionalProperties: false
             properties:
                 run_on_hosts:
-                    description: |
-                        USE IsCancelAdvised() OR IT DOESNT WORK
-                        List of hosts on which the task
-                        is allowed to run. The task will start on
-                        any of the specified hosts—without
-                        prioritization.
+                    description: >
+                        A list of priority hosts. Other hosts will automatically start the task
+                        after the successful liveness checks and shared idle interval described
+                        by `fallback_heartbeat_checks`. An empty list disables the task on all
+                        hosts. If this field is not specified, all hosts have equal priority and
+                        fallback is disabled. A nonempty list enables release-history retention
+                        on every participant, including priority hosts: release updates the lock
+                        row instead of deleting it. Deploy support for this policy to all
+                        participants with fallback disabled before enabling a common nonempty
+                        list. Older versions can delete their own lock row and lose the history
+                        needed by fallback. The `DoWork` method must check `IsCancelAdvised()`
+                        to terminate fallback after `fallback_duration` has elapsed.
                     type: array
                     x-usrv-cpp-type: std::unordered_set
                     items:
                         type: string
+                fallback_heartbeat_checks:
+                    description: >
+                        Number of consecutive successful checks that must find no live lock.
+                        Acquisition also requires the lock row to record no activity for at
+                        least this count multiplied by `acquire_interval`. If a sequence of
+                        checks finishes before this shared interval has elapsed, another
+                        sequence is required. With regular successful checks, failover may
+                        therefore take nearly twice this interval; errors and scheduling delays
+                        can extend the wait. Any successful acquisition restarts the shared
+                        waiting period for all fallback hosts.
+                    type: integer
+                    minimum: 1
+                    default: 50
+                fallback_duration:
+                    description: >
+                        Advisory duration of fallback execution in milliseconds. Once it
+                        expires, `DoWork` must observe `IsCancelAdvised()` and finish its current
+                        iteration, returning priority to the preferred hosts.
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                    minimum: 1
+                    default: 600000
                 acquire_interval:
                     description: |
                         How often to try to acquire the lock.

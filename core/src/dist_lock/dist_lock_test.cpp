@@ -2,6 +2,13 @@
 
 #include <sys/param.h>
 
+#include <atomic>
+#include <deque>
+#include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <vector>
+
 #include <userver/concurrent/variable.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/dist_lock/dist_lock_strategy.hpp>
@@ -119,6 +126,101 @@ private:
     concurrent::Variable<std::string> locked_by_var_;
     std::atomic<size_t> acquires_{0};
 };
+
+// Checks and fallback acquisitions are answered by the test, so intermediate
+// states can be inspected without racing the next acquisition attempt.
+class ScriptedFallbackStrategy final : public dist_lock::DistLockStrategyBase {
+public:
+    void Acquire(std::chrono::milliseconds, const std::string&) override {
+        throw std::logic_error("unexpected legacy acquisition");
+    }
+
+    dist_lock::LockOperationResult ExecuteOperation(const std::string&, const dist_lock::LockOperationOptions& options)
+        override {
+        std::unique_lock lock(mutex_);
+        if (options.operation == dist_lock::LockOperation::kProlong) {
+            ++prolongs_;
+            request_cv_.NotifyAll();
+            return dist_lock::LockOperationResult::kAcquired;
+        }
+        if (options.operation == dist_lock::LockOperation::kAcquire) {
+            return dist_lock::LockOperationResult::kAcquired;
+        }
+        ++requests_count_;
+        requests_.push_back(options);
+        request_cv_.NotifyAll();
+        if (!reply_cv_.Wait(lock, [this] { return !replies_.empty(); })) {
+            engine::current_task::CancellationPoint();
+            throw std::runtime_error("cancelled fallback request");
+        }
+        const auto reply = replies_.front();
+        replies_.pop_front();
+        if (!reply) {
+            throw std::runtime_error("heartbeat query failed");
+        }
+        return reply.value();
+    }
+
+    void Release(const std::string& locker_id) override { Release(locker_id, {}); }
+
+    void Release(const std::string&, const dist_lock::ReleaseOptions& options) override {
+        const std::lock_guard lock(mutex_);
+        releases_.push_back(options);
+        request_cv_.NotifyAll();
+    }
+
+    std::optional<dist_lock::LockOperationOptions> WaitForRequest() {
+        std::unique_lock lock(mutex_);
+        if (!request_cv_.WaitFor(lock, utest::kMaxTestWaitTime, [this] { return !requests_.empty(); })) {
+            return std::nullopt;
+        }
+        const auto request = requests_.front();
+        requests_.pop_front();
+        return request;
+    }
+
+    void Reply(std::optional<dist_lock::LockOperationResult> result) {
+        const std::lock_guard lock(mutex_);
+        replies_.push_back(result);
+        reply_cv_.NotifyAll();
+    }
+
+    bool WaitForProlongs(std::size_t count) {
+        std::unique_lock lock(mutex_);
+        return request_cv_.WaitFor(lock, utest::kMaxTestWaitTime, [this, count] { return prolongs_ >= count; });
+    }
+
+    bool WaitForReleases(std::size_t count) {
+        std::unique_lock lock(mutex_);
+        return request_cv_.WaitFor(lock, utest::kMaxTestWaitTime, [this, count] { return releases_.size() >= count; });
+    }
+
+    std::vector<dist_lock::ReleaseOptions> GetReleases() {
+        const std::lock_guard lock(mutex_);
+        return releases_;
+    }
+
+    std::size_t GetProlongsCount() const { return prolongs_; }
+
+    std::size_t GetRequestsCount() const { return requests_count_; }
+
+private:
+    engine::Mutex mutex_;
+    engine::ConditionVariable request_cv_;
+    engine::ConditionVariable reply_cv_;
+    std::deque<dist_lock::LockOperationOptions> requests_;
+    std::deque<std::optional<dist_lock::LockOperationResult>> replies_;
+    std::atomic<std::size_t> requests_count_{0};
+    std::atomic<std::size_t> prolongs_{0};
+    std::vector<dist_lock::ReleaseOptions> releases_;
+};
+
+dist_lock::DistLockSettings MakeFallbackSettings() {
+    auto settings = MakeSettings();
+    settings.fallback_policy = dist_lock::DistLockFallbackSettings{.fallback_after_checks = 3};
+    settings.is_host_deprioritized = true;
+    return settings;
+}
 
 class DistLockWorkload {
 public:
@@ -546,6 +648,236 @@ UTEST_MT(LockedWorker, DefaultProlongRoutesThroughAcquire, 3) {
     EXPECT_LT(acquires_after_take, strategy->GetAcquiresCount());
 
     locked_worker.Stop();
+}
+
+UTEST(LockedWorker, LegacyStrategyResultAdapter) {
+    auto strategy = MakeMockStrategy();
+    strategy->Allow(true);
+    dist_lock::DistLockStrategyBase& base = *strategy;
+    using dist_lock::LockOperation;
+    using dist_lock::LockOperationResult;
+
+    EXPECT_EQ(
+        base.ExecuteOperation("owner", {.lock_ttl = kLockTtl, .operation = LockOperation::kCheck}),
+        LockOperationResult::kUnsupported
+    );
+    EXPECT_EQ(
+        base.ExecuteOperation("owner", {.lock_ttl = kLockTtl, .operation = LockOperation::kFallback}),
+        LockOperationResult::kUnsupported
+    );
+    EXPECT_EQ(strategy->GetAttemptsCount(), 0);
+    EXPECT_EQ(base.ExecuteOperation("owner", {.lock_ttl = kLockTtl}), LockOperationResult::kAcquired);
+    EXPECT_EQ(
+        base.ExecuteOperation("owner", {.lock_ttl = kLockTtl, .operation = LockOperation::kProlong}),
+        LockOperationResult::kAcquired
+    );
+    EXPECT_EQ(strategy->GetProlongsCount(), 1);
+    EXPECT_EQ(base.ExecuteOperation("other-owner", {.lock_ttl = kLockTtl}), LockOperationResult::kBusy);
+    base.Release("owner");
+    EXPECT_FALSE(strategy->IsLocked());
+
+    strategy->Allow(false);
+    UEXPECT_THROW(base.ExecuteOperation("owner", {.lock_ttl = kLockTtl}), std::runtime_error);
+}
+
+UTEST(LockedWorker, DisabledFallbackDoesNotProbe) {
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    auto settings = MakeFallbackSettings();
+    settings.is_enabled = false;
+    std::size_t work_count = 0;
+    dist_lock::DistLockedWorker worker(kWorkerName, [&] { ++work_count; }, strategy, settings);
+
+    EXPECT_TRUE(worker.IsCancelAdvised());
+    worker.RunOnce();
+    EXPECT_EQ(strategy->GetRequestsCount(), 0);
+    EXPECT_EQ(work_count, 0);
+}
+
+UTEST_MT(LockedWorker, ReleaseHistoryFollowsSharedFallbackPolicy, 3) {
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    auto settings = MakeSettings();
+    DistLockWorkload work;
+    dist_lock::DistLockedWorker worker(kWorkerName, [&] { work.Work(); }, strategy, settings);
+    const utils::FastScopeGuard stop([&]() noexcept { worker.Stop(); });
+
+    std::size_t release_count = 0;
+    for (const bool preserve_history : {false, true, false}) {
+        worker.Start();
+        ASSERT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+        if (preserve_history) {
+            settings.fallback_policy.emplace();
+        } else {
+            settings.fallback_policy.reset();
+        }
+        worker.UpdateSettings(settings);
+        worker.Stop();
+
+        const auto releases = strategy->GetReleases();
+        ASSERT_EQ(releases.size(), ++release_count);
+        EXPECT_EQ(releases.back().preserve_history, preserve_history);
+    }
+    EXPECT_EQ(strategy->GetRequestsCount(), 0);
+}
+
+UTEST_MT(LockedTask, NoWaitStopsWhenFallbackCheckFindsBusyLock, 3) {
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    std::size_t work_count = 0;
+    dist_lock::DistLockedTask task(
+        kWorkerName,
+        [&] { ++work_count; },
+        strategy,
+        MakeFallbackSettings(),
+        dist_lock::DistLockWaitingMode::kNoWait
+    );
+
+    const auto check = strategy->WaitForRequest();
+    ASSERT_TRUE(check.has_value());
+    EXPECT_EQ(check->operation, dist_lock::LockOperation::kCheck);
+    strategy->Reply(dist_lock::LockOperationResult::kBusy);
+
+    task.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(task.IsFinished());
+    UEXPECT_NO_THROW(task.Get());
+    EXPECT_EQ(strategy->GetRequestsCount(), 1);
+    EXPECT_EQ(work_count, 0);
+}
+
+UTEST_MT(LockedWorker, DisablingDuringFinalHeartbeatPreventsFallbackAcquire, 3) {
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    auto settings = MakeFallbackSettings();
+    settings.fallback_policy.value().fallback_after_checks = 1;
+    std::atomic<std::size_t> work_count{0};
+    dist_lock::DistLockedWorker worker(kWorkerName, [&] { ++work_count; }, strategy, settings);
+    auto run = utils::Async("fallback-disabled-during-check", [&] { worker.RunOnce(); });
+
+    const auto check = strategy->WaitForRequest();
+    ASSERT_TRUE(check.has_value());
+    EXPECT_EQ(check->operation, dist_lock::LockOperation::kCheck);
+    settings.is_enabled = false;
+    worker.UpdateSettings(settings);
+    strategy->Reply(dist_lock::LockOperationResult::kNotAlive);
+
+    run.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(run.IsFinished());
+    UEXPECT_NO_THROW(run.Get());
+    EXPECT_EQ(strategy->GetRequestsCount(), 1);
+    EXPECT_EQ(work_count, 0);
+    EXPECT_TRUE(worker.IsCancelAdvised());
+}
+
+UTEST_MT(LockedWorker, FallbackRequiresFreshSuccessfulChecks, 3) {
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    DistLockWorkload work;
+    const auto settings = MakeFallbackSettings();
+    dist_lock::DistLockedWorker worker(kWorkerName, [&] { work.Work(); }, strategy, settings);
+    const utils::FastScopeGuard stop([&]() noexcept { worker.Stop(); });
+    using dist_lock::LockOperation;
+    using dist_lock::LockOperationResult;
+
+    worker.Start();
+    const std::optional<LockOperationResult> replies[]{
+        LockOperationResult::kNotAlive,
+        LockOperationResult::kBusy,
+        LockOperationResult::kNotAlive,
+        std::nullopt,
+        LockOperationResult::kNotAlive,
+        LockOperationResult::kNotAlive,
+        LockOperationResult::kNotAlive,
+    };
+    std::size_t expected_failures = 0;
+    for (const auto reply : replies) {
+        const auto request = strategy->WaitForRequest();
+        ASSERT_TRUE(request.has_value());
+        EXPECT_EQ(request->operation, LockOperation::kCheck);
+        EXPECT_TRUE(worker.IsCancelAdvised());
+        EXPECT_FALSE(work.IsLocked());
+        EXPECT_EQ(worker.GetStatistics().lock_failures.Load().value, expected_failures);
+        if (!reply || reply.value() == LockOperationResult::kBusy) {
+            ++expected_failures;
+        }
+        strategy->Reply(reply);
+    }
+
+    const auto rejected_acquire = strategy->WaitForRequest();
+    ASSERT_TRUE(rejected_acquire.has_value());
+    EXPECT_EQ(rejected_acquire->operation, LockOperation::kFallback);
+    EXPECT_EQ(rejected_acquire->min_idle_time_milliseconds, 3 * settings.acquire_interval);
+    EXPECT_FALSE(work.IsLocked());
+    strategy->Reply(LockOperationResult::kBusy);
+
+    for (std::size_t i = 0; i < settings.fallback_policy.value().fallback_after_checks; ++i) {
+        const auto request = strategy->WaitForRequest();
+        ASSERT_TRUE(request.has_value());
+        EXPECT_EQ(request->operation, LockOperation::kCheck);
+        EXPECT_TRUE(worker.IsCancelAdvised());
+        strategy->Reply(LockOperationResult::kNotAlive);
+    }
+    const auto accepted_acquire = strategy->WaitForRequest();
+    ASSERT_TRUE(accepted_acquire.has_value());
+    EXPECT_EQ(accepted_acquire->operation, LockOperation::kFallback);
+    EXPECT_FALSE(work.IsLocked());
+    strategy->Reply(LockOperationResult::kAcquired);
+    ASSERT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+    EXPECT_FALSE(worker.IsCancelAdvised());
+    EXPECT_TRUE(worker.OwnsLock());
+}
+
+UTEST_MT(LockedWorker, FallbackGrantExpiresAndConfigRevokesIt, 3) {
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+    const utils::FastScopeGuard unset_time([]() noexcept { utils::datetime::MockNowUnset(); });
+    auto strategy = std::make_shared<ScriptedFallbackStrategy>();
+    auto settings = MakeFallbackSettings();
+    settings.fallback_policy = dist_lock::DistLockFallbackSettings{
+        .fallback_after_checks = 1,
+        .fallback_duration = std::chrono::seconds{60},
+    };
+    settings.lock_ttl = std::chrono::hours{1};
+    DistLockWorkload work;
+    dist_lock::DistLockedWorker worker(kWorkerName, [&] { work.Work(); }, strategy, settings);
+    const utils::FastScopeGuard stop([&]() noexcept { worker.Stop(); });
+    using dist_lock::LockOperation;
+    using dist_lock::LockOperationResult;
+
+    worker.Start();
+    for (std::size_t grant = 0; grant < 2; ++grant) {
+        const auto check = strategy->WaitForRequest();
+        ASSERT_TRUE(check.has_value());
+        EXPECT_EQ(check->operation, LockOperation::kCheck);
+        EXPECT_TRUE(worker.IsCancelAdvised());
+        strategy->Reply(LockOperationResult::kNotAlive);
+        const auto acquire = strategy->WaitForRequest();
+        ASSERT_TRUE(acquire.has_value());
+        EXPECT_EQ(acquire->operation, LockOperation::kFallback);
+        strategy->Reply(LockOperationResult::kAcquired);
+        ASSERT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+        EXPECT_FALSE(worker.IsCancelAdvised());
+
+        if (grant == 0) {
+            worker.UpdateSettings(settings);
+            EXPECT_FALSE(worker.IsCancelAdvised());
+            settings.prolong_interval += kAttemptInterval;
+            worker.UpdateSettings(settings);
+            EXPECT_TRUE(worker.IsCancelAdvised());
+            settings.is_enabled = false;
+            worker.UpdateSettings(settings);
+            EXPECT_TRUE(worker.IsCancelAdvised());
+            work.SetWorkLoopOn(false);
+            ASSERT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
+            ASSERT_TRUE(strategy->WaitForReleases(1));
+            settings.is_enabled = true;
+            worker.UpdateSettings(settings);
+            EXPECT_TRUE(worker.IsCancelAdvised());
+            work.SetWorkLoopOn(true);
+        }
+    }
+
+    const auto prolongs = strategy->GetProlongsCount();
+    utils::datetime::MockSleep(std::chrono::seconds{30});
+    ASSERT_TRUE(strategy->WaitForProlongs(prolongs + 1));
+    utils::datetime::MockSleep(std::chrono::seconds{30} - std::chrono::milliseconds{1});
+    EXPECT_FALSE(worker.IsCancelAdvised());
+    utils::datetime::MockSleep(std::chrono::milliseconds{1});
+    EXPECT_TRUE(worker.IsCancelAdvised());
 }
 
 USERVER_NAMESPACE_END

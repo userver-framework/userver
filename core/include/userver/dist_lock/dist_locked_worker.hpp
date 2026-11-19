@@ -90,7 +90,9 @@ public:
     /// Returns lock acquisition statistics.
     const Statistics& GetStatistics() const;
 
-    /// Returns `true` when it is advised to cancel the task.
+    /// Returns `true` when disabled, or when a deprioritized host has no active
+    /// fallback grant. Grant expiry is advisory; the callback must check this
+    /// method between independent processing iterations.
     bool IsCancelAdvised() const;
 
 private:
