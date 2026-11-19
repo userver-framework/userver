@@ -25,9 +25,9 @@ void Channel::Publish(
 }
 
 std::string Channel::Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
-    std::string message{};
+    auto message = std::make_shared<std::string>();
     ConnectionHelper::Get(*impl_, queue, flags, message, deadline).Wait(deadline);
-    return message;
+    return std::move(*message);
 }
 
 ReliableChannel::ReliableChannel(ConnectionPtr&& channel)

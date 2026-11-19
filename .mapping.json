@@ -4312,6 +4312,7 @@
   "rabbitmq/include/userver/urabbitmq/typedefs.hpp":"taxi/uservices/userver/rabbitmq/include/userver/urabbitmq/typedefs.hpp",
   "rabbitmq/library.yaml":"taxi/uservices/userver/rabbitmq/library.yaml",
   "rabbitmq/src/tests/admin_rmqtest.cpp":"taxi/uservices/userver/rabbitmq/src/tests/admin_rmqtest.cpp",
+  "rabbitmq/src/tests/deferred_wrapper_test.cpp":"taxi/uservices/userver/rabbitmq/src/tests/deferred_wrapper_test.cpp",
   "rabbitmq/src/tests/header_value_rmqtest.cpp":"taxi/uservices/userver/rabbitmq/src/tests/header_value_rmqtest.cpp",
   "rabbitmq/src/tests/invalid_auth_rmqtest.cpp":"taxi/uservices/userver/rabbitmq/src/tests/invalid_auth_rmqtest.cpp",
   "rabbitmq/src/tests/outage_rmqtest.cpp":"taxi/uservices/userver/rabbitmq/src/tests/outage_rmqtest.cpp",

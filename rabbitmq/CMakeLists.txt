@@ -10,6 +10,8 @@ userver_module(
     rabbitmq
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES_PRIVATE amqpcpp
+    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    UTEST_LINK_LIBRARIES amqpcpp
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_rmqtest.cpp"
     DBTEST_DATABASES rabbitmq
     COMPONENT_DEPENDS core

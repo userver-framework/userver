@@ -44,7 +44,7 @@ public:
         const Queue& queue,
         utils::Flags<Queue::Flags> flags,
         const std::unordered_map<std::string, HeaderValue>& headers,
-        QueueDeclareResponse& response,
+        std::shared_ptr<QueueDeclareResponse> response,
         engine::Deadline deadline
     );
 
@@ -62,7 +62,7 @@ public:
     ResponseAwaiter Get(
         const Queue& queue,
         utils::Flags<Queue::Flags> flags,
-        std::string& message,
+        std::shared_ptr<std::string> message,
         engine::Deadline deadline
     );
 

@@ -52,20 +52,22 @@ void DeferredWrapper::Wrap(AMQP::Deferred& deferred) {
     ).onError([wrap = shared_from_this()](const char* error) { wrap->Fail(error); });
 }
 
-void DeferredWrapper::WrapGet(AMQP::DeferredGet& deferred, std::string& message) {
+void DeferredWrapper::WrapGet(AMQP::DeferredGet& deferred, std::shared_ptr<std::string> message) {
     deferred
-        .onSuccess([wrap = shared_from_this(), &message](const AMQP::Message& message_rec, uint64_t, bool) {
-            message = std::string(message_rec.body(), message_rec.bodySize());
+        .onSuccess([wrap = shared_from_this(),
+                    message = std::move(message)](const AMQP::Message& message_rec, uint64_t, bool) {
+            *message = std::string(message_rec.body(), message_rec.bodySize());
             wrap->Ok();
         })
         .onError([wrap = shared_from_this()](const char* error) { wrap->Fail(error); });
 }
 
-void DeferredWrapper::WrapDeclareQueue(AMQP::DeferredQueue& deferred, QueueDeclareResponse& response) {
+void DeferredWrapper::WrapDeclareQueue(AMQP::DeferredQueue& deferred, std::shared_ptr<QueueDeclareResponse> response) {
     deferred
         .onSuccess([wrap = shared_from_this(),
-                    &response](const std::string& name, uint32_t message_count, uint32_t consumer_count) {
-            response = QueueDeclareResponse{name, message_count, consumer_count};
+                    response = std::move(response
+                    )](const std::string& name, uint32_t message_count, uint32_t consumer_count) {
+            *response = QueueDeclareResponse{name, message_count, consumer_count};
             wrap->Ok();
         })
         .onError([wrap = shared_from_this()](const char* error) { wrap->Fail(error); });

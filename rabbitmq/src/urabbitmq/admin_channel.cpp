@@ -24,11 +24,15 @@ void AdminChannel::DeclareExchange(
     ConnectionHelper::DeclareExchange(*impl_, exchange, type, flags, deadline).Wait(deadline);
 }
 
-QueueDeclareResponse AdminChannel::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-    const std::unordered_map<std::string, HeaderValue>& headers, engine::Deadline deadline) {
-    QueueDeclareResponse response;
+QueueDeclareResponse AdminChannel::DeclareQueue(
+    const Queue& queue,
+    utils::Flags<Queue::Flags> flags,
+    const std::unordered_map<std::string, HeaderValue>& headers,
+    engine::Deadline deadline
+) {
+    auto response = std::make_shared<QueueDeclareResponse>();
     ConnectionHelper::DeclareQueue(*impl_, queue, flags, headers, response, deadline).Wait(deadline);
-    return response;
+    return std::move(*response);
 }
 
 void AdminChannel::BindQueue(

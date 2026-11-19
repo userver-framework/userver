@@ -24,11 +24,11 @@ impl::ResponseAwaiter ConnectionHelper::DeclareQueue(
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
     const std::unordered_map<std::string, HeaderValue>& headers,
-    QueueDeclareResponse& response,
+    std::shared_ptr<QueueDeclareResponse> response,
     engine::Deadline deadline
 ) {
     return WithSpan("declare_queue", [&] {
-        return connection->GetChannel().DeclareQueue(queue, flags, headers, response, deadline);
+        return connection->GetChannel().DeclareQueue(queue, flags, headers, std::move(response), deadline);
     });
 }
 
@@ -64,10 +64,10 @@ impl::ResponseAwaiter ConnectionHelper::Get(
     const ConnectionPtr& connection,
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
-    std::string& message,
+    std::shared_ptr<std::string> message,
     engine::Deadline deadline
 ) {
-    return WithSpan("get", [&] { return connection->GetChannel().Get(queue, flags, message, deadline); });
+    return WithSpan("get", [&] { return connection->GetChannel().Get(queue, flags, std::move(message), deadline); });
 }
 
 void ConnectionHelper::Publish(

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <userver/engine/deadline.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 #include <userver/utils/flags.hpp>
@@ -33,7 +35,7 @@ public:
         const Queue& queue,
         utils::Flags<Queue::Flags> flags,
         const std::unordered_map<std::string, HeaderValue>& headers,
-        QueueDeclareResponse& response,
+        std::shared_ptr<QueueDeclareResponse> response,
         engine::Deadline deadline
     );
 
@@ -61,7 +63,7 @@ public:
         const ConnectionPtr& connection,
         const Queue& queue,
         utils::Flags<Queue::Flags> flags,
-        std::string& message,
+        std::shared_ptr<std::string> message,
         engine::Deadline deadline
     );
 

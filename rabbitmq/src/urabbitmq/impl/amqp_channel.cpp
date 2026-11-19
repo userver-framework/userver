@@ -133,7 +133,7 @@ ResponseAwaiter AmqpChannel::DeclareQueue(
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
     const std::unordered_map<std::string, HeaderValue>& headers,
-    QueueDeclareResponse& response,
+    std::shared_ptr<QueueDeclareResponse> response,
     engine::Deadline deadline
 ) {
     auto awaiter = conn_.GetAwaiter(deadline);
@@ -143,7 +143,8 @@ ResponseAwaiter AmqpChannel::DeclareQueue(
         AMQP::Table table;
         AddHeadersToTable(table, headers);
         awaiter.GetWrapper()->WrapDeclareQueue(
-            channel->declareQueue(queue.GetUnderlying(), Convert(flags), table), response
+            channel->declareQueue(queue.GetUnderlying(), Convert(flags), table),
+            std::move(response)
         );
     }
 
@@ -191,14 +192,14 @@ ResponseAwaiter AmqpChannel::RemoveQueue(const Queue& queue, engine::Deadline de
 ResponseAwaiter AmqpChannel::Get(
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
-    std::string& message,
+    std::shared_ptr<std::string> message,
     engine::Deadline deadline
 ) {
     auto awaiter = conn_.GetAwaiter(deadline);
 
     {
         auto channel = conn_.GetChannel(deadline);
-        awaiter.GetWrapper()->WrapGet(channel->get(queue.GetUnderlying(), Convert(flags)), message);
+        awaiter.GetWrapper()->WrapGet(channel->get(queue.GetUnderlying(), Convert(flags)), std::move(message));
     }
 
     return awaiter;

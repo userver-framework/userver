@@ -34,9 +34,9 @@ public:
 
     void Wrap(AMQP::Deferred& deferred);
 
-    void WrapGet(AMQP::DeferredGet& deferred, std::string& message);
+    void WrapGet(AMQP::DeferredGet& deferred, std::shared_ptr<std::string> message);
 
-    void WrapDeclareQueue(AMQP::DeferredQueue& deferred, QueueDeclareResponse& response);
+    void WrapDeclareQueue(AMQP::DeferredQueue& deferred, std::shared_ptr<QueueDeclareResponse> response);
 
     static std::shared_ptr<DeferredWrapper> Create();
 

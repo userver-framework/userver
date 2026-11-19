@@ -34,13 +34,17 @@ void Client::DeclareExchange(
     awaiter.Wait(deadline);
 }
 
-QueueDeclareResponse Client::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-    const std::unordered_map<std::string, HeaderValue>& headers, engine::Deadline deadline) {
-    QueueDeclareResponse response;
+QueueDeclareResponse Client::DeclareQueue(
+    const Queue& queue,
+    utils::Flags<Queue::Flags> flags,
+    const std::unordered_map<std::string, HeaderValue>& headers,
+    engine::Deadline deadline
+) {
+    auto response = std::make_shared<QueueDeclareResponse>();
     auto awaiter =
         ConnectionHelper::DeclareQueue(impl_->GetConnection(deadline), queue, flags, headers, response, deadline);
     awaiter.Wait(deadline);
-    return response;
+    return std::move(*response);
 }
 
 void Client::BindQueue(
@@ -64,11 +68,11 @@ void Client::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
 }
 
 std::string Client::Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
-    std::string message{};
+    auto message = std::make_shared<std::string>();
     auto awaiter = ConnectionHelper::Get(impl_->GetConnection(deadline), queue, flags, message, deadline);
     awaiter.Wait(deadline);
 
-    return message;
+    return std::move(*message);
 }
 
 void Client::Publish(
