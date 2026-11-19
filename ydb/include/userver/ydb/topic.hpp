@@ -17,6 +17,7 @@
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -197,10 +198,24 @@ private:
 
 /// @brief Settings for TopicProducer.
 class TopicProducerSettings final : public NYdb::NTopic::TProducerSettings {
+public:
+    /// @brief Sets the timeout for waiting for buffered message acknowledgments
+    /// when TopicProducer is destroyed.
+    ///
+    /// Defaults to 0ms: does not wait for acknowledgments. If the timeout
+    /// expires, delivery of unacknowledged messages is not guaranteed.
+    TopicProducerSettings& CloseTimeout(std::chrono::milliseconds timeout) noexcept;
+
+    /// @brief Get the graceful close timeout.
+    std::chrono::milliseconds GetCloseTimeout() const noexcept;
+
+private:
     using NYdb::NTopic::TProducerSettings::MaxBlockTimeout;
     using NYdb::NTopic::TProducerSettings::MaxBlockTimeout_;
     using NYdb::NTopic::TProducerSettings::MaxMemoryUsage;
     using NYdb::NTopic::TProducerSettings::MaxMemoryUsage_;
+
+    std::chrono::milliseconds close_timeout_{std::chrono::milliseconds::zero()};
 };
 
 /// @brief Native YDB producer used for partition-aware writes to a topic.
@@ -211,13 +226,32 @@ class TopicProducerSettings final : public NYdb::NTopic::TProducerSettings {
 ///
 /// Write() fails immediately if the internal buffer is overloaded.
 ///
+/// The SDK close call runs on the blocking task processor and suspends the calling
+/// coroutine until it completes. It requires a userver coroutine context.
+/// Destruction and move assignment close an existing producer if
+/// @ref ydb::TopicProducer::Close has not been called.
+///
+/// @warning The destruction timeout configured with
+/// @ref ydb::TopicProducerSettings::CloseTimeout defaults to zero: pending
+/// messages are not guaranteed to be delivered.
+///
 /// @see https://ydb.tech/docs/en/reference/ydb-sdk/topic#write
 class TopicProducer final {
 public:
     /// @cond
     /// For internal use only.
-    explicit TopicProducer(std::shared_ptr<NYdb::NTopic::IProducer> producer);
+    explicit TopicProducer(
+        utils::impl::InternalTag,
+        std::shared_ptr<NYdb::NTopic::IProducer> producer,
+        std::chrono::milliseconds close_timeout
+    );
     /// @endcond
+
+    TopicProducer(const TopicProducer&) = delete;
+    TopicProducer(TopicProducer&&) noexcept;
+    TopicProducer& operator=(const TopicProducer&) = delete;
+    TopicProducer& operator=(TopicProducer&&) noexcept;
+    ~TopicProducer();
 
     /// @brief Write a single message to the topic.
     ///
@@ -236,6 +270,7 @@ public:
     ///
     /// Waits for all in-flight messages to be acknowledged.
     /// Force closes after timeout.
+    /// Repeated calls return `AlreadyClosed`.
     NYdb::NTopic::TCloseResult Close(std::chrono::milliseconds timeout);
 
     /// @brief Get native producer.
@@ -245,13 +280,14 @@ public:
     NYdb::NTopic::IProducer& GetNativeTopicProducer() USERVER_IMPL_LIFETIME_BOUND;
 
 private:
-    std::shared_ptr<NYdb::NTopic::IProducer> producer_;
+    class Impl;
+    std::unique_ptr<Impl> impl_;
     std::shared_ptr<impl::TopicProducerStatistics> statistics_;
 
     friend void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer);
 };
 
-/// @brief Export local write counters shared by producer copies.
+/// @brief Export local write counters preserved across producer moves.
 /// Counts completed wrapper calls only; queue acceptance does not mean delivery.
 void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer);
 

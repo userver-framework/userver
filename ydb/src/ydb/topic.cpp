@@ -1,9 +1,11 @@
 #include <userver/ydb/topic.hpp>
 
 #include <exception>
+#include <utility>
 #include <variant>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -237,16 +239,68 @@ std::optional<NYdb::NTopic::TContinuationToken> TopicSimpleWriteSession::WaitFor
     return std::nullopt;
 }
 
-TopicProducer::TopicProducer(std::shared_ptr<NYdb::NTopic::IProducer> producer)
-    : producer_(std::move(producer)),
-      statistics_(std::make_shared<impl::TopicProducerStatistics>())
-{
-    UASSERT(producer_);
+TopicProducerSettings& TopicProducerSettings::CloseTimeout(std::chrono::milliseconds timeout) noexcept {
+    close_timeout_ = timeout;
+    return *this;
 }
+
+std::chrono::milliseconds TopicProducerSettings::GetCloseTimeout() const noexcept { return close_timeout_; }
+
+class TopicProducer::Impl final {
+public:
+    Impl(std::shared_ptr<NYdb::NTopic::IProducer> producer, std::chrono::milliseconds close_timeout)
+        : producer(std::move(producer)),
+          close_timeout(close_timeout)
+    {
+        UASSERT(this->producer);
+    }
+
+    ~Impl() { Cleanup(); }
+
+    NYdb::NTopic::TCloseResult Close(std::chrono::milliseconds timeout) {
+        if (closed.exchange(true)) {
+            return {.Status = NYdb::NTopic::ECloseStatus::AlreadyClosed, .ClosedDescription = {}};
+        }
+        const engine::TaskCancellationBlocker cancellation_blocker;
+        return utils::CriticalAsync(
+                   engine::current_task::GetBlockingTaskProcessor(),
+                   "ydb-topic-producer-close",
+                   [this, timeout] { return producer->Close(timeout); }
+        ).Get();
+    }
+
+    void Cleanup() noexcept {
+        try {
+            const auto result = Close(close_timeout);
+            if (!result.IsSuccess() && !result.IsAlreadyClosed()) {
+                LOG_WARNING() << "YDB topic producer graceful close failed, status=" << static_cast<int>(result.Status);
+            }
+        } catch (const std::exception& exception) {
+            LOG_WARNING() << "YDB topic producer cleanup failed: " << exception;
+        }
+    }
+
+    std::shared_ptr<NYdb::NTopic::IProducer> producer;
+    const std::chrono::milliseconds close_timeout;
+    std::atomic_bool closed{false};
+};
+
+TopicProducer::TopicProducer(
+    utils::impl::InternalTag,
+    std::shared_ptr<NYdb::NTopic::IProducer> producer,
+    std::chrono::milliseconds close_timeout
+)
+    : impl_(std::make_unique<Impl>(std::move(producer), close_timeout)),
+      statistics_(std::make_shared<impl::TopicProducerStatistics>())
+{}
+
+TopicProducer::TopicProducer(TopicProducer&&) noexcept = default;
+TopicProducer& TopicProducer::operator=(TopicProducer&&) noexcept = default;
+TopicProducer::~TopicProducer() = default;
 
 NYdb::NTopic::TWriteResult TopicProducer::Write(NYdb::NTopic::TWriteMessage&& message) {
     try {
-        auto result = producer_->Write(std::move(message));
+        auto result = impl_->producer->Write(std::move(message));
         if (result.IsQueued()) {
             ++statistics_->messages_queued;
         } else if (result.IsTimeout()) {
@@ -262,14 +316,14 @@ NYdb::NTopic::TWriteResult TopicProducer::Write(NYdb::NTopic::TWriteMessage&& me
 }
 
 NYdb::NTopic::TFlushResult TopicProducer::Flush(engine::Deadline deadline) {
-    return impl::GetFutureValue(producer_->Flush(), deadline);
+    return impl::GetFutureValue(impl_->producer->Flush(), deadline);
 }
 
-NYdb::NTopic::TCloseResult TopicProducer::Close(std::chrono::milliseconds timeout) { return producer_->Close(timeout); }
+NYdb::NTopic::TCloseResult TopicProducer::Close(std::chrono::milliseconds timeout) { return impl_->Close(timeout); }
 
 NYdb::NTopic::IProducer& TopicProducer::GetNativeTopicProducer() USERVER_IMPL_LIFETIME_BOUND {
-    UASSERT(producer_);
-    return *producer_;
+    UASSERT(impl_->producer);
+    return *impl_->producer;
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const TopicProducer& producer) {
@@ -340,7 +394,11 @@ TopicProducer TopicClient::CreateProducer(const TopicProducerSettings& settings,
     native_settings.MaxMemoryUsage(max_memory_usage_bytes);
     native_settings.MaxBlockTimeout(TDuration::Zero());
     EnableAsyncExecutionMode(native_settings);
-    return TopicProducer{topic_client_->CreateProducer(native_settings)};
+    return TopicProducer{
+        utils::impl::InternalTag{},
+        topic_client_->CreateProducer(native_settings),
+        settings.GetCloseTimeout()
+    };
 }
 
 NYdb::NTopic::TTopicClient& TopicClient::GetNativeTopicClient() USERVER_IMPL_LIFETIME_BOUND {
