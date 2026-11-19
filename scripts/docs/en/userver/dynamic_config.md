@@ -44,11 +44,14 @@ that is retrieved from components::DynamicConfig:
 
 @snippet core/src/components/component_sample_test.cpp  Sample user component source
 
-To read the config, you first need to define a global dynamic_config::Key
-variable for it. Second, you should get the current value from the config
-using the `Key`:
+To read a config, first obtain its global @ref dynamic_config::Key. Prefer the
+key supplied by code generation: it includes the hash of the config schema.
+For handwritten keys, see @ref dynamic_config_key and
+@ref dynamic_config_schema_hash before choosing a constructor.
 
-@snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
+Use the key to read the current value from a snapshot:
+
+@snippet core/src/components/component_sample_test.cpp  Sample user component runtime config read
 
 You can also subscribe to dynamic config updates using
 dynamic_config::Source::UpdateAndListen functions, see their docs for details.
@@ -56,7 +59,7 @@ dynamic_config::Source::UpdateAndListen functions, see their docs for details.
 @anchor dynamic_config_key
 #### What is needed to define a dynamic config
 
-A dynamic_config::Key requires 3 main elements:
+To define a @ref dynamic_config::Key, provide the following elements.
 
 1. The config name.
     * We use UPPER_CASE for config names.
@@ -76,6 +79,62 @@ A dynamic_config::Key requires 3 main elements:
       should be used.
     * @see @ref dynamic_config_defaults "how defaults are used".
 
+4. The schema hash or an explicit opt-out from schema hash metadata.
+    * Prefer a generated @ref dynamic_config::Key. Code generation supplies
+      the hash of the config schema automatically.
+    * A handwritten key can receive the generated schema hash for the same
+      config, as shown below.
+    * Use @ref dynamic_config::NoSchemaHash only after checking the selected
+      config source's contract, as described in @ref dynamic_config_schema_hash.
+
+#### Handwritten keys with schema metadata
+
+For a custom C++ type or parser, keep schema metadata from code generation.
+Include the generated header for the config:
+
+@snippet core/src/cache/cache_config.cpp schema hash include
+
+Pass the generated `GetSchemaHash()` result as the last constructor argument:
+
+@snippet core/src/cache/cache_config.cpp key with schema hash
+
+Here the complete function name is
+`::dynamic_config::userver_caches::GetSchemaHash()`. For another config, use
+the namespace declared in its generated
+`<dynamic_config/variables/CONFIG_NAME.hpp>` header. Do not invent a hash or
+copy one from a different config.
+
+@anchor dynamic_config_schema_hash
+#### Choosing schema metadata for your config source
+
+Check which updater component your static config uses and how that updater
+selects configs for its subscription or request. This is a property of the
+integration, including when it uses open-source userver.
+
+If the updater collects registered configs by
+@ref dynamic_config::RegisteredConfigMeta::schema_hash and skips entries with
+an empty hash, a key declared with @ref dynamic_config::NoSchemaHash will not
+enter the automatic subscription. Its value may remain at the default. Use a
+generated key or pass the generated schema hash to a handwritten key.
+For example, the configs1.0 integration used by Yandex Taxi filters registered
+configs this way before building its subscriptions.
+
+The standard @ref components::DynamicConfigClientUpdater requests configs by
+name through @ref dynamic_config::Client and supports keys without schema
+hashes. @ref dynamic_config::StorageMock and
+@ref dynamic_config::GetDefaultSnapshot also support such keys without a remote
+subscription. For these paths, an explicit opt-out is appropriate. If you use
+a custom updater, verify its discovery and subscription rules before opting out.
+
+For a declaration that omitted the hash, either supply the generated hash as
+shown above, or add @ref dynamic_config::NoSchemaHash as the last argument
+when the selected source supports it. This unit-test example shows the opt-out:
+
+@snippet core/src/dynamic_config/config_test.cpp key bool
+
+For a composite key, make this choice separately for each
+@ref dynamic_config::ConfigDefault item. Each item represents a config with
+its own schema.
 
 ### Summary of main dynamic config classes
 

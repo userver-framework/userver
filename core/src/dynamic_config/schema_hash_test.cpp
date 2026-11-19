@@ -49,8 +49,107 @@ static_assert(std::is_default_constructible_v<dynamic_config::SchemaHash>);
 static_assert(std::is_constructible_v<dynamic_config::SchemaHash, std::string_view>);
 static_assert(!std::is_convertible_v<std::string_view, dynamic_config::SchemaHash>);
 static_assert(!std::is_aggregate_v<dynamic_config::SchemaHash>);
-static_assert(std::is_constructible_v<dynamic_config::Key<bool>, std::string_view, bool>);
-static_assert(std::is_constructible_v<dynamic_config::ConfigDefault, std::string_view, bool>);
+// Legacy hashless constructors remain available only to open-source consumers.
+#ifdef ARCADIA_ROOT
+constexpr bool kLegacyHashlessConstructorsAvailable = false;
+#else
+constexpr bool kLegacyHashlessConstructorsAvailable = true;
+#endif
+static_assert(
+    std::is_constructible_v<dynamic_config::Key<bool>, std::string_view, bool> == kLegacyHashlessConstructorsAvailable
+);
+static_assert(
+    std::is_constructible_v<dynamic_config::Key<int>, std::string_view, dynamic_config::DefaultAsJsonString> ==
+    kLegacyHashlessConstructorsAvailable
+);
+static_assert(
+    std::is_constructible_v<
+        dynamic_config::Key<int>,
+        std::string_view,
+        dynamic_config::Key<int>::JsonParser,
+        dynamic_config::DefaultAsJsonString> == kLegacyHashlessConstructorsAvailable
+);
+static_assert(
+    std::is_constructible_v<dynamic_config::ConfigDefault, std::string_view, bool> ==
+    kLegacyHashlessConstructorsAvailable
+);
+static_assert(
+    std::is_constructible_v<dynamic_config::ConfigDefault, std::string_view, dynamic_config::DefaultAsJsonString> ==
+    kLegacyHashlessConstructorsAvailable
+);
+static_assert(std::is_empty_v<dynamic_config::NoSchemaHash>);
+static_assert(std::is_default_constructible_v<dynamic_config::NoSchemaHash>);
+static_assert(std::is_constructible_v<dynamic_config::Key<bool>, std::string_view, bool, dynamic_config::NoSchemaHash>);
+static_assert(std::is_constructible_v<
+              dynamic_config::Key<int>,
+              std::string_view,
+              dynamic_config::DefaultAsJsonString,
+              dynamic_config::NoSchemaHash>);
+static_assert(std::is_constructible_v<
+              dynamic_config::Key<int>,
+              std::string_view,
+              dynamic_config::Key<int>::JsonParser,
+              dynamic_config::DefaultAsJsonString,
+              dynamic_config::NoSchemaHash>);
+static_assert(std::is_constructible_v<
+              dynamic_config::ConfigDefault,
+              std::string_view,
+              bool,
+              dynamic_config::NoSchemaHash>);
+static_assert(std::is_constructible_v<
+              dynamic_config::ConfigDefault,
+              std::string_view,
+              dynamic_config::DefaultAsJsonString,
+              dynamic_config::NoSchemaHash>);
+
+// An empty braced hash must keep the existing schema-bearing constructors usable.
+static_assert(requires(
+    std::string_view name,
+    dynamic_config::DefaultAsJsonString json,
+    dynamic_config::Key<int>::JsonParser parser
+) {
+    dynamic_config::Key<bool>{name, false, {}};
+    dynamic_config::Key<int>{name, json, {}};
+    dynamic_config::Key<int>{name, parser, json, {}};
+    dynamic_config::ConfigDefault{name, json, {}};
+});
+
+// Explicit lvalue tags preserve all constructor forms and typed key deduction.
+static_assert(requires(
+    std::string_view name,
+    std::string value,
+    dynamic_config::DefaultAsJsonString json,
+    dynamic_config::Key<int>::JsonParser parser,
+    dynamic_config::NoSchemaHash& tag,
+    const dynamic_config::NoSchemaHash& const_tag
+) {
+    requires std::is_same_v<decltype(dynamic_config::Key{name, 42, tag}), dynamic_config::Key<int>>;
+    requires std::is_same_v<decltype(dynamic_config::Key{name, value, const_tag}), dynamic_config::Key<std::string>>;
+    dynamic_config::Key<int>{name, json, tag};
+    dynamic_config::Key<int>{name, parser, json, const_tag};
+    dynamic_config::ConfigDefault{name, 42, const_tag};
+    dynamic_config::ConfigDefault{name, json, tag};
+});
+
+// Other argument types must not silently opt out of schema metadata.
+static_assert(!std::is_constructible_v<dynamic_config::Key<bool>, std::string_view, bool, int>);
+static_assert(!std::is_constructible_v<
+              dynamic_config::Key<int>,
+              std::string_view,
+              dynamic_config::DefaultAsJsonString,
+              int>);
+static_assert(!std::is_constructible_v<
+              dynamic_config::Key<int>,
+              std::string_view,
+              dynamic_config::Key<int>::JsonParser,
+              dynamic_config::DefaultAsJsonString,
+              int>);
+static_assert(!std::is_constructible_v<dynamic_config::ConfigDefault, std::string_view, bool, int>);
+static_assert(!std::is_constructible_v<
+              dynamic_config::ConfigDefault,
+              std::string_view,
+              dynamic_config::DefaultAsJsonString,
+              int>);
 
 constexpr std::string_view kStructConfigName = "SCHEMA_HASH_STRUCT_CONFIG";
 constexpr std::string_view kTypedBooleanConfigName = "SCHEMA_HASH_TYPED_BOOLEAN_CONFIG";
@@ -62,6 +161,12 @@ constexpr std::string_view kArrayDefaultName = "SCHEMA_HASH_DEFAULT_ARRAY";
 constexpr std::string_view kNullDefaultName = "SCHEMA_HASH_DEFAULT_NULL";
 constexpr std::string_view kObjectDefaultName = "SCHEMA_HASH_DEFAULT_OBJECT";
 constexpr std::string_view kDuplicateDefaultName = "SCHEMA_HASH_DUPLICATE_EQUAL_DEFAULT";
+constexpr std::string_view kExplicitTypedConfigName = "SCHEMA_HASH_EXPLICIT_TYPED_CONFIG";
+constexpr std::string_view kExplicitJsonConfigName = "SCHEMA_HASH_EXPLICIT_JSON_CONFIG";
+constexpr std::string_view kExplicitParserConfigName = "SCHEMA_HASH_EXPLICIT_PARSER_CONFIG";
+constexpr std::string_view kMixedTypedDefaultName = "SCHEMA_HASH_MIXED_TYPED_DEFAULT";
+constexpr std::string_view kMixedJsonDefaultName = "SCHEMA_HASH_MIXED_JSON_DEFAULT";
+constexpr std::string_view kMixedHashedDefaultName = "SCHEMA_HASH_MIXED_HASHED_DEFAULT";
 
 struct StructConfig final {
     bool enabled;
@@ -83,6 +188,23 @@ const dynamic_config::Key<StructConfig> kStructConfig{
 
 const dynamic_config::Key<bool> kTypedBooleanConfig{kTypedBooleanConfigName, false, kBooleanSchemaHash};
 
+const dynamic_config::Key<bool> kExplicitTypedConfig{kExplicitTypedConfigName, false, dynamic_config::NoSchemaHash{}};
+
+const dynamic_config::Key<StructConfig> kExplicitJsonConfig{
+    kExplicitJsonConfigName,
+    dynamic_config::DefaultAsJsonString{R"({"enabled":true,"period-ms":23000})"},
+    dynamic_config::NoSchemaHash{},
+};
+
+int ParseExplicitConfig(const formats::json::Value& value) { return value["limit"].As<int>() * 2; }
+
+const dynamic_config::Key<int> kExplicitParserConfig{
+    kExplicitParserConfigName,
+    ParseExplicitConfig,
+    dynamic_config::DefaultAsJsonString{R"({"limit":17})"},
+    dynamic_config::NoSchemaHash{},
+};
+
 const dynamic_config::Key<StructConfig> kInternalDerivedConfig{
     dynamic_config::impl::InternalTag{},
     kStructConfigName,
@@ -98,6 +220,24 @@ const dynamic_config::ConfigDefault kCompositeDefaults[]{
 };
 
 const dynamic_config::Key<int> kCompositeConfig{ParseCompositeConfig, kCompositeDefaults};
+
+StructConfig ParseMixedDefaults(const dynamic_config::DocsMap& docs_map) {
+    return {
+        .enabled = docs_map.Get(kMixedTypedDefaultName).As<bool>(),
+        .period =
+            std::chrono::milliseconds{
+                docs_map.Get(kMixedJsonDefaultName).As<int>() + docs_map.Get(kMixedHashedDefaultName).As<int>()
+            },
+    };
+}
+
+const dynamic_config::ConfigDefault kMixedDefaults[]{
+    {kMixedTypedDefaultName, true, dynamic_config::NoSchemaHash{}},
+    {kMixedJsonDefaultName, dynamic_config::DefaultAsJsonString{"7"}, dynamic_config::NoSchemaHash{}},
+    {kMixedHashedDefaultName, dynamic_config::DefaultAsJsonString{"11"}, kIntegerSchemaHash},
+};
+
+const dynamic_config::Key<StructConfig> kMixedDefaultsConfig{ParseMixedDefaults, kMixedDefaults};
 
 int ParseSingleItemComposite(const dynamic_config::DocsMap& docs_map) {
     return docs_map.Get(kSingleItemCompositeName).As<int>();
@@ -168,6 +308,35 @@ UTEST(DynamicConfig, RegisteredMetadataForTypedAndJsonKeys) {
     );
 }
 
+UTEST(DynamicConfig, ExplicitNoSchemaHashKeysPreserveDefaultsAndMetadata) {
+    const auto& snapshot = dynamic_config::GetDefaultSnapshot();
+    EXPECT_FALSE(snapshot[kExplicitTypedConfig]);
+    EXPECT_TRUE(snapshot[kExplicitJsonConfig].enabled);
+    EXPECT_EQ(snapshot[kExplicitJsonConfig].period, std::chrono::seconds{23});
+    EXPECT_EQ(snapshot[kExplicitParserConfig], 34);
+
+    const auto registered_configs = dynamic_config::impl::GetRegisteredConfigsMeta();
+    EXPECT_THAT(registered_configs, Contains(HasMetadata(kExplicitTypedConfigName, {}, "false")));
+    EXPECT_THAT(
+        registered_configs,
+        Contains(HasMetadata(kExplicitJsonConfigName, {}, R"({"enabled":true,"period-ms":23000})"))
+    );
+    EXPECT_THAT(registered_configs, Contains(HasMetadata(kExplicitParserConfigName, {}, R"({"limit":17})")));
+}
+
+UTEST(DynamicConfig, ExplicitNoSchemaHashJsonDefaultPreservesOriginalJson) {
+    constexpr std::string_view kDefaultJson = "  {\"answer\":42}\n";
+    const dynamic_config::NoSchemaHash tag{};
+    const dynamic_config::ConfigDefault config_default{
+        "LOCAL_JSON_DEFAULT",
+        dynamic_config::DefaultAsJsonString{kDefaultJson},
+        tag,
+    };
+
+    EXPECT_EQ(config_default.default_json, kDefaultJson);
+    EXPECT_THAT(config_default.schema_hash, IsEmpty());
+}
+
 UTEST(DynamicConfig, RegisteredMetadataMatchesGeneratedSchemaHash) {
     const auto registered_configs = dynamic_config::impl::GetRegisteredConfigsMeta();
     const auto generated_hash = ::dynamic_config::userver_caches::GetSchemaHash().value;
@@ -222,12 +391,28 @@ UTEST(DynamicConfig, ConfigDefaultOwnsSchemaHash) {
     EXPECT_EQ(json_default.schema_hash, kOriginalSchemaHash);
 }
 
+UTEST(DynamicConfig, CompositeKeyPreservesMixedSchemaMetadataAndTypedDefaults) {
+    const auto& config = dynamic_config::GetDefaultSnapshot()[kMixedDefaultsConfig];
+    EXPECT_TRUE(config.enabled);
+    EXPECT_EQ(config.period, std::chrono::milliseconds{18});
+
+    const auto registered_configs = dynamic_config::impl::GetRegisteredConfigsMeta();
+    EXPECT_THAT(registered_configs, Contains(HasMetadata(kMixedTypedDefaultName, {}, "true")));
+    EXPECT_THAT(registered_configs, Contains(HasMetadata(kMixedJsonDefaultName, {}, "7")));
+    EXPECT_THAT(registered_configs, Contains(HasMetadata(kMixedHashedDefaultName, kIntegerSchemaHash, "11")));
+}
+
+#ifndef ARCADIA_ROOT
 UTEST(DynamicConfig, TypedConfigDefaultUsesLegacyNoHashOverload) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     const dynamic_config::ConfigDefault typed_default{"LEGACY_TYPED_DEFAULT", false};
+#pragma GCC diagnostic pop
 
     EXPECT_EQ(typed_default.default_json, "false");
     EXPECT_THAT(typed_default.schema_hash, IsEmpty());
 }
+#endif
 
 UTEST(DynamicConfig, RegisteredConfigMetaSupportsLegacyTwoFieldInitialization) {
     const dynamic_config::RegisteredConfigMeta metadata{"LEGACY_CONFIG", "legacy-schema-hash"};
@@ -305,7 +490,12 @@ UTEST(DynamicConfig, OnlyToyConfigsHaveNoSchemaHash) {
             "DOC_MY_CONFIG",
             "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG",
             "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN",
-            "USERVER_TEST_LIGHT_CLIENT_INT_CONFIG"
+            "USERVER_TEST_LIGHT_CLIENT_INT_CONFIG",
+            kExplicitTypedConfigName,
+            kExplicitJsonConfigName,
+            kExplicitParserConfigName,
+            kMixedTypedDefaultName,
+            kMixedJsonDefaultName
         )
     );
 }

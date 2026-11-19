@@ -1,6 +1,7 @@
 #include "dynamic_config.hpp"
 
 #include <userver/components/component.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -9,7 +10,7 @@ namespace tests::handlers {
 
 namespace {
 
-const dynamic_config::Key<int> kMeaningOfLife{"MEANING_OF_LIFE", 42};
+const dynamic_config::Key<int> kMeaningOfLife{"MEANING_OF_LIFE", 42, dynamic_config::NoSchemaHash{}};
 
 }  // namespace
 

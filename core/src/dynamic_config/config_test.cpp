@@ -39,17 +39,20 @@ SampleStructConfig Parse(const formats::json::Value& value, formats::parse::To<S
     };
 }
 
-const dynamic_config::Key<SampleStructConfig>
-    kSampleStructConfig{"SAMPLE_STRUCT_CONFIG", dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<SampleStructConfig> kSampleStructConfig{
+    "SAMPLE_STRUCT_CONFIG",
+    dynamic_config::DefaultAsJsonString{R"(
   {
     "is_foo_enabled": false,
     "bar_period_ms": 42000
   }
-)"}};
+)"},
+    dynamic_config::NoSchemaHash{},
+};
 /// [struct config cpp]
 
 /// [key bool]
-const dynamic_config::Key<bool> kDocStructConfig{"SAMPLE_BOOL_CONFIG", false};
+const dynamic_config::Key<bool> kDocStructConfig{"SAMPLE_BOOL_CONFIG", false, dynamic_config::NoSchemaHash{}};
 /// [key bool]
 
 UTEST(DynamicConfig, SampleStructConfig) {
@@ -604,7 +607,11 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
     subscriber->cb = {};  // cleanup to avoid UAF in dtr (in debug)
 }
 
-const dynamic_config::Key<DummyConfig> kMyConfig{"DOC_MY_CONFIG", DummyConfig{.foo = 0, .bar = ""}};
+const dynamic_config::Key<DummyConfig> kMyConfig{
+    "DOC_MY_CONFIG",
+    DummyConfig{.foo = 0, .bar = ""},
+    dynamic_config::NoSchemaHash{},
+};
 
 UTEST(DynamicConfig, DocsKeyValueInPlace) {
     /// [KeyValue in-place]

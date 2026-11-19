@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/components/component.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
@@ -15,7 +16,11 @@ using ClientComponent = ugrpc::client::SimpleClientComponent<Client>;
 
 using ugrpc::client::ClientQos;
 
-const dynamic_config::Key<ClientQos> kGreeterClientQos{"GREETER_CLIENT_QOS", ClientQos{}};
+const dynamic_config::Key<ClientQos> kGreeterClientQos{
+    "GREETER_CLIENT_QOS",
+    ClientQos{},
+    dynamic_config::NoSchemaHash{},
+};
 
 class GreeterClientComponent : public ClientComponent {
 public:

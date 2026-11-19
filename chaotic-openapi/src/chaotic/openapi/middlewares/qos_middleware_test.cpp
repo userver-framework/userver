@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -15,6 +16,7 @@ namespace {
 const dynamic_config::Key<chaotic::openapi::client::CommandControlDict> kQosConfig{
     "CHAOTIC_OPENAPI_TEST_CLIENT_QOS",
     dynamic_config::DefaultAsJsonString{R"({"__default__":{"timeout-ms":1,"attempts":1}})"},
+    dynamic_config::NoSchemaHash{},
 };
 
 const auto kQosWithInvalidMethod = formats::json::FromString(R"({

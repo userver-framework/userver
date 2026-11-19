@@ -4,7 +4,9 @@
 
 #include <fmt/format.h>
 
+/// [schema hash include]
 #include <dynamic_config/variables/USERVER_CACHES.hpp>
+/// [schema hash include]
 
 #include <userver/dump/config.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -260,11 +262,13 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
     return copy;
 }
 
+/// [key with schema hash]
 const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>> kCacheConfigSet{
     "USERVER_CACHES",
     dynamic_config::DefaultAsJsonString{"{}"},
     ::dynamic_config::userver_caches::GetSchemaHash(),
 };
+/// [key with schema hash]
 
 }  // namespace cache
 

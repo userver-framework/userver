@@ -21,6 +21,7 @@ inline const dynamic_config::Key<ugrpc::client::ClientQos> kUnitTestClientQos{
           }
         )",
     },
+    dynamic_config::NoSchemaHash{},
 };
 /// [qos config key]
 

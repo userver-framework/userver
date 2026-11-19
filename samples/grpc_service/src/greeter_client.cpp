@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <userver/components/component.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -21,6 +22,7 @@ const USERVER_NAMESPACE::dynamic_config::Key<ugrpc::client::ClientQos> kGreeterC
         }
       }
     })"},
+    USERVER_NAMESPACE::dynamic_config::NoSchemaHash{},
 };
 
 // A user-defined wrapper around api::GreeterServiceClient that provides

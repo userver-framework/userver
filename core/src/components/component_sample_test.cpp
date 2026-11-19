@@ -2,6 +2,7 @@
 
 /// [Sample user component source]
 #include <userver/components/component.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/utils/async.hpp>
@@ -38,13 +39,19 @@ Component::~Component() = default;
 /// [Sample user component runtime config source]
 namespace myservice::smth {
 
-inline const dynamic_config::Key<int> kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG", 42};
+inline const dynamic_config::Key<int> kMyConfig{
+    "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG",
+    42,
+    dynamic_config::NoSchemaHash{},
+};
 
+/// [Sample user component runtime config read]
 int Component::DoSomething() const {
     // Getting a snapshot of dynamic config.
     const auto runtime_config = config_.GetSnapshot();
     return runtime_config[kMyConfig];
 }
+/// [Sample user component runtime config read]
 
 }  // namespace myservice::smth
 /// [Sample user component runtime config source]

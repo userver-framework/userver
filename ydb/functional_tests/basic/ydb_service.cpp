@@ -2,6 +2,7 @@
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/engine/sleep.hpp>
@@ -28,6 +29,7 @@ namespace sample {
 const USERVER_NAMESPACE::dynamic_config::Key<std::chrono::milliseconds> kSampleDistLockIntervalMs{
     "SAMPLE_DIST_LOCK_INTERVAL_MS",
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"5000"},
+    USERVER_NAMESPACE::dynamic_config::NoSchemaHash{},
 };
 
 class SampleDistLock final : public ydb::DistLockComponentBase {

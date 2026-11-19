@@ -27,7 +27,11 @@ namespace functional_tests {
 /// The key of the documents that runtime-query-mongo-cache loads. It is a
 /// dynamic config, so the query of the cache is not known at compile time and
 /// changes while the service is running.
-const dynamic_config::Key kCacheKeyFilter{"TEST_MONGO_CACHE_KEY_FILTER", std::string{"second"}};
+const dynamic_config::Key kCacheKeyFilter{
+    "TEST_MONGO_CACHE_KEY_FILTER",
+    std::string{"second"},
+    dynamic_config::NoSchemaHash{},
+};
 
 /// [RuntimeQueryCache traits]
 struct RuntimeQueryCacheTraits {

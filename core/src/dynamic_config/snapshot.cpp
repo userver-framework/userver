@@ -9,9 +9,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
+#ifndef ARCADIA_ROOT
 ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json)
-    : ConfigDefault(name, default_json, SchemaHash{})
+    : ConfigDefault(name, default_json, NoSchemaHash{})
 {}
+#endif
 
 ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json, SchemaHash schema_hash)
     : name(name),

@@ -21,7 +21,11 @@ namespace {
 // A dedicated key (unrelated to any real production config), used only to
 // verify that `dynamic-config.defaults` overrides are applied consistently by
 // both `GetSource()` and `GetDefaultsAsConstantSource()`.
-const dynamic_config::Key<int> kTestIntConfig{"USERVER_TEST_LIGHT_CLIENT_INT_CONFIG", 0};
+const dynamic_config::Key<int> kTestIntConfig{
+    "USERVER_TEST_LIGHT_CLIENT_INT_CONFIG",
+    0,
+    dynamic_config::NoSchemaHash{},
+};
 
 // Simulates a "light" component with a blocking-dependency-avoiding use of
 // `GetDefaultsAsConstantSource()` in its constructor (before the real config

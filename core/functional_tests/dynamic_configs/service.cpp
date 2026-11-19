@@ -6,6 +6,7 @@
 #include <userver/components/common_server_component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/component_base.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/server/handlers/ping.hpp>
@@ -15,7 +16,11 @@
 
 namespace functional_tests {
 
-inline const dynamic_config::Key kTestConfig{"TEST_CONFIG_KEY", std::string("static_default")};
+inline const dynamic_config::Key kTestConfig{
+    "TEST_CONFIG_KEY",
+    std::string("static_default"),
+    dynamic_config::NoSchemaHash{},
+};
 
 class DynamicConfigForwarder final : public components::ComponentBase {
 public:

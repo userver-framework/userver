@@ -140,7 +140,8 @@ def test_qos_header_does_not_register_empty_config():
     assert 'include/clients/test_client/qos.hpp' not in paths
 
 
-def test_qos_config_without_schema_hash_uses_legacy_constructor():
+def test_qos_config_without_schema_hash_uses_explicit_tag():
+    """QoS keys explicitly opt out of schema metadata when no hash is supplied."""
     spec = _make_spec(EMPTY_SCHEMA, dynamic_config='TEST_CLIENT_QOS')
     outputs = renderer.render(spec, _make_context())
     by_path = {output.rel_path: output for output in outputs}
@@ -148,10 +149,13 @@ def test_qos_config_without_schema_hash_uses_legacy_constructor():
     qos = by_path['include/clients/test_client/qos.hpp'].content
     assert '"TEST_CLIENT_QOS"' in qos
     assert 'DefaultAsJsonString{"{}"},' in qos
-    assert 'SchemaHash{' not in qos
+    assert 'NoSchemaHash{},' in qos
+    assert qos.index('NoSchemaHash{},') > qos.index('DefaultAsJsonString{"{}"},')
+    assert 'dynamic_config::SchemaHash{' not in qos
 
 
 def test_qos_config_preserves_opaque_schema_hash():
+    """QoS keys with a supplied opaque hash use the schema-bearing constructor."""
     spec = _make_spec(
         EMPTY_SCHEMA,
         dynamic_config='TEST_CLIENT_QOS',
@@ -163,6 +167,7 @@ def test_qos_config_preserves_opaque_schema_hash():
     qos = by_path['include/clients/test_client/qos.hpp'].content
     assert '"TEST_CLIENT_QOS"' in qos
     assert 'SchemaHash{"opaque-schema-hash"}' in qos
+    assert 'NoSchemaHash' not in qos
 
 
 def test_qos_header_direct_includes_are_declared_in_build_metadata():

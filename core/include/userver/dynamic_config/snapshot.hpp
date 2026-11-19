@@ -41,12 +41,56 @@ struct DefaultAsJsonString final {
     std::string_view json_string;
 };
 
+/// @brief Explicitly opts out of schema hash metadata for a config item.
+/// Use only when the selected config source discovers configs by name and
+/// supports missing schema hashes, or for local tests. The standard
+/// @ref components::DynamicConfigClientUpdater supports this path.
+/// @warning An updater that skips registrations with an empty
+/// @ref dynamic_config::RegisteredConfigMeta::schema_hash will not subscribe to
+/// this item. Prefer a generated @ref dynamic_config::Key or pass the same
+/// config's generated `GetSchemaHash()` result to a handwritten key.
+/// @see @ref dynamic_config_schema_hash for checking a source's contract.
+struct NoSchemaHash final {
+    constexpr explicit NoSchemaHash() = default;
+};
+
 /// A config name-value pair for usage in dynamic_config::Key constructors.
 struct ConfigDefault final {
+#ifndef ARCADIA_ROOT
+    /// @deprecated Pass a generated @ref dynamic_config::SchemaHash with a JSON
+    /// default, or explicitly opt out using @ref dynamic_config::NoSchemaHash.
     template <typename T>
+    [[deprecated(
+        "Missing config schema hash. Use dynamic config code generation. "
+        "Schema-based config sources may omit this config from subscriptions, leaving it at its default value. "
+        "Use NoSchemaHash{} only when intentionally targeting a config source that supports hashless configs, "
+        "such as open-source integrations or tests."
+    )]]
     ConfigDefault(std::string_view name, const T& value);
+#endif
 
+    /// @brief Creates a typed default explicitly omitting schema hash metadata.
+    template <typename T, typename Tag>
+    requires std::is_same_v<Tag, NoSchemaHash>
+    ConfigDefault(std::string_view name, const T& value, Tag);
+
+#ifndef ARCADIA_ROOT
+    /// @deprecated Pass a generated @ref dynamic_config::SchemaHash, or
+    /// explicitly opt out using @ref dynamic_config::NoSchemaHash.
+    [[deprecated(
+        "Missing config schema hash. Use dynamic config code generation. "
+        "Schema-based config sources may omit this config from subscriptions, leaving it at its default value. "
+        "Use NoSchemaHash{} only when intentionally targeting a config source that supports hashless configs, "
+        "such as open-source integrations or tests."
+    )]]
     ConfigDefault(std::string_view name, DefaultAsJsonString default_json);
+#endif
+
+    /// @brief Creates a JSON default explicitly omitting schema hash metadata.
+    template <typename Tag>
+    requires std::is_same_v<Tag, NoSchemaHash>
+    ConfigDefault(std::string_view name, DefaultAsJsonString default_json, Tag);
+
     /// @warning The schema hash must be supplied by code generation. userver
     /// treats it as an opaque value and does not calculate it.
     ConfigDefault(std::string_view name, DefaultAsJsonString default_json, SchemaHash schema_hash);
@@ -62,7 +106,7 @@ struct ConstantConfig final {
 };
 
 /// @brief A config key is a unique identifier for a config variable
-/// @snippet core/src/dynamic_config/config_test.cpp key bool
+/// @see @ref dynamic_config_key for declarations with schema metadata.
 template <typename Variable>
 class Key final {
 public:
@@ -72,12 +116,27 @@ public:
     using JsonParser = Variable (*)(const formats::json::Value&);
     using DocsMapParser = Variable (*)(const DocsMap&);
 
+#ifndef ARCADIA_ROOT
     /// @brief The constructor for a trivial `VariableType`, e.g. `bool`, integer,
     /// `double`, `string`. The default is passed by value.
     ///
-    /// Usage example:
-    /// @snippet core/src/dynamic_config/config_test.cpp key bool
+    /// @deprecated Pass a generated @ref dynamic_config::SchemaHash, or
+    /// explicitly opt out using @ref dynamic_config::NoSchemaHash.
+    [[deprecated(
+        "Missing config schema hash. Use dynamic config code generation. "
+        "Schema-based config sources may omit this config from subscriptions, leaving it at its default value. "
+        "Use NoSchemaHash{} only when intentionally targeting a config source that supports hashless configs, "
+        "such as open-source integrations or tests."
+    )]]
     Key(std::string_view name, const VariableType& default_value);
+#endif
+
+    /// @brief Creates a key with a typed default explicitly omitting schema
+    /// hash metadata. See @ref dynamic_config::NoSchemaHash for source requirements.
+    /// @snippet core/src/dynamic_config/config_test.cpp key bool
+    template <typename Tag>
+    requires std::is_same_v<Tag, NoSchemaHash>
+    Key(std::string_view name, const VariableType& default_value, Tag);
 
     /// @brief The constructor for a trivial `VariableType` with schema
     /// metadata.
@@ -86,28 +145,60 @@ public:
     /// treats it as an opaque value and does not calculate it.
     Key(std::string_view name, const VariableType& default_value, SchemaHash schema_hash);
 
+#ifndef ARCADIA_ROOT
     /// @brief The constructor for a non-trivial `VariableType`. The default is
     /// passed as a JSON string.
     ///
     /// Uses formats::json::Value `Parse` customization point function to parse
     /// `VariableType`.
     ///
-    /// Usage example:
-    /// @snippet core/src/dynamic_config/config_test.cpp struct config cpp
+    /// @deprecated Pass a generated @ref dynamic_config::SchemaHash, or
+    /// explicitly opt out using @ref dynamic_config::NoSchemaHash.
+    [[deprecated(
+        "Missing config schema hash. Use dynamic config code generation. "
+        "Schema-based config sources may omit this config from subscriptions, leaving it at its default value. "
+        "Use NoSchemaHash{} only when intentionally targeting a config source that supports hashless configs, "
+        "such as open-source integrations or tests."
+    )]]
     Key(std::string_view name, DefaultAsJsonString default_json);
+#endif
+
+    /// @brief Creates a key with a JSON default explicitly omitting schema hash
+    /// metadata. Uses the @ref formats::json::Value `Parse` customization point.
+    /// @snippet core/src/dynamic_config/config_test.cpp struct config cpp
+    template <typename Tag>
+    requires std::is_same_v<Tag, NoSchemaHash>
+    Key(std::string_view name, DefaultAsJsonString default_json, Tag);
 
     /// @brief The constructor for a non-trivial `VariableType` with schema
     /// metadata.
     /// @param schema_hash Opaque schema hash.
     /// @warning The schema hash must be supplied by code generation. userver
     /// treats it as an opaque value and does not calculate it.
+    /// @snippet core/src/cache/cache_config.cpp key with schema hash
     Key(std::string_view name, DefaultAsJsonString default_json, SchemaHash schema_hash);
 
+#ifndef ARCADIA_ROOT
     /// @brief The constructor that provides a special parser from JSON.
     /// @warning Prefer the constructors above whenever possible.
     /// @details Can be used when generic `Parse` is not applicable. Sometimes
     /// used to add validation, e.g. minimum, maximum, string pattern, etc.
+    /// @deprecated Pass a generated @ref dynamic_config::SchemaHash, or
+    /// explicitly opt out using @ref dynamic_config::NoSchemaHash.
+    [[deprecated(
+        "Missing config schema hash. Use dynamic config code generation. "
+        "Schema-based config sources may omit this config from subscriptions, leaving it at its default value. "
+        "Use NoSchemaHash{} only when intentionally targeting a config source that supports hashless configs, "
+        "such as open-source integrations or tests."
+    )]]
     Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json);
+#endif
+
+    /// @brief Creates a key with a custom JSON parser explicitly omitting schema
+    /// hash metadata. See @ref dynamic_config::NoSchemaHash for source requirements.
+    template <typename Tag>
+    requires std::is_same_v<Tag, NoSchemaHash>
+    Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json, Tag);
 
     /// @brief The constructor with a custom JSON parser and schema metadata.
     /// @param name config variable name
@@ -173,7 +264,7 @@ private:
 /// somewhere in the program.
 ///
 /// ## Usage example:
-/// @snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
+/// @snippet core/src/components/component_sample_test.cpp  Sample user component runtime config read
 class Snapshot final {
 public:
     Snapshot(const Snapshot&);
@@ -212,14 +303,37 @@ constexpr DefaultAsJsonString::DefaultAsJsonString(std::string_view json_string)
     : json_string(json_string)
 {}
 
+#ifndef ARCADIA_ROOT
 template <typename T>
 ConfigDefault::ConfigDefault(std::string_view name, const T& value)
+    : ConfigDefault(name, value, NoSchemaHash{})
+{}
+#endif
+
+template <typename T, typename Tag>
+requires std::is_same_v<Tag, NoSchemaHash>
+ConfigDefault::ConfigDefault(std::string_view name, const T& value, Tag)
     : name(name),
       default_json(impl::ToJsonString(value))
 {}
 
+template <typename Tag>
+requires std::is_same_v<Tag, NoSchemaHash>
+ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json, Tag)
+    : ConfigDefault(name, default_json, SchemaHash{})
+{}
+
+#ifndef ARCADIA_ROOT
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, const VariableType& default_value)
+    : Key(name, default_value, NoSchemaHash{})
+{}
+#endif
+
+template <typename Variable>
+template <typename Tag>
+requires std::is_same_v<Tag, NoSchemaHash>
+Key<Variable>::Key(std::string_view name, const VariableType& default_value, Tag)
     : Key(name, default_value, SchemaHash{})
 {}
 
@@ -235,8 +349,17 @@ Key<Variable>::Key(std::string_view name, const VariableType& default_value, Sch
       ))
 {}
 
+#ifndef ARCADIA_ROOT
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json)
+    : Key(name, default_json, NoSchemaHash{})
+{}
+#endif
+
+template <typename Variable>
+template <typename Tag>
+requires std::is_same_v<Tag, NoSchemaHash>
+Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json, Tag)
     : Key(name, default_json, SchemaHash{})
 {}
 
@@ -252,8 +375,17 @@ Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json, Sche
       ))
 {}
 
+#ifndef ARCADIA_ROOT
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json)
+    : Key(name, parser, default_json, NoSchemaHash{})
+{}
+#endif
+
+template <typename Variable>
+template <typename Tag>
+requires std::is_same_v<Tag, NoSchemaHash>
+Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json, Tag)
     : Key(name, parser, default_json, SchemaHash{})
 {}
 

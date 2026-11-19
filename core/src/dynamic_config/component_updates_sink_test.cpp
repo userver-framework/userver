@@ -9,6 +9,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -67,7 +68,11 @@ config_vars: )";
 
 constexpr std::string_view kUpdatesSinkChainConfigName = "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN";
 
-const dynamic_config::Key<std::string> kUpdatesSinkChain{kUpdatesSinkChainConfigName, ""};
+const dynamic_config::Key<std::string> kUpdatesSinkChain{
+    kUpdatesSinkChainConfigName,
+    "",
+    dynamic_config::NoSchemaHash{},
+};
 
 std::string expected_updates_sink_chain;
 

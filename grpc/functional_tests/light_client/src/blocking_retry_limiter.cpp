@@ -1,6 +1,7 @@
 #include "blocking_retry_limiter.hpp"
 
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
@@ -13,7 +14,11 @@ namespace {
 // A dedicated dynamic config key for this toy service, used only to prove
 // that BlockingRetryLimiterComponent genuinely reads dynamic configs (rather
 // than merely depending on components::DynamicConfig for show).
-const dynamic_config::Key<bool> kRetryLimiterAllowRetries{"LIGHT_CLIENT_RETRY_LIMITER_ALLOW_RETRIES", true};
+const dynamic_config::Key<bool> kRetryLimiterAllowRetries{
+    "LIGHT_CLIENT_RETRY_LIMITER_ALLOW_RETRIES",
+    true,
+    dynamic_config::NoSchemaHash{},
+};
 
 // Separate counters (rather than one metric with labels, for simplicity):
 // each is incremented at most once, exactly when CreateRetryLimiter is
