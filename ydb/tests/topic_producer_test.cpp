@@ -24,15 +24,15 @@ public:
     MOCK_METHOD(NYdb::NTopic::TWriteStats, GetWriteStats, (), (override));
 };
 
+NYdb::NTopic::TWriteResult MakeWriteResult(NYdb::NTopic::EWriteStatus status) {
+    return NYdb::NTopic::TWriteResult{.Status = status, .ClosedDescription = {}};
+}
+
 UTEST(TopicProducer, WriteForwardsQueued) {
     auto native_producer = std::make_shared<ProducerMock>();
     ydb::TopicProducer producer{native_producer};
 
-    EXPECT_CALL(*native_producer, Write(_))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{
-            .Status = NYdb::NTopic::EWriteStatus::Queued,
-            .ClosedDescription = {}
-        }));
+    EXPECT_CALL(*native_producer, Write(_)).WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Queued)));
 
     EXPECT_TRUE(producer.Write(NYdb::NTopic::TWriteMessage{std::string{"payload"}}).IsQueued());
 }
@@ -41,11 +41,7 @@ UTEST(TopicProducer, WriteForwardsOverloaded) {
     auto native_producer = std::make_shared<ProducerMock>();
     ydb::TopicProducer producer{native_producer};
 
-    EXPECT_CALL(*native_producer, Write(_))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{
-            .Status = NYdb::NTopic::EWriteStatus::Timeout,
-            .ClosedDescription = {}
-        }));
+    EXPECT_CALL(*native_producer, Write(_)).WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Timeout)));
 
     EXPECT_TRUE(producer.Write(NYdb::NTopic::TWriteMessage{std::string{"payload"}}).IsTimeout());
 }
@@ -56,11 +52,11 @@ UTEST(TopicProducer, CollectsWriteStatisticsAcrossCopies) {
     auto copy = producer;
 
     EXPECT_CALL(*native_producer, Write(_))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Queued}))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Timeout}))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Timeout}))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Error}))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Error}))
+        .WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Queued)))
+        .WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Timeout)))
+        .WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Timeout)))
+        .WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Error)))
+        .WillOnce(Return(MakeWriteResult(NYdb::NTopic::EWriteStatus::Error)))
         .WillOnce(Throw(std::runtime_error{"write failed"}));
     EXPECT_CALL(*native_producer, GetWriteStats()).Times(0);
 
@@ -85,7 +81,7 @@ UTEST(TopicProducer, CountsOnlyCompletedWriteAttempts) {
     EXPECT_CALL(*native_producer, Write(_)).WillOnce([&producer](NYdb::NTopic::TWriteMessage&&) {
         const utils::statistics::Snapshot snapshot{producer};
         EXPECT_EQ(snapshot.SingleMetric("write-attempts").AsRate(), 0);
-        return NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Queued};
+        return MakeWriteResult(NYdb::NTopic::EWriteStatus::Queued);
     });
 
     EXPECT_TRUE(producer.Write(NYdb::NTopic::TWriteMessage{std::string{"payload"}}).IsQueued());
