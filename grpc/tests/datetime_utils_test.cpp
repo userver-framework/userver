@@ -1,10 +1,13 @@
 #include <userver/ugrpc/datetime_utils.hpp>
 
 #include <chrono>
+#include <cstdint>
+#include <ratio>
 #include <version>
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/message_differencer.h>
+#include <google/protobuf/util/time_util.h>
 #include <google/type/date.pb.h>
 #include <gtest/gtest.h>
 
@@ -68,6 +71,78 @@ TEST(DatetimeUtils, BigTimestampToNanoseconds) {
         ugrpc::ToTimePoint<std::chrono::nanoseconds>(kBigGrpcTimestamp),
         ugrpc::TimestampConversionError,
         "grpc_ts does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, NegativeBigTimestampToNanoseconds) {
+    const google::protobuf::Timestamp negative_big = MakeTimestamp(-10'000'000'000, 0);
+    ASSERT_TRUE(ugrpc::IsValid(negative_big));
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<std::chrono::nanoseconds>(negative_big),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, TimestampToNanosecondsLastWholeSecond) {
+    constexpr auto kTimestampString = "2262-04-11T23:47:16Z";
+    constexpr std::chrono::nanoseconds kExpectedDuration{9'223'372'036'000'000'000};
+    google::protobuf::Timestamp timestamp;
+    ASSERT_TRUE(google::protobuf::util::TimeUtil::FromString(kTimestampString, &timestamp));
+
+    EXPECT_EQ(kExpectedDuration, ugrpc::ToTimePoint<std::chrono::nanoseconds>(timestamp).time_since_epoch());
+}
+
+TEST(DatetimeUtils, TimestampToNanosecondsLimits) {
+    using Duration = std::chrono::nanoseconds;
+    const auto min_timestamp = MakeTimestamp(-9'223'372'037, 145'224'192);
+    const auto max_timestamp = MakeTimestamp(9'223'372'036, 854'775'807);
+
+    EXPECT_EQ(Duration::min(), ugrpc::ToTimePoint<Duration>(min_timestamp).time_since_epoch());
+    EXPECT_EQ(Duration::max(), ugrpc::ToTimePoint<Duration>(max_timestamp).time_since_epoch());
+
+    auto below_min = min_timestamp;
+    below_min.set_nanos(below_min.nanos() - 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<Duration>(below_min),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+
+    auto above_max = max_timestamp;
+    above_max.set_nanos(above_max.nanos() + 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<Duration>(above_max),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, TimestampToUnsignedNanoseconds) {
+    using Duration = std::chrono::duration<std::uint64_t, std::nano>;
+    const auto max_timestamp = MakeTimestamp(18'446'744'073, 709'551'615);
+
+    EXPECT_EQ(Duration::zero(), ugrpc::ToTimePoint<Duration>(MakeTimestamp(0, 0)).time_since_epoch());
+    EXPECT_EQ(Duration::max(), ugrpc::ToTimePoint<Duration>(max_timestamp).time_since_epoch());
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<Duration>(MakeTimestamp(-1, 999'999'999)),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+
+    auto above_max = max_timestamp;
+    above_max.set_nanos(above_max.nanos() + 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<Duration>(above_max),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, TimestampToMicrosecondsTruncatesNanos) {
+    EXPECT_EQ(
+        std::chrono::microseconds(-1),
+        ugrpc::ToTimePoint<std::chrono::microseconds>(MakeTimestamp(-1, 999'999'999)).time_since_epoch()
     );
 }
 
@@ -276,6 +351,77 @@ TEST(DatetimeUtils, BigDurationToNanoseconds) {
         ugrpc::DurationConversionError,
         "grpc_duration does not fit the output type"
     );
+}
+
+TEST(DatetimeUtils, NegativeBigDurationToNanoseconds) {
+    const google::protobuf::Duration negative_big = MakeDuration(-100'000'000'000, 0);
+    ASSERT_TRUE(ugrpc::IsValid(negative_big));
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<std::chrono::nanoseconds>(negative_big),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, DurationToNanosecondsLimits) {
+    using Duration = std::chrono::nanoseconds;
+    const auto min_duration = MakeDuration(-9'223'372'036, -854'775'808);
+    const auto max_duration = MakeDuration(9'223'372'036, 854'775'807);
+
+    EXPECT_EQ(Duration::min(), ugrpc::ToDuration<Duration>(min_duration));
+    EXPECT_EQ(Duration::max(), ugrpc::ToDuration<Duration>(max_duration));
+
+    auto below_min = min_duration;
+    below_min.set_nanos(below_min.nanos() - 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<Duration>(below_min),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+
+    auto above_max = max_duration;
+    above_max.set_nanos(above_max.nanos() + 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<Duration>(above_max),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, DurationToUnsignedNanoseconds) {
+    using Duration = std::chrono::duration<std::uint64_t, std::nano>;
+    const auto max_duration = MakeDuration(18'446'744'073, 709'551'615);
+
+    EXPECT_EQ(Duration::zero(), ugrpc::ToDuration<Duration>(MakeDuration(0, 0)));
+    EXPECT_EQ(Duration::max(), ugrpc::ToDuration<Duration>(max_duration));
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<Duration>(MakeDuration(0, -1)),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+
+    auto above_max = max_duration;
+    above_max.set_nanos(above_max.nanos() + 1);
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<Duration>(above_max),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, DurationToSecondsLimits) {
+    using Duration = std::chrono::duration<std::int32_t>;
+    const auto min_duration = MakeDuration(Duration::min().count(), -999'999'999);
+    const auto max_duration = MakeDuration(Duration::max().count(), 999'999'999);
+
+    EXPECT_EQ(Duration::min(), ugrpc::ToDuration<Duration>(min_duration));
+    EXPECT_EQ(Duration::max(), ugrpc::ToDuration<Duration>(max_duration));
+}
+
+TEST(DatetimeUtils, DurationToFloatingSeconds) {
+    using Duration = std::chrono::duration<double>;
+
+    EXPECT_DOUBLE_EQ(-1.5, ugrpc::ToDuration<Duration>(MakeDuration(-1, -500'000'000)).count());
 }
 
 TEST(DatetimeUtils, ToDurationInvalid) {
