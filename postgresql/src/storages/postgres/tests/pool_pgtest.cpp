@@ -1,5 +1,7 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+#include <vector>
+
 #include <userver/utest/utest.hpp>
 
 #include <userver/engine/async.hpp>
@@ -577,6 +579,45 @@ UTEST_P(PostgrePool, KeepsIdleDropLimitWithinMaxSize) {
     pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
 
     EXPECT_EQ(pool->GetStatistics().connection.active, kPoolSize - 1);
+}
+
+UTEST_F(PostgreSQLBase, MaintenanceRefillsOutdatedPool) {
+    constexpr std::size_t kPoolSize = 4;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kPoolSize, kPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    // Enabling a TTL invalidates all connections created with the old settings.
+    auto new_settings = kCachePreparedStatements;
+    new_settings.max_ttl = std::chrono::seconds{30};
+    pool->SetConnectionSettings(new_settings);
+    pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
+
+    // No requests or additional maintenance passes should be needed to refill.
+    WaitForPoolSize(pool, 2 * kPoolSize);
+    ASSERT_EQ(pool->GetStatistics().connection.drop_total.Load().value, kPoolSize);
+
+    std::vector<pg::detail::ConnectionPtr> connections;
+    for (std::size_t i = 0; i < kPoolSize; ++i) {
+        connections.push_back(pool->Acquire(MakeDeadline()));
+    }
+    EXPECT_EQ(pool->GetStatistics().connection.open_total.Load().value, 2 * kPoolSize);
+    for (auto& connection : connections) {
+        CheckConnection(std::move(connection));
+    }
 }
 
 UTEST_P(PostgrePool, ConnectionCleanup) {

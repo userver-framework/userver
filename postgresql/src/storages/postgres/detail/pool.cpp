@@ -541,8 +541,14 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
     if (count < settings->min_size) {
         LOG_DEBUG()
             << "Current pool size is less than min_size (" << count << " < " << settings->min_size
-            << "). Create new connection.";
-        TryCreateConnectionAsync();
+            << "). Replenish missing connections.";
+        // A settings change or a short TTL can retire the whole idle pool in one
+        // maintenance pass. Refill the deficit instead of adding only one
+        // connection per maintenance interval. Keep attempts bounded on errors.
+        const auto connections_to_create = settings->min_size - count;
+        for (std::size_t i = 0; i < connections_to_create; ++i) {
+            TryCreateConnectionAsync();
+        }
     }
 }
 
@@ -712,10 +718,13 @@ Connection* ConnectionPool::AcquireImmediate() {
     auto conn_settings = conn_settings_.Read();
     while (conn_consumer_.PopNoblock(conn)) {
         if (conn->GetSettings().version < conn_settings->version) {
+            // Release the pool slot before maintenance computes the deficit.
+            conn->Close();
             DropOutdatedConnection(conn);
             continue;
         }
         if (conn->IsExpired()) {
+            conn->Close();
             DropExpiredConnection(conn);
             continue;
         }
