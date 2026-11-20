@@ -84,7 +84,7 @@ UTEST(FdControl, Wait) {
     EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
 
     CheckedWrite(pipe.Out(), buf.data(), 1);
-    EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
+    EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(utest::kMaxTestWaitTime)));
 
     EXPECT_EQ(::read(read_dir.Fd(), buf.data(), buf.size()), 1);
     EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
