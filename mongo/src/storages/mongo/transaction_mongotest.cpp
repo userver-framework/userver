@@ -1,12 +1,30 @@
 #include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 
+#include <cstddef>
+#include <exception>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <fmt/format.h>
 #include <gmock/gmock.h>
+#include <mongoc/mongoc.h>
+
+#include <formats/bson/wrappers.hpp>
+#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <userver/clients/dns/resolver.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <userver/formats/bson.hpp>
+#include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/transaction.hpp>
 #include <userver/utest/utest.hpp>
@@ -19,6 +37,117 @@ namespace bson = formats::bson;
 using namespace storages::mongo;
 
 class MongoTransaction : public MongoPoolFixture {};
+
+namespace {
+
+class MongoTransactionAdmin final {
+public:
+    explicit MongoTransactionAdmin(const std::string& uri)
+        : resolver_(MakeDnsResolver()),
+          config_(MakeDynamicConfig()),
+          pool_(std::in_place, "transaction_test_admin", uri, MakeTestPoolConfig(), &resolver_, config_.GetSource())
+    {}
+
+    bson::Document Execute(const bson::Document& command) {
+        auto client = pool_->Acquire();
+        bson::impl::UninitializedBson reply;
+        storages::mongo::MongoError error;
+        const bson_t* native_command_ptr = command.GetBson().get();
+        if (!mongoc_client_command_simple(
+                client.get(),
+                "admin",
+                native_command_ptr,
+                nullptr,
+                reply.Get(),
+                error.GetNative()
+            ))
+        {
+            error.Throw("Error executing transaction test command");
+        }
+        return bson::Document(reply.Extract());
+    }
+
+private:
+    clients::dns::Resolver resolver_;
+    dynamic_config::StorageMock config_;
+    utils::WithResourceScopes<storages::mongo::impl::cdriver::CDriverPoolImpl> pool_;
+};
+
+struct SecondaryInfo {
+    std::string uri;
+    std::size_t member_count;
+};
+
+SecondaryInfo GetSecondaryInfo() {
+    MongoTransactionAdmin admin(GetTestsuiteMongoUri("admin"));
+    auto hello = admin.Execute(bson::MakeDoc("hello", 1));
+    if (hello["msg"].As<std::string>("") == "isdbgrid") {
+        const auto shards = admin.Execute(bson::MakeDoc("listShards", 1));
+        const auto host = shards["shards"][0]["host"].As<std::string>();
+        const auto separator = host.find('/');
+        if (separator == std::string::npos) {
+            throw std::runtime_error("Transaction test requires a replica set shard");
+        }
+        MongoTransactionAdmin
+            shard(fmt::format("mongodb://{}/admin?replicaSet={}", host.substr(separator + 1), host.substr(0, separator))
+            );
+        hello = shard.Execute(bson::MakeDoc("hello", 1));
+    }
+
+    const auto primary = hello["primary"].As<std::string>();
+    const auto hosts = hello["hosts"].As<std::vector<std::string>>();
+    for (const auto& host : hosts) {
+        if (host != primary) {
+            return {.uri = fmt::format("mongodb://{}/admin?directConnection=true", host), .member_count = hosts.size()};
+        }
+    }
+    throw std::runtime_error("Transaction test requires a secondary");
+}
+
+class PausedMongoSecondary final {
+public:
+    PausedMongoSecondary()
+        : secondary_(GetSecondaryInfo()),
+          admin_(secondary_.uri)
+    {
+        admin_.Execute(bson::MakeDoc("fsync", 1, "lock", true));
+    }
+
+    ~PausedMongoSecondary() {
+        const engine::TaskCancellationBlocker block_cancels;
+        try {
+            admin_.Execute(bson::MakeDoc("fsyncUnlock", 1));
+        } catch (const std::exception& error) {
+            ADD_FAILURE() << "Failed to unlock test secondary: " << error.what();
+        }
+    }
+
+    std::string MakeCommitTimeoutUri(const std::string& database_name) const {
+        constexpr int kWriteConcernTimeoutMs = 100;
+        return fmt::format(
+            "{}?w={}&wtimeoutMS={}",
+            GetTestsuiteMongoUri(database_name),
+            secondary_.member_count,
+            kWriteConcernTimeoutMs
+        );
+    }
+
+private:
+    const SecondaryInfo secondary_;
+    MongoTransactionAdmin admin_;
+};
+
+void ExpectUnknownCommitResult(storages::mongo::Transaction& transaction) {
+    EXPECT_THAT(
+        [&transaction] { transaction.Commit(); },
+        ::testing::Throws<storages::mongo::TransactionException>(::testing::Property(
+            &storages::mongo::TransactionException::GetType,
+            storages::mongo::TransactionException::Type::kUnknownCommitResult
+        ))
+    );
+}
+
+}  // namespace
 
 UTEST_F(MongoTransaction, ConnectionStringChangesDatabaseBeforeTransactionStarts) {
     const std::string k_other_database = kTestDatabaseNamePrefix + "pending_transaction_uri_reload";
@@ -107,6 +236,140 @@ UTEST_F(MongoTransaction, BasicTransactionCommit) {
     auto found_doc = regular_collection.FindOne({});
     EXPECT_TRUE(found_doc);
     EXPECT_EQ((*found_doc)["name"].As<std::string>(), "test_user");
+}
+
+UTEST_F(MongoTransaction, CommitCanBeRetriedAfterWriteConcernFailure) {
+    const auto database_name = kTestDatabaseNamePrefix + "commit_write_concern_failure";
+    const std::string collection_name = "test_commit_write_concern_failure";
+    auto observer_pool = MakePool(database_name, {});
+    auto regular_collection = observer_pool.GetCollection(collection_name);
+    regular_collection.InsertOne(bson::MakeDoc("_id", 1, "value", 0));
+
+    const PausedMongoSecondary secondary;
+    auto pool = MakePool(database_name, {});
+    // Pausing one secondary makes this acknowledgement count time out at commit.
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+    auto transaction = pool.BeginTransaction();
+    auto collection = transaction.GetCollection(collection_name);
+    collection.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kInc, bson::MakeDoc("value", 1)));
+
+    ExpectUnknownCommitResult(transaction);
+    UEXPECT_NO_THROW(transaction.Commit());
+    EXPECT_EQ(transaction.GetState(), Transaction::State::kCommitted);
+
+    const auto document = regular_collection.FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(document.has_value());
+    EXPECT_EQ(document.value()["value"].As<int>(), 1);
+}
+
+UTEST_F(MongoTransaction, UnknownCommitIsInactiveAndRejectsCollectionOperations) {
+    const auto database_name = kTestDatabaseNamePrefix + "inactive_unknown_commit";
+    const std::string collection_name = "test_inactive_unknown_commit";
+    auto pool = MakePool(database_name, {});
+    pool.GetCollection(collection_name).InsertOne(bson::MakeDoc("_id", 1));
+
+    const PausedMongoSecondary secondary;
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+    auto transaction = pool.BeginTransaction();
+    auto collection = transaction.GetCollection(collection_name);
+    collection.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kSet, bson::MakeDoc("value", 1)));
+    ExpectUnknownCommitResult(transaction);
+
+    EXPECT_EQ(transaction.GetState(), Transaction::State::kCommitUnknown);
+    EXPECT_FALSE(transaction.IsActive());
+    UEXPECT_THROW(collection.InsertOne(bson::MakeDoc("_id", 2)), MongoException);
+    UEXPECT_THROW(transaction.GetCollection(collection_name), MongoException);
+}
+
+UTEST_F(MongoTransaction, UnknownCommitPinsConnectionUntilDestruction) {
+    const auto database_name = kTestDatabaseNamePrefix + "destroy_unknown_commit";
+    const std::string collection_name = "test_destroy_unknown_commit";
+    auto observer_pool = MakePool(database_name, {});
+    observer_pool.GetCollection(collection_name).InsertOne(bson::MakeDoc("_id", 1));
+
+    const PausedMongoSecondary secondary;
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.max_size = 1;
+    config.pool_settings.idle_limit = 1;
+    auto pool = MakePool(database_name, config);
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+
+    std::optional<storages::mongo::Collection> collection;
+    {
+        auto transaction = pool.BeginTransaction();
+        collection.emplace(transaction.GetCollection(collection_name));
+        collection.value()
+            .UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kSet, bson::MakeDoc("value", 1)));
+        ExpectUnknownCommitResult(transaction);
+        UEXPECT_THROW(pool.GetCollection(collection_name).FindOne({}), PoolOverloadException);
+    }
+
+    UEXPECT_NO_THROW(pool.GetCollection(collection_name).FindOne(bson::MakeDoc("_id", 1)));
+}
+
+UTEST_F(MongoTransaction, CollectionHandleIsInvalidAfterUnknownCommitDestruction) {
+    const auto database_name = kTestDatabaseNamePrefix + "destroy_unknown_commit_collection";
+    const std::string collection_name = "test_destroy_unknown_commit_collection";
+    auto pool = MakePool(database_name, {});
+    pool.GetCollection(collection_name).InsertOne(bson::MakeDoc("_id", 1));
+
+    const PausedMongoSecondary secondary;
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+    std::optional<storages::mongo::Collection> collection;
+    {
+        auto transaction = pool.BeginTransaction();
+        collection.emplace(transaction.GetCollection(collection_name));
+        collection.value()
+            .UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kSet, bson::MakeDoc("value", 1)));
+        ExpectUnknownCommitResult(transaction);
+    }
+
+    UEXPECT_THROW(collection.value().FindOne({}), MongoException);
+}
+
+UTEST_F(MongoTransaction, AbortUnknownCommitPreservesUnknownOutcome) {
+    const auto database_name = kTestDatabaseNamePrefix + "release_unknown_commit";
+    const std::string collection_name = "test_release_unknown_commit";
+    auto observer_pool = MakePool(database_name, {});
+    observer_pool.GetCollection(collection_name).InsertOne(bson::MakeDoc("_id", 1));
+
+    const PausedMongoSecondary secondary;
+    auto pool = MakePool(database_name, {});
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+    auto transaction = pool.BeginTransaction();
+    auto collection = transaction.GetCollection(collection_name);
+    collection.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kSet, bson::MakeDoc("value", 1)));
+    ExpectUnknownCommitResult(transaction);
+
+    transaction.Abort();
+    transaction.Abort();
+    EXPECT_EQ(transaction.GetState(), Transaction::State::kCommitUnknown);
+    const auto document = observer_pool.GetCollection(collection_name).FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(document.has_value());
+    EXPECT_EQ(document.value()["value"].As<int>(), 1);
+}
+
+UTEST_F(MongoTransaction, AbortUnknownCommitReleasesSession) {
+    const auto database_name = kTestDatabaseNamePrefix + "abort_unknown_commit_session";
+    const std::string collection_name = "test_abort_unknown_commit_session";
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.max_size = 1;
+    config.pool_settings.idle_limit = 1;
+    auto pool = MakePool(database_name, config);
+    pool.GetCollection(collection_name).InsertOne(bson::MakeDoc("_id", 1));
+
+    const PausedMongoSecondary secondary;
+    pool.SetConnectionString(secondary.MakeCommitTimeoutUri(database_name));
+    auto transaction = pool.BeginTransaction();
+    auto collection = transaction.GetCollection(collection_name);
+    collection.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(operators::kSet, bson::MakeDoc("value", 1)));
+    ExpectUnknownCommitResult(transaction);
+    UEXPECT_THROW(pool.GetCollection(collection_name).FindOne({}), PoolOverloadException);
+
+    transaction.Abort();
+
+    UEXPECT_NO_THROW(pool.GetCollection(collection_name).FindOne(bson::MakeDoc("_id", 1)));
+    UEXPECT_THROW(transaction.Commit(), MongoException);
 }
 
 UTEST_F(MongoTransaction, TransactionAbort) {

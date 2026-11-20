@@ -51,8 +51,9 @@ class PoolOverloadException : public MongoException {
 class TransactionException : public MongoException {
 public:
     enum class Type {
-        kTransientError,  ///< Transient error that may be retried
-        kPermanentError,  ///< Permanent error, cannot retry
+        kTransientError,       ///< Transient error that may be retried
+        kPermanentError,       ///< Permanent error, cannot retry
+        kUnknownCommitResult,  ///< Retry commit on the same transaction; do not repeat its operations
     };
 
     TransactionException(Type type, std::string_view what);

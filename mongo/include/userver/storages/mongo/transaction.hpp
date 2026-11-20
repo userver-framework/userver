@@ -25,17 +25,17 @@ class TransactionImpl;
 ///
 /// A transaction pins exactly one connection from the pool starting from the
 /// first call to storages::mongo::Transaction::GetCollection and holds it
-/// until storages::mongo::Transaction::Commit or
-/// storages::mongo::Transaction::Abort is called (or the transaction is
-/// destroyed).
+/// until the transaction completes, @ref storages::mongo::Transaction::Abort
+/// is called, or the transaction is destroyed.
+/// An unknown commit result retains the connection for another commit attempt.
 ///
 /// ## Usage example:
 ///
 /// @snippet mongo/src/storages/mongo/transaction_mongotest.cpp transaction
 ///
 /// @note Transactions require MongoDB replica sets or sharded clusters.
-/// @note Operations within a transaction are automatically retried according
-///       to MongoDB transaction retry semantics.
+/// @note A transient transaction error requires retrying the whole transaction.
+///       An unknown commit result requires retrying commit on the same transaction.
 class Transaction {
 public:
     /// @brief Creates invalid transaction
@@ -52,7 +52,7 @@ public:
     /// @brief Move assignment operator
     Transaction& operator=(Transaction&&) noexcept;
 
-    /// @brief Destructor. Aborts transaction if not committed.
+    /// @brief Aborts an active transaction or releases an unresolved commit session.
     ~Transaction();
 
     /// @brief Get a collection handle within the transaction context
@@ -67,24 +67,34 @@ public:
     /// an exception will be thrown.
     ///
     /// @throws MongoException on commit failure
+    /// @throws storages::mongo::TransactionException with
+    /// @ref storages::mongo::TransactionException::Type::kUnknownCommitResult
+    /// if the outcome is unknown. Retains the session for another commit attempt;
+    /// collection operations are forbidden until the outcome is resolved.
     void Commit();
 
     /// @brief Abort the transaction
     ///
     /// Discards all changes made within the transaction.
     /// This method is idempotent and safe to call multiple times.
+    /// If the commit result is unknown, releases the session without reporting
+    /// a rollback or changing @ref storages::mongo::Transaction::State::kCommitUnknown.
+    /// Commit cannot be retried after the session has been released.
     void Abort() noexcept;
 
-    /// @brief Check if transaction is active
-    /// @return true if transaction is active (not committed or aborted)
+    /// @brief Check whether the transaction is in progress.
+    /// @return true only in @ref storages::mongo::Transaction::State::kInProgress.
+    /// @note Returns false when the commit outcome is unknown.
+    /// Commit may still be retried while the session is retained.
     bool IsActive() const noexcept;
 
     /// @brief Get the transaction state
     enum class State {
-        kNone,        ///< Transaction not started
-        kInProgress,  ///< Transaction is active
-        kCommitted,   ///< Transaction has been committed
-        kAborted      ///< Transaction has been aborted
+        kNone,          ///< Transaction not started
+        kInProgress,    ///< Transaction is active
+        kCommitted,     ///< Transaction has been committed
+        kAborted,       ///< Transaction has been aborted
+        kCommitUnknown  ///< Commit outcome is unknown; collection operations are forbidden
     };
 
     /// @brief Get current transaction state

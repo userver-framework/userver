@@ -17,11 +17,14 @@ namespace storages::mongo::impl {
 
 namespace {
 
-bool HasTransientTransactionErrorLabel(const bson_t* reply) {
-    if (!reply) {
-        return false;
+TransactionException::Type GetCommitErrorType(const bson_t* reply) {
+    if (mongoc_error_has_label(reply, "UnknownTransactionCommitResult")) {
+        return TransactionException::Type::kUnknownCommitResult;
     }
-    return mongoc_error_has_label(reply, "TransientTransactionError");
+    if (mongoc_error_has_label(reply, "TransientTransactionError")) {
+        return TransactionException::Type::kTransientError;
+    }
+    return TransactionException::Type::kPermanentError;
 }
 
 }  // namespace
@@ -53,6 +56,7 @@ TransactionImpl::~TransactionImpl() {
                "commit or rollback, rolling back automatically";
         Abort();
     }
+    data_->ReleaseClient();
 }
 
 Collection TransactionImpl::GetCollection(std::string name) {
@@ -68,33 +72,41 @@ Collection TransactionImpl::GetCollection(std::string name) {
 }
 
 void TransactionImpl::Commit() {
-    data_->EnsureActive();
-    utils::FastScopeGuard release([&]() noexcept { data_->ReleaseClient(); });
+    if (data_->state != Transaction::State::kCommitUnknown) {
+        data_->EnsureActive();
+    }
+    if (!data_->session) {
+        throw MongoException("Cannot retry commit after the transaction session has been released");
+    }
 
     MongoError error;
     formats::bson::impl::UninitializedBson reply;
 
     if (!mongoc_client_session_commit_transaction(data_->session.get(), reply.Get(), error.GetNative())) {
-        data_->state = Transaction::State::kAborted;
-        if (HasTransientTransactionErrorLabel(reply.Get())) {
+        const auto error_type = GetCommitErrorType(reply.Get());
+        if (error_type == TransactionException::Type::kUnknownCommitResult) {
+            data_->state = Transaction::State::kCommitUnknown;
             throw TransactionException(
-                TransactionException::Type::kTransientError,
-                "Transaction commit failed (retryable): " + std::string(error.Message())
-            );
-        } else {
-            throw TransactionException(
-                TransactionException::Type::kPermanentError,
-                "Transaction commit failed (permanent): " + std::string(error.Message())
+                error_type,
+                "Transaction commit result is unknown: " + std::string(error.Message())
             );
         }
+        data_->state = Transaction::State::kAborted;
+        data_->ReleaseClient();
+        throw TransactionException(error_type, "Transaction commit failed: " + std::string(error.Message()));
     }
 
     data_->state = Transaction::State::kCommitted;
+    data_->ReleaseClient();
 
     LOG_DEBUG() << "Transaction committed successfully";
 }
 
 void TransactionImpl::Abort() noexcept {
+    if (data_->state == Transaction::State::kCommitUnknown) {
+        data_->ReleaseClient();
+        return;
+    }
     if (!IsActive()) {
         return;
     }
