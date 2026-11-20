@@ -89,6 +89,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
+* @ref scripts/docs/en/userver/jwt.md
 
 ## Code generation
 * @ref scripts/docs/en/userver/codegen_overview.md

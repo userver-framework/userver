@@ -143,5 +143,5 @@ is not processed, then another DoWork-coroutine is not launched.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/task_processors_guide.md | @ref scripts/docs/en/userver/testing.md ⇨
+⇦ @ref scripts/docs/en/userver/task_processors_guide.md | @ref scripts/docs/en/userver/jwt.md ⇨
 @htmlonly </div> @endhtmlonly

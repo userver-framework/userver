@@ -103,14 +103,6 @@ if(NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
     add_compile_definitions("USERVER_NO_CRYPTOPP_BLAKE2=1")
 endif()
 
-# @ingroup some_platforms
-option(USERVER_FEATURE_CRYPTOPP_BASE64_URL
-       "Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++" ON
-)
-if(NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
-    add_compile_definitions("USERVER_NO_CRYPTOPP_BASE64_URL=1")
-endif()
-
 # Requires aklomp/base64. Turn off for offline builds on distributions without the package.
 # @ingroup some_platforms
 option(USERVER_FEATURE_SIMD_BASE64

@@ -62,7 +62,6 @@ void Base64DecodeUnpadded(benchmark::State& state) {
     state.SetBytesProcessed(state.iterations() * encoded.size());
 }
 
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 void Base64UrlEncode(benchmark::State& state) {
     const auto data = MakeBinaryData(state.range(0));
     for ([[maybe_unused]] auto _ : state) {
@@ -94,7 +93,6 @@ void Base64UrlDecodeCryptoPP(benchmark::State& state) {
     }
     state.SetBytesProcessed(state.iterations() * encoded.size());
 }
-#endif
 
 // crypto::hash with OutputEncoding::kBase64, as used by S3 request signing
 void HmacSha1Base64(benchmark::State& state) {
@@ -111,12 +109,10 @@ BENCHMARK(Base64EncodeCryptoPP)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64Decode)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64DecodeCryptoPP)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64DecodeUnpadded)->RangeMultiplier(8)->Range(8, 32768);
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 BENCHMARK(Base64UrlEncode)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64UrlEncodeCryptoPP)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64UrlDecode)->RangeMultiplier(8)->Range(8, 32768);
 BENCHMARK(Base64UrlDecodeCryptoPP)->RangeMultiplier(8)->Range(8, 32768);
-#endif
 BENCHMARK(HmacSha1Base64)->Arg(64)->Arg(1024);
 
 USERVER_NAMESPACE_END

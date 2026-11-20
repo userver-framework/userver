@@ -157,6 +157,21 @@ bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
     return ec_key && EC_GROUP_get_curve_name(EC_KEY_get0_group(ec_key.get())) == CurveNidByDigestSize(bits);
 }
 
+std::size_t GetEcSignatureLength(DigestSize bits) {
+    // RFC 7518 encodes two fixed-width integers, each the size of a curve coordinate.
+    switch (bits) {
+        case DigestSize::k256:
+            return 2 * 32;
+        case DigestSize::k384:
+            return 2 * 48;
+        case DigestSize::k512:
+            return 2 * 66;  // P-521
+        case DigestSize::k160:
+            break;
+    }
+    UINVARIANT(false, "Unexpected DigestSize");
+}
+
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(std::string_view str) {
     return {::BIO_new_mem_buf(str.data(), str.size()), &::BIO_free_all};
 }

@@ -24,7 +24,10 @@ namespace {
 // OpenSSL expects ECDSA signatures in ASN.1/DER format, however RFC7518
 // specifies signature as a concatenation of zero-padded big-endian `(R, S)`
 // values.
-std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature) {
+std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature, DigestSize digest_size) {
+    if (raw_signature.size() != GetEcSignatureLength(digest_size)) {
+        throw VerificationError("Invalid ECDSA signature length");
+    }
     // Must be strictly larger than max signature size in ASN.1/DER format
     constexpr size_t kDerEcdsaSignatureBufferSize = 256;
 
@@ -208,7 +211,7 @@ void DsaVerifier<Type, Bits>::Verify(std::initializer_list<std::string_view> dat
 
     int verification_result = -1;
     if constexpr (Type == DsaType::kEc) {
-        auto der_signature = ConvertEcSignature(raw_signature);
+        auto der_signature = ConvertEcSignature(raw_signature, Bits);
         verification_result = EVP_DigestVerifyFinal(ctx.Get(), der_signature.data(), der_signature.size());
     } else {
         verification_result = EVP_DigestVerifyFinal(
@@ -248,7 +251,7 @@ void DsaVerifier<Type, Bits>::VerifyDigest(std::string_view digest, std::string_
 
     int verification_result = -1;
     if constexpr (Type == DsaType::kEc) {
-        auto der_signature = ConvertEcSignature(raw_signature);
+        auto der_signature = ConvertEcSignature(raw_signature, Bits);
         verification_result = EVP_PKEY_verify(
             pkey_ctx.get(),
             der_signature.data(),

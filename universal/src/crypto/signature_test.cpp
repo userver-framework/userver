@@ -1,11 +1,15 @@
 #include <gtest/gtest.h>
 
+#include <string>
 #include <string_view>
 
 #include <userver/crypto/base64.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/crypto/jwt.hpp>
 #include <userver/crypto/signers.hpp>
 #include <userver/crypto/verifiers.hpp>
+#include <userver/formats/json/inline.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/flags.hpp>
 
@@ -276,7 +280,28 @@ void TestDsaSignature(
     }
 }
 
+void TestJwtRoundTrip(const crypto::Signer& signer, const crypto::Verifier& verifier) {
+    const auto payload = formats::json::MakeObject("sub", "user-42");
+    const auto token = crypto::jwt::MakeToken(payload, signer);
+    const auto
+        verified = crypto::jwt::Verify(token, verifier, {.expiration = crypto::jwt::ExpirationPolicy::kOptional});
+    EXPECT_EQ(verified.header.algorithm, signer.Name());
+    EXPECT_EQ(verified.payload, payload);
+}
+
 }  // namespace
+
+TEST(Crypto, JwtRoundTripRsa) {
+    TestJwtRoundTrip(crypto::SignerRs256{kRsa2048PrivKey}, crypto::VerifierRs256{kRsa2048PubKey});
+}
+
+TEST(Crypto, JwtRoundTripRsaPss) {
+    TestJwtRoundTrip(crypto::SignerPs256{kRsa2048PrivKey}, crypto::VerifierPs256{kRsa2048PubKey});
+}
+
+TEST(Crypto, JwtRoundTripEcdsa) {
+    TestJwtRoundTrip(crypto::SignerEs512{kEcdsa521p1PrivKey}, crypto::VerifierEs512{kEcdsa521p1PubKey});
+}
 
 TEST(Crypto, SignatureNone) {
     EXPECT_TRUE(crypto::SignerNone{}.Sign({"test"}).empty());
@@ -458,6 +483,15 @@ TEST(Crypto, SignatureEs256) {
         crypto::hash::Sha256("test"),
         crypto::hash::Sha512("test")
     );
+}
+
+TEST(Crypto, SignatureEs256RejectsWrongLength) {
+    const crypto::VerifierEs256 verifier{kEcdsa256v1PubKey};
+    const std::string long_signature(66, '\0');
+    const auto digest = crypto::hash::Sha256("test", crypto::hash::OutputEncoding::kBinary);
+
+    UEXPECT_THROW_MSG(verifier.Verify({"test"}, long_signature), crypto::VerificationError, "signature length");
+    UEXPECT_THROW_MSG(verifier.VerifyDigest(digest, long_signature), crypto::VerificationError, "signature length");
 }
 
 TEST(Crypto, SignatureEs512) {

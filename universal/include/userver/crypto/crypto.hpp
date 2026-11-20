@@ -9,6 +9,7 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/crypto/jwt.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/crypto/public_key.hpp>
 #include <userver/crypto/signers.hpp>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -57,6 +58,8 @@ std::string EnumValueToString(DsaType type);
 std::string EnumValueToString(DigestSize bits);
 
 bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
+
+std::size_t GetEcSignatureLength(DigestSize bits);
 
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(std::string_view str);
 

@@ -17,13 +17,11 @@ std::string CryptoPPBase64Decode(std::string_view data);
 /// omitted, but the length without it must not be 1 modulo 4.
 bool IsCanonicalBase64(std::string_view data) noexcept;
 
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 std::string CryptoPPBase64UrlEncode(std::string_view data, Pad pad);
 std::string CryptoPPBase64UrlDecode(std::string_view data);
 
 /// Same as IsCanonicalBase64, but for the URL alphabet
 bool IsCanonicalBase64Url(std::string_view data) noexcept;
-#endif
 
 }  // namespace crypto::base64::impl
 

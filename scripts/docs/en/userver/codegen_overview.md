@@ -29,5 +29,5 @@ get the embedded file contents:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/periodics.md | @ref scripts/docs/en/userver/chaotic.md ⇨
+⇦ @ref scripts/docs/en/userver/jwt.md | @ref scripts/docs/en/userver/chaotic.md ⇨
 @htmlonly </div> @endhtmlonly

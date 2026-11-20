@@ -95,11 +95,9 @@ void ExpectMatchesCryptoPP(const std::string& data) {
         const auto encoded = crypto::base64::Base64Encode(data, pad);
         EXPECT_EQ(encoded, crypto::base64::impl::CryptoPPBase64Encode(data, pad)) << data.size();
         EXPECT_EQ(crypto::base64::Base64Decode(encoded), data) << data.size();
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
         const auto url_encoded = crypto::base64::Base64UrlEncode(data, pad);
         EXPECT_EQ(url_encoded, crypto::base64::impl::CryptoPPBase64UrlEncode(data, pad)) << data.size();
         EXPECT_EQ(crypto::base64::Base64UrlDecode(url_encoded), data) << data.size();
-#endif
     }
 }
 
@@ -127,14 +125,12 @@ void ExpectSimdDecodesAsCryptoPPOrRejects(std::string_view input) {
             : std::nullopt;
     EXPECT_EQ(crypto::base64::impl::SimdBase64Decode(input, Alphabet::kStandard), expected)
         << utils::encoding::ToHex(input);
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
     const auto expected_url =
         crypto::base64::impl::IsCanonicalBase64Url(input)
             ? std::optional{crypto::base64::impl::CryptoPPBase64UrlDecode(input)}
             : std::nullopt;
     EXPECT_EQ(crypto::base64::impl::SimdBase64Decode(input, Alphabet::kUrl), expected_url)
         << utils::encoding::ToHex(input);
-#endif
 }
 #endif
 
@@ -219,7 +215,6 @@ TEST(Crypto, Base64DecodeRejectsNonCanonical) {
     }
 }
 
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 TEST(Crypto, Base64Url) {
     EXPECT_EQ("U_8=", crypto::base64::Base64UrlEncode("S\xff"));
     EXPECT_EQ("U_8", crypto::base64::Base64UrlEncode("S\xff", crypto::base64::Pad::kWithout));
@@ -250,7 +245,6 @@ TEST(Crypto, Base64UrlDecodeRejectsNonCanonical) {
         EXPECT_THROW(crypto::base64::Base64UrlDecode(input), crypto::CryptoException) << input;
     }
 }
-#endif
 
 TEST_P(Base64UniversalDecodeSuccessTest, Test) {
     const auto& param = GetParam();

@@ -1,7 +1,5 @@
 #include <userver/crypto/signers.hpp>
 
-#include <climits>
-
 #include <cryptopp/dsa.h>
 #include <openssl/cms.h>
 #include <openssl/crypto.h>
@@ -22,22 +20,7 @@ namespace {
 // specifies signature as a concatenation of zero-padded big-endian `(R, S)`
 // values.
 std::string ConvertEcSignature(const std::string& der_signature, DigestSize digest_size) {
-    size_t siglen = 0;
-    switch (digest_size) {
-        case DigestSize::k256:
-            siglen = 256;
-            break;
-        case DigestSize::k384:
-            siglen = 384;
-            break;
-        case DigestSize::k512:
-            siglen = 521;  // not a typo
-            break;
-        case DigestSize::k160:
-            UINVARIANT(false, "Unexpected DigestSize");
-    }
-    siglen = ((siglen + CHAR_BIT - 1) / CHAR_BIT) * 2;
-
+    const auto siglen = GetEcSignatureLength(digest_size);
     std::string converted_signature(siglen, '\0');
     if (siglen !=
         CryptoPP::DSAConvertSignatureFormat(

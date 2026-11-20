@@ -1,5 +1,6 @@
 _userver_module_begin(
     NAME cryptopp
+    VERSION 5.6.3 # Base64URLEncoder and Base64URLDecoder
     DEBIAN_NAMES libcrypto++-dev
     FORMULA_NAMES cryptopp
     RPM_NAMES cryptopp-devel

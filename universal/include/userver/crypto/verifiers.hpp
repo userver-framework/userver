@@ -95,6 +95,7 @@ using VerifierRs512 = DsaVerifier<DsaType::kRsa, DigestSize::k512>;
 ///
 /// OpenSSL generates ECDSA signatures in ASN.1/DER format, RFC7518 specifies
 /// signature as a concatenation of zero-padded big-endian `(R, S)` values.
+/// The signature must contain exactly 64 bytes for ES256, 96 for ES384, or 132 for ES512.
 /// @{
 using VerifierEs256 = DsaVerifier<DsaType::kEc, DigestSize::k256>;
 using VerifierEs384 = DsaVerifier<DsaType::kEc, DigestSize::k384>;

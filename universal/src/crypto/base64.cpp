@@ -115,11 +115,9 @@ std::optional<std::string> DecodeCanonical(std::string_view data, impl::Alphabet
         }
         return std::nullopt;
     }
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
     if (impl::IsCanonicalBase64Url(data)) {
         return impl::CryptoPPBase64UrlDecode(data);
     }
-#endif
     return std::nullopt;
 #endif
 }
@@ -154,7 +152,6 @@ std::string CryptoPPBase64Decode(std::string_view data) { return Base64Decode<Cr
 
 bool IsCanonicalBase64(std::string_view data) noexcept { return IsCanonical<'+', '/'>(data); }
 
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 std::string CryptoPPBase64UrlEncode(std::string_view data, Pad pad) {
     return Base64Encode<CryptoPP::Base64URLEncoder>(data, pad);
 }
@@ -162,7 +159,6 @@ std::string CryptoPPBase64UrlEncode(std::string_view data, Pad pad) {
 std::string CryptoPPBase64UrlDecode(std::string_view data) { return Base64Decode<CryptoPP::Base64URLDecoder>(data); }
 
 bool IsCanonicalBase64Url(std::string_view data) noexcept { return IsCanonical<'-', '_'>(data); }
-#endif
 
 }  // namespace impl
 
@@ -181,7 +177,6 @@ std::string Base64Decode(std::string_view data) {
     throw CryptoException("Invalid Base64 input");
 }
 
-#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 std::string Base64UrlEncode(std::string_view data, Pad pad) {
 #ifndef USERVER_NO_SIMD_BASE64
     return impl::SimdBase64Encode(data, pad, impl::Alphabet::kUrl);
@@ -196,7 +191,6 @@ std::string Base64UrlDecode(std::string_view data) {
     }
     throw CryptoException("Invalid Base64 URL input");
 }
-#endif
 
 bool Base64UniversalDecodeInPlace(std::string& data) noexcept {
     // We decode in place. This is safe because this is a new buffer (not
