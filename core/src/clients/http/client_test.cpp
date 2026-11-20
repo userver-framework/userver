@@ -1415,6 +1415,20 @@ UTEST(HttpClient, RedirectHeaders) {
     EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
 }
 
+UTEST(HttpClient, RedirectToNonHttpSchemeNotFollowed) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    const utest::SimpleServer destination{clients::http::Response200WithHeader{"xxx: good"}};
+
+    const auto location = "ftp://" + destination.GetBaseUrl().substr(std::string_view{"http://"}.size()) + "/";
+    const utest::SimpleServer http_server_redirect{Response301WithHeader{location, ""}};
+
+    UEXPECT_THROW(
+        (void)http_client_ptr->CreateRequest().get(http_server_redirect.GetBaseUrl()).timeout(kTimeout).perform(),
+        clients::http::TechnicalError
+    );
+    EXPECT_EQ(destination.GetConnectionsOpenedCount(), 0);
+}
+
 UTEST(HttpClient, BadUrl) {
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = http_client_ptr->CreateRequest();
