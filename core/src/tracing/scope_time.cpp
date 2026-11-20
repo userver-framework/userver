@@ -17,16 +17,16 @@ ScopeTime::ScopeTime(std::string scope_name)
 {}
 
 std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime() {
-    if (tracing::Span::CurrentSpanUnchecked()) {
-        return ScopeTime{};
+    if (auto* span = tracing::Span::CurrentSpanUnchecked()) {
+        return ScopeTime{span->GetTimeStorage(utils::impl::InternalTag{})};
     }
 
     return std::nullopt;
 }
 
 std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime(std::string_view name) {
-    if (tracing::Span::CurrentSpanUnchecked()) {
-        return ScopeTime{std::string{name}};
+    if (auto* span = tracing::Span::CurrentSpanUnchecked()) {
+        return ScopeTime{span->GetTimeStorage(utils::impl::InternalTag{}), std::string{name}};
     }
 
     return std::nullopt;
