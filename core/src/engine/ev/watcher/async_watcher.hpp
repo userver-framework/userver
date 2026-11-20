@@ -25,8 +25,9 @@ private:
     static void OnEvent(struct ev_loop* loop, ev_async* async, int events) noexcept;
     void CallCb();
 
-    Watcher<ev_async> ev_async_;
     const Callback cb_;
+    // Keep last so teardown waits for callbacks before destroying cb_.
+    Watcher<ev_async> ev_async_;
 };
 
 }  // namespace engine::ev

@@ -20,9 +20,10 @@ public:
 private:
     static void OnTimer(struct ev_loop*, ev_timer* w, int /*revents*/) noexcept;
 
-    engine::ev::Watcher<ev_timer> timer_;
     std::function<void()> action_;
     std::chrono::seconds interval_;
+    // Keep last so teardown waits for callbacks before destroying action_.
+    engine::ev::Watcher<ev_timer> timer_;
 };
 
 }  // namespace engine::ev
