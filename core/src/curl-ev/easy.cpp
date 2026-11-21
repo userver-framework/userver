@@ -120,6 +120,11 @@ int StripSocketFlags(int x)
 
 }  // namespace
 
+bool IsValidHeaderPart(std::string_view value) noexcept {
+    // libcurl copies header lines verbatim, so a line break would start a new header or request
+    return value.find_first_of(std::string_view{"\r\n\0", 3}) == std::string_view::npos;
+}
+
 using BusyMarker = utils::statistics::BusyMarker;
 
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
@@ -435,6 +440,11 @@ void easy::add_header(
     EmptyHeaderAction empty_header_action,
     DuplicateHeaderAction duplicate_header_action
 ) {
+    if (!IsValidHeaderPart(name) || !IsValidHeaderPart(value)) {
+        ec = std::error_code{errc::EasyErrorCode::kBadFunctionArgument};
+        return;
+    }
+
     if (AddHeaderDoSkip(headers_, name, duplicate_header_action)) {
         return;
     }
@@ -525,6 +535,11 @@ void easy::add_proxy_header(
     EmptyHeaderAction empty_header_action,
     DuplicateHeaderAction duplicate_header_action
 ) {
+    if (!IsValidHeaderPart(name) || !IsValidHeaderPart(value)) {
+        ec = std::error_code{errc::EasyErrorCode::kBadFunctionArgument};
+        return;
+    }
+
     if (AddHeaderDoSkip(proxy_headers_, name, duplicate_header_action)) {
         return;
     }

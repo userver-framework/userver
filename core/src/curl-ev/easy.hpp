@@ -204,6 +204,9 @@ class multi;
 class share;
 class string_list;
 
+/// Returns false if `value` contains CR, LF or NUL and can not be sent as a part of a single header line
+bool IsValidHeaderPart(std::string_view value) noexcept;
+
 class easy final : public std::enable_shared_from_this<easy> {
 public:
     using handler_type = std::function<void(std::error_code err)>;

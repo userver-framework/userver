@@ -200,6 +200,8 @@ public:
     Request form(Form&& form) &&;
 
     /// Set headers for request
+    ///
+    /// @throws clients::http::BadArgumentException if a header name or value contains CR, LF or NUL
     Request& headers(const Headers& headers) &;
     /// @overload
     Request headers(const Headers& headers) &&;
@@ -224,6 +226,8 @@ public:
     ) &&;
 
     /// Set proxy headers for request
+    ///
+    /// @throws clients::http::BadArgumentException if a header name or value contains CR, LF or NUL
     Request& proxy_headers(const Headers& headers) &;
     /// @overload
     Request proxy_headers(const Headers& headers) &&;
@@ -233,6 +237,8 @@ public:
     Request proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
 
     /// Sets the User-Agent header
+    ///
+    /// @throws clients::http::BadArgumentException if the value contains CR, LF or NUL
     Request& user_agent(utils::zstring_view value) &;
     /// @overload
     Request user_agent(utils::zstring_view value) &&;
@@ -251,6 +257,8 @@ public:
     Request proxy_auth_type(ProxyAuthType value) &&;
 
     /// Cookies for request as HashDos-safe map
+    ///
+    /// @throws clients::http::BadArgumentException if a cookie name or value contains CR, LF or NUL
     Request& cookies(const Cookies& cookies) &;
     /// Cookies for request as HashDos-safe map
     Request cookies(const Cookies& cookies) &&;
