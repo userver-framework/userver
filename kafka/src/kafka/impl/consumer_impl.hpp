@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <optional>
 #include <vector>
 
@@ -78,6 +79,14 @@ public:
     /// @brief Seeks the partition ID for the specified \b topic to the end offset .
     void SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
+    /// @brief See @ref kafka::ConsumerScope::SeekToTimestamp.
+    void SeekToTimestamp(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::chrono::system_clock::time_point timestamp,
+        std::chrono::milliseconds timeout
+    ) const;
+
     /// @brief Seeks multiple topic partitions to the given offsets in one call.
     /// @param params Topic, partition_id and offset for each seek.
     /// @param timeout Timeout for the operation.
@@ -151,6 +160,13 @@ private:
         std::uint32_t partition_id,
         std::int64_t offset,
         std::chrono::milliseconds timeout
+    ) const;
+
+    void SeekToOffset(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        engine::Deadline deadline
     ) const;
 
     /// @brief Seeks multiple topic partitions to the given offsets (internal, expects validated inputs).

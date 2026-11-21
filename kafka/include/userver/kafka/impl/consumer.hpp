@@ -87,6 +87,14 @@ public:
         std::chrono::milliseconds timeout
     ) const;
 
+    /// @brief See @ref kafka::ConsumerScope::SeekToTimestamp.
+    void SeekToTimestamp(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::chrono::system_clock::time_point timestamp,
+        std::chrono::milliseconds timeout
+    ) const;
+
     /// @brief Seeks multiple topic partitions to the given offsets in one call.
     /// @param params Topic, partition_id and offset for each seek.
     /// @param timeout Timeout for the operation.
