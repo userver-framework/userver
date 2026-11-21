@@ -292,6 +292,9 @@ void RequestState::follow_redirects(bool follow) {
     easy().set_post_redir(static_cast<long>(follow));
     if (follow) {
         easy().set_max_redirs(kMaxRedirectCount);
+        // Request::url() rejects non-HTTP schemes, but by default libcurl also follows a Location to ftp:// and
+        // ftps:// (and to most other schemes before 7.65.2), so a server could redirect the client there.
+        easy().set_redir_protocols(CURLPROTO_HTTP | CURLPROTO_HTTPS);
     }
 }
 
