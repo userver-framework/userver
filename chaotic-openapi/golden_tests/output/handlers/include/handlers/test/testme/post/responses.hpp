@@ -8,6 +8,7 @@
 #include <userver/http/status_code.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <optional>
+#include <string>
 #include <handlers/test/openapi.hpp>
 
 namespace handlers::test::testme::post {

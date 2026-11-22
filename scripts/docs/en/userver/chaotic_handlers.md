@@ -106,6 +106,12 @@ view.cpp    # view stub — implement this
 ```
 
 
+### Parameter and header types
+
+Request parameters and response headers get the same C++ types as in generated clients,
+see @ref chaotic_clients_parameter_types.
+
+
 ### Authentication
 
 When the OpenAPI schema declares a `securityScheme` on a handler operation,

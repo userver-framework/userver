@@ -15,6 +15,19 @@ def test_name_map_item_pattern():
     assert item.match('/schemas/X/', stem='stem') == 'X'
 
 
+def test_cpp_name_func_stem_is_cpp_identifier():
+    func = main.generate_cpp_name_func([main.NameMapItem('/schemas/([^/]*)/=ns::{stem}::{0}')], '')
+    assert func('/schemas/X', 'types') == 'ns::types::X'
+    assert func('/schemas/X', 'station.internal') == 'ns::station_internal::X'
+    assert func('/schemas/X', 'station-api.v1') == 'ns::station_api_v1::X'
+    assert func('/schemas/X', '2024') == 'ns::x2024::X'
+
+
+def test_file_map_keeps_stem():
+    item = main.NameMapItem('(.*)/([^/]*)\\.yaml={0}/{stem}')
+    assert main.vfilepath_from_filepath('schemas/station.internal.yaml', [item]) == 'schemas/station.internal'
+
+
 def test_extract_schemas_to_scan():
     items = [
         main.NameMapItem('/schemas/([^/]*)/={0}'),
