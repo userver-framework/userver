@@ -22,12 +22,17 @@ class RequestState;
 
 namespace impl {
 class EasyWrapper;
+class ResponseFutureBackend;
 }  // namespace impl
 
 /// @brief Allows to perform a request concurrently with other work without
 /// creating an extra coroutine for waiting.
 class ResponseFuture final {
 public:
+    /// @brief Adapts an alternative asynchronous HTTP operation.
+    /// @pre backend is not null and implements the ResponseFuture lifetime and cancellation contracts.
+    explicit ResponseFuture(std::unique_ptr<impl::ResponseFutureBackend> backend);
+
     ResponseFuture(ResponseFuture&& other) noexcept;
     ResponseFuture& operator=(ResponseFuture&&) noexcept;
     ResponseFuture(const ResponseFuture&) = delete;
@@ -69,7 +74,8 @@ private:
     engine::Deadline deadline_;
     std::shared_ptr<RequestState> request_state_;
     bool was_deadline_propagated_{false};
-    CancellationPolicy cancellation_policy_;
+    CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
+    std::unique_ptr<impl::ResponseFutureBackend> alternative_;
 };
 
 }  // namespace clients::http

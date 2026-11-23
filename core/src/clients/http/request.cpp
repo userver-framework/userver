@@ -1,14 +1,20 @@
 #include <userver/clients/http/request.hpp>
 
+#include <chrono>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
+
+#include <fmt/format.h>
 
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/impl/request_backend.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/clients/http/websocket_response.hpp>
@@ -202,6 +208,12 @@ ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name) {
 
 // Request implementation
 
+Request::Request(std::shared_ptr<impl::RequestBackend> backend)
+    : alternative_(std::move(backend))
+{
+    UINVARIANT(alternative_, "HTTP request backend must not be null");
+}
+
 Request::Request(
     impl::EasyWrapper&& wrapper,
     RequestStats&& req_stats,
@@ -223,6 +235,9 @@ Request::Request(
 }
 
 ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
+    if (alternative_) {
+        return alternative_->AsyncPerform(location);
+    }
     ResponseFuture future{pimpl_->async_perform(location), pimpl_};
     return future;
 }
@@ -231,19 +246,32 @@ StreamedResponse Request::async_perform_stream_body(
     const std::shared_ptr<concurrent::StringStreamQueue>& queue,
     utils::impl::SourceLocation location
 ) {
+    if (alternative_) {
+        return alternative_->AsyncPerformStreamBody(queue, location);
+    }
     LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
     return StreamedResponse(pimpl_->async_perform_stream(queue, location), queue->GetConsumer(), pimpl_);
 }
 
 std::shared_ptr<Response> Request::perform(utils::impl::SourceLocation location) {
+    if (alternative_) {
+        return alternative_->Perform(location);
+    }
     return async_perform(location).Get(location);
 }
 
 WebSocketResponse Request::PerformWebSocketHandshake(utils::impl::SourceLocation location) {
+    if (alternative_) {
+        return alternative_->PerformWebSocketHandshake(location);
+    }
     return pimpl_->async_perform_websocket_handshake(location).get();
 }
 
 Request& Request::url(std::string url) & {
+    if (alternative_) {
+        alternative_->SetUrl(std::move(url));
+        return *this;
+    }
     if (!IsAllowedSchemaInUrl(url)) {
         throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol, "Bad URL", url, {});
     }
@@ -266,42 +294,70 @@ Request& Request::url(std::string url) & {
 Request Request::url(std::string url) && { return std::move(this->url(std::move(url))); }
 
 Request& Request::timeout(long timeout_ms) & {
+    if (alternative_) {
+        alternative_->SetTimeout(std::chrono::milliseconds{timeout_ms});
+        return *this;
+    }
     pimpl_->set_timeout(timeout_ms);
     return *this;
 }
 Request Request::timeout(long timeout_ms) && { return std::move(this->timeout(timeout_ms)); }
 
 Request& Request::follow_redirects(bool follow) & {
+    if (alternative_) {
+        alternative_->SetFollowRedirects(follow);
+        return *this;
+    }
     pimpl_->follow_redirects(follow);
     return *this;
 }
 Request Request::follow_redirects(bool follow) && { return std::move(this->follow_redirects(follow)); }
 
 Request& Request::verify(bool verify) & {
+    if (alternative_) {
+        alternative_->SetVerify(verify);
+        return *this;
+    }
     pimpl_->verify(verify);
     return *this;
 }
 Request Request::verify(bool verify) && { return std::move(this->verify(verify)); }
 
 Request& Request::ca_info(utils::zstring_view file_path) & {
+    if (alternative_) {
+        alternative_->SetCaInfo(file_path);
+        return *this;
+    }
     pimpl_->ca_info(file_path);
     return *this;
 }
 Request Request::ca_info(utils::zstring_view file_path) && { return std::move(this->ca_info(file_path)); }
 
 Request& Request::ca(crypto::Certificate cert) & {
+    if (alternative_) {
+        alternative_->SetCa(std::move(cert));
+        return *this;
+    }
     pimpl_->ca(std::move(cert));
     return *this;
 }
 Request Request::ca(crypto::Certificate cert) && { return std::move(this->ca(std::move(cert))); }
 
 Request& Request::crl_file(utils::zstring_view file_path) & {
+    if (alternative_) {
+        alternative_->SetCrlFile(file_path);
+        return *this;
+    }
     pimpl_->crl_file(file_path);
     return *this;
 }
 Request Request::crl_file(utils::zstring_view file_path) && { return std::move(this->crl_file(file_path)); }
 
 Request& Request::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) & {
+    if (alternative_) {
+        alternative_->SetClientKeyCert(std::move(pkey), std::move(cert));
+        return *this;
+    }
     pimpl_->client_key_cert(std::move(pkey), std::move(cert));
     return *this;
 }
@@ -310,6 +366,10 @@ Request Request::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate ce
 }
 
 Request& Request::http_version(HttpVersion version) & {
+    if (alternative_) {
+        alternative_->SetHttpVersion(version);
+        return *this;
+    }
     pimpl_->http_version(ToNative(version));
     return *this;
 }
@@ -320,42 +380,70 @@ Request& Request::retry(short retries, bool on_fails) & {
     if (retries <= 0) {
         retries = 1;
     }
+    if (alternative_) {
+        alternative_->SetRetryPolicy({static_cast<unsigned short>(retries), on_fails});
+        return *this;
+    }
     pimpl_->retry(retries, on_fails);
     return *this;
 }
 Request Request::retry(short retries, bool on_fails) && { return std::move(this->retry(retries, on_fails)); }
 
 Request& Request::unix_socket_path(utils::zstring_view path) & {
+    if (alternative_) {
+        alternative_->SetUnixSocketPath(path);
+        return *this;
+    }
     pimpl_->unix_socket_path(path);
     return *this;
 }
 Request Request::unix_socket_path(utils::zstring_view path) && { return std::move(this->unix_socket_path(path)); }
 
 Request& Request::use_ipv4() & {
+    if (alternative_) {
+        alternative_->UseIpv4();
+        return *this;
+    }
     pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v4);
     return *this;
 }
 Request Request::use_ipv4() && { return std::move(this->use_ipv4()); }
 
 Request& Request::use_ipv6() & {
+    if (alternative_) {
+        alternative_->UseIpv6();
+        return *this;
+    }
     pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v6);
     return *this;
 }
 Request Request::use_ipv6() && { return std::move(this->use_ipv6()); }
 
 Request& Request::connect_to(const ConnectTo& connect_to) & {
+    if (alternative_) {
+        alternative_->SetConnectTo(connect_to);
+        return *this;
+    }
     pimpl_->connect_to(connect_to);
     return *this;
 }
 Request Request::connect_to(const ConnectTo& connect_to) && { return std::move(this->connect_to(connect_to)); }
 
 Request& Request::data(std::string data) & {
+    if (alternative_) {
+        alternative_->SetBody(std::move(data));
+        return *this;
+    }
     pimpl_->data(std::move(data));
     return *this;
 }
 Request Request::data(std::string data) && { return std::move(this->data(std::move(data))); }
 
 Request& Request::form(Form&& form) & {
+    if (alternative_) {
+        alternative_->SetForm(std::move(form));
+        return *this;
+    }
     pimpl_->easy().set_http_post(std::move(form).GetNative());
     pimpl_->easy().add_header(kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
     return *this;
@@ -363,12 +451,24 @@ Request& Request::form(Form&& form) & {
 Request Request::form(Form&& form) && { return std::move(this->form(std::move(form))); }
 
 Request& Request::headers(const Headers& headers) & {
+    if (alternative_) {
+        for (const auto& [name, value] : headers) {
+            alternative_->AddHeader(name, value);
+        }
+        return *this;
+    }
     SetHeaders(pimpl_->easy(), headers);
     return *this;
 }
 Request Request::headers(const Headers& headers) && { return std::move(this->headers(headers)); }
 
 Request& Request::headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
+    if (alternative_) {
+        for (const auto& [name, value] : headers) {
+            alternative_->AddHeader(name, value);
+        }
+        return *this;
+    }
     SetHeaders(pimpl_->easy(), headers);
     return *this;
 }
@@ -382,6 +482,10 @@ Request& Request::http_auth_type(
     utils::zstring_view user,
     utils::zstring_view password
 ) & {
+    if (alternative_) {
+        alternative_->SetHttpAuthType(value, auth_only, user, password);
+        return *this;
+    }
     pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user, password);
     return *this;
 }
@@ -395,6 +499,10 @@ Request Request::http_auth_type(
 }
 
 Request& Request::proxy_headers(const Headers& headers) & {
+    if (alternative_) {
+        alternative_->SetProxyHeaders(headers);
+        return *this;
+    }
     SetProxyHeaders(pimpl_->easy(), headers);
     return *this;
 }
@@ -402,6 +510,10 @@ Request Request::proxy_headers(const Headers& headers) && { return std::move(thi
 
 Request& Request::proxy_headers(const std::initializer_list<
                                 std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
+    if (alternative_) {
+        alternative_->SetProxyHeaders(headers);
+        return *this;
+    }
     SetProxyHeaders(pimpl_->easy(), headers);
     return *this;
 }
@@ -411,30 +523,50 @@ Request Request::proxy_headers(const std::initializer_list<std::pair<utils::zstr
 }
 
 Request& Request::user_agent(utils::zstring_view value) & {
+    if (alternative_) {
+        alternative_->SetUserAgent(value);
+        return *this;
+    }
     pimpl_->easy().set_user_agent(value.c_str());
     return *this;
 }
 Request Request::user_agent(utils::zstring_view value) && { return std::move(this->user_agent(value)); }
 
 Request& Request::proxy(utils::zstring_view value) & {
+    if (alternative_) {
+        alternative_->SetProxy(value);
+        return *this;
+    }
     pimpl_->proxy(value);
     return *this;
 }
 Request Request::proxy(utils::zstring_view value) && { return std::move(this->proxy(value)); }
 
 Request& Request::proxy_auth_type(ProxyAuthType value) & {
+    if (alternative_) {
+        alternative_->SetProxyAuthType(value);
+        return *this;
+    }
     pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));
     return *this;
 }
 Request Request::proxy_auth_type(ProxyAuthType value) && { return std::move(this->proxy_auth_type(value)); }
 
 Request& Request::cookies(const Cookies& cookies) & {
+    if (alternative_) {
+        alternative_->SetCookies(cookies);
+        return *this;
+    }
     SetCookies(pimpl_->easy(), cookies);
     return *this;
 }
 Request Request::cookies(const Cookies& cookies) && { return std::move(this->cookies(cookies)); }
 
 Request& Request::cookies(const std::unordered_map<std::string, std::string>& cookies) & {
+    if (alternative_) {
+        alternative_->SetCookies(cookies);
+        return *this;
+    }
     SetCookies(pimpl_->easy(), cookies);
     return *this;
 }
@@ -443,6 +575,10 @@ Request Request::cookies(const std::unordered_map<std::string, std::string>& coo
 }
 
 Request& Request::method(HttpMethod method) & {
+    if (alternative_) {
+        alternative_->SetMethod(method);
+        return *this;
+    }
     pimpl_->SetMethod(method);
     return *this;
 }
@@ -468,6 +604,10 @@ Request& Request::delete_method() & { return method(HttpMethod::kDelete); }
 Request Request::delete_method() && { return std::move(this->delete_method()); }
 
 Request& Request::set_custom_http_request_method(std::string method) & {
+    if (alternative_) {
+        alternative_->SetCustomHttpRequestMethod(std::move(method));
+        return *this;
+    }
     LOG_LIMITED_WARNING()
         << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
            "changing of request type. Use it only if you need to make "
@@ -522,11 +662,19 @@ Request Request::delete_method(std::string url, std::string data) && {
 }
 
 Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
+    if (alternative_) {
+        alternative_->SetMiddlewaresList(middlewares);
+        return *this;
+    }
     pimpl_->SetMiddlewaresList(middlewares);
     return *this;
 }
 
 Request& Request::SetIncompleteTlsConnectionCloseExpected(bool expect) & {
+    if (alternative_) {
+        alternative_->SetIncompleteTlsConnectionCloseExpected(expect);
+        return *this;
+    }
     pimpl_->SetIncompleteTlsConnectionCloseExpected(expect);
     return *this;
 }
@@ -536,12 +684,20 @@ Request Request::SetIncompleteTlsConnectionCloseExpected(bool expect) && {
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {
+    if (alternative_) {
+        alternative_->SetLoggedUrl(std::move(url));
+        return *this;
+    }
     pimpl_->SetLoggedUrl(std::move(url));
     return *this;
 }
 Request Request::SetLoggedUrl(std::string url) && { return std::move(this->SetLoggedUrl(std::move(url))); }
 
 Request& Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) & {
+    if (alternative_) {
+        alternative_->SetExpectedStatusCodes(std::move(status_codes));
+        return *this;
+    }
     pimpl_->SetExpectedStatusCodes(std::move(status_codes));
     return *this;
 }
@@ -551,6 +707,10 @@ Request Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) && {
 }
 
 Request& Request::SetUrlTemplate(std::string url_template) & {
+    if (alternative_) {
+        alternative_->SetUrlTemplate(std::move(url_template));
+        return *this;
+    }
     pimpl_->SetUrlTemplate(std::move(url_template));
     return *this;
 }
@@ -560,6 +720,10 @@ Request Request::SetUrlTemplate(std::string url_template) && {
 }
 
 Request& Request::SetDestinationMetricName(const std::string& destination) & {
+    if (alternative_) {
+        alternative_->SetDestinationMetricName(destination);
+        return *this;
+    }
     pimpl_->SetDestinationMetricName(destination);
     return *this;
 }
@@ -568,24 +732,52 @@ Request Request::SetDestinationMetricName(const std::string& destination) && {
 }
 
 void Request::SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config) & {
+    if (alternative_) {
+        alternative_->SetTestsuiteConfig(config);
+        return;
+    }
     pimpl_->SetTestsuiteConfig(config);
 }
 
-void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & { pimpl_->SetAllowedUrlsExtra(urls); }
+void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
+    if (alternative_) {
+        alternative_->SetAllowedUrlsExtra(urls);
+        return;
+    }
+    pimpl_->SetAllowedUrlsExtra(urls);
+}
 
 void Request::SetDeadlinePropagationConfig(const DeadlinePropagationConfig& deadline_propagation_config) & {
+    if (alternative_) {
+        alternative_->SetDeadlinePropagationConfig(deadline_propagation_config);
+        return;
+    }
     pimpl_->SetDeadlinePropagationConfig(deadline_propagation_config);
 }
 
 Request& Request::DisableReplyDecoding() & {
+    if (alternative_) {
+        alternative_->DisableReplyDecoding();
+        return *this;
+    }
     pimpl_->DisableReplyDecoding();
     return *this;
 }
 Request Request::DisableReplyDecoding() && { return std::move(this->DisableReplyDecoding()); }
 
-void Request::SetCancellationPolicy(CancellationPolicy cp) { pimpl_->SetCancellationPolicy(cp); }
+void Request::SetCancellationPolicy(CancellationPolicy cp) {
+    if (alternative_) {
+        alternative_->SetCancellationPolicy(cp);
+        return;
+    }
+    pimpl_->SetCancellationPolicy(cp);
+}
 
 Request& Request::SetTracingManager(const tracing::TracingManagerBase& tracing_manager) & {
+    if (alternative_) {
+        alternative_->SetTracingManager(tracing_manager);
+        return *this;
+    }
     pimpl_->SetTracingManager(tracing_manager);
     return *this;
 }
@@ -593,20 +785,43 @@ Request Request::SetTracingManager(const tracing::TracingManagerBase& tracing_ma
     return std::move(this->SetTracingManager(tracing_manager));
 }
 
-const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original_url(); }
+const std::string& Request::GetUrl() const& {
+    if (alternative_) {
+        return alternative_->GetUrl();
+    }
+    return pimpl_->easy().get_original_url();
+}
 
 void Request::SetUrlUserinfoAllowed(bool allowed) {
+    if (alternative_) {
+        alternative_->SetUrlUserinfoAllowed(allowed);
+        return;
+    }
     pimpl_->easy().SetUrlUserinfoAllowed(allowed);
     if (!allowed && !GetUrl().empty()) {
         url(GetUrl());
     }
 }
 
-const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
+const std::string& Request::GetData() const& {
+    if (alternative_) {
+        return alternative_->GetBody();
+    }
+    return pimpl_->easy().get_post_data();
+}
 
-std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
+std::string Request::ExtractData() {
+    if (alternative_) {
+        return alternative_->ExtractBody();
+    }
+    return pimpl_->easy().extract_post_data();
+}
 
 void Request::SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&& wait_token) {
+    if (alternative_) {
+        alternative_->SetWaitToken(std::move(wait_token));
+        return;
+    }
     pimpl_->SetWaitToken(std::move(wait_token));
 }
 

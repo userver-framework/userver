@@ -1,6 +1,11 @@
 #include <userver/clients/http/response_future.hpp>
 
 #include <algorithm>
+#include <stdexcept>
+#include <utility>
+
+#include <userver/clients/http/impl/response_future_backend.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <clients/http/request_state.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -38,6 +43,14 @@ engine::Deadline ComputeBaseDeadline(RequestState& request_state) {
 
 }  // namespace
 
+impl::ResponseFutureBackend::~ResponseFutureBackend() = default;
+
+ResponseFuture::ResponseFuture(std::unique_ptr<impl::ResponseFutureBackend> backend)
+    : alternative_(std::move(backend))
+{
+    UINVARIANT(alternative_, "HTTP response future backend must not be null");
+}
+
 ResponseFuture::ResponseFuture(
     engine::Future<std::shared_ptr<Response>>&& future,
     std::shared_ptr<RequestState> request_state
@@ -55,7 +68,9 @@ ResponseFuture::ResponseFuture(
 }
 
 ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept
-    : was_deadline_propagated_(other.was_deadline_propagated_), cancellation_policy_(other.cancellation_policy_)
+    : was_deadline_propagated_(other.was_deadline_propagated_),
+      cancellation_policy_(other.cancellation_policy_),
+      alternative_(std::move(other.alternative_))
 {
     std::swap(future_, other.future_);
     std::swap(deadline_, other.deadline_);
@@ -72,12 +87,17 @@ ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
     request_state_ = std::move(other.request_state_);
     was_deadline_propagated_ = other.was_deadline_propagated_;
     cancellation_policy_ = other.cancellation_policy_;
+    alternative_ = std::move(other.alternative_);
     return *this;
 }
 
 ResponseFuture::~ResponseFuture() { CancelOrDetach(); }
 
 void ResponseFuture::CancelOrDetach() {
+    if (alternative_) {
+        // The backend destructor applies its own cancellation policy.
+        return;
+    }
     switch (cancellation_policy_) {
         case CancellationPolicy::kIgnore:
             Detach();
@@ -89,6 +109,10 @@ void ResponseFuture::CancelOrDetach() {
 }
 
 void ResponseFuture::Cancel() {
+    if (alternative_) {
+        alternative_->Cancel();
+        return;
+    }
     if (IsDetached()) {
         return;
     }
@@ -96,9 +120,18 @@ void ResponseFuture::Cancel() {
     Detach();
 }
 
-void ResponseFuture::Detach() { request_state_.reset(); }
+void ResponseFuture::Detach() {
+    if (alternative_) {
+        alternative_->Detach();
+        return;
+    }
+    request_state_.reset();
+}
 
 std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
+    if (alternative_) {
+        return alternative_->Wait(location);
+    }
     if (IsDetached()) {
         throw std::logic_error("ResponseFuture is detached");
     }
@@ -131,9 +164,17 @@ std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
     UINVARIANT(false, "Invalid engine::FutureStatus");
 }
 
-bool ResponseFuture::IsReady() const { return future_.is_ready(); }
+bool ResponseFuture::IsReady() const {
+    if (alternative_) {
+        return alternative_->IsReady();
+    }
+    return future_.is_ready();
+}
 
 std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation location) {
+    if (alternative_) {
+        return alternative_->Get(location);
+    }
     const auto future_status = Wait(location);
     if (future_status == std::future_status::ready) {
         if (request_state_->IsDeadlineExpired()) {
@@ -148,6 +189,9 @@ std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation locati
 }
 
 engine::AwaitableToken ResponseFuture::GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
+    if (alternative_) {
+        return alternative_->GetAwaitableToken();
+    }
     return future_.GetAwaitableToken();
 }
 

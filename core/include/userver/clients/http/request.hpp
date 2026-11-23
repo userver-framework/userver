@@ -55,6 +55,7 @@ class MiddlewareBase;
 
 namespace impl {
 class EasyWrapper;
+class RequestBackend;
 }  // namespace impl
 
 /// @brief HTTP request method
@@ -100,6 +101,11 @@ class Request final {
 public:
     /// Request cookies container type
     using Cookies = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
+
+    /// @brief Constructs a request using an alternative HTTP backend.
+    /// @pre backend is not null. Copies of this request share the backend.
+    /// @see clients::http::impl::RequestBackend for operations and lifetime requirements.
+    explicit Request(std::shared_ptr<impl::RequestBackend> backend);
 
     /// @cond
     // For internal use only.
@@ -481,6 +487,7 @@ public:
 
 private:
     std::shared_ptr<RequestState> pimpl_;
+    std::shared_ptr<impl::RequestBackend> alternative_;
 };
 
 }  // namespace clients::http
