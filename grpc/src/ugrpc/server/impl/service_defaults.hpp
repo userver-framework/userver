@@ -13,6 +13,7 @@ namespace ugrpc::server::impl {
 struct ServiceDefaults final {
     // using boost::optional to easily generalize to references
     boost::optional<engine::TaskProcessor&> task_processor;
+    bool always_log_call_spans{false};
 };
 
 }  // namespace ugrpc::server::impl

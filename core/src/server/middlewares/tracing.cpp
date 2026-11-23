@@ -119,6 +119,7 @@ tracing::Span Tracing::MakeSpan(const http::HttpRequest& http_request, std::stri
     auto span = std::move(span_builder).Build();
 
     span.SetLocalLogLevel(log_level_);
+    span.SetSpanForcedWriting(handler_.GetConfig().always_log_request_span);
 
     if (handler_path != nullptr) {
         span.AddNonInheritableTag(tracing::kHttpRoute, *handler_path);

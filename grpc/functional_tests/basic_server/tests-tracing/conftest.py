@@ -31,3 +31,21 @@ def disable_otel_trace_sampling():
         )
 
     return _do_patch
+
+
+@pytest.fixture(scope='session')
+def force_server_call_spans():
+    def _do_patch(config_yaml, _config_vars):
+        components = config_yaml['components_manager']['components']
+        components['logging']['span-log-level'] = 'warning'
+        components['grpc-server']['service-defaults'] = {'always-log-call-spans': True}
+
+    return _do_patch
+
+
+@pytest.fixture(scope='session')
+def disable_greeter_call_spans():
+    def _do_patch(config_yaml, _config_vars):
+        config_yaml['components_manager']['components']['greeter-service']['always-log-call-spans'] = False
+
+    return _do_patch

@@ -1,13 +1,17 @@
 #include <userver/utest/utest.hpp>
 
 #include <initializer_list>
+#include <string_view>
+#include <vector>
 
 #include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 
@@ -16,6 +20,7 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/tests/service.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,6 +37,7 @@ const grpc::string kServerSpanId = "server-span-id";
 const grpc::string kServerLink = "server-link";
 const grpc::string kServerParentSpanId = "server-parent-span-id";
 const grpc::string kServerParentLink = "server-parent-link";
+const grpc::string kServerSpanIdForChildLogs = "server-span-id-for-child-logs";
 const grpc::string kClientTraceIdEcho = "client-trace-id-echo";
 const grpc::string kClientSpanIdEcho = "client-span-id-echo";
 const grpc::string kClientLinkEcho = "client-link-echo";
@@ -74,6 +80,10 @@ private:
         context.AddInitialMetadata(kServerLink, ugrpc::impl::ToGrpcString(span.GetLink()));
         context.AddInitialMetadata(kServerParentSpanId, ugrpc::impl::ToGrpcString(span.GetParentId()));
         context.AddInitialMetadata(kServerParentLink, ugrpc::impl::ToGrpcString(span.GetParentLink()));
+        context.AddInitialMetadata(
+            kServerSpanIdForChildLogs,
+            ugrpc::impl::ToGrpcString(span.GetSpanIdForChildLogs().value_or(std::string_view{}))
+        );
 
         context.AddInitialMetadata(kClientTraceIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaTraceId));
         context.AddInitialMetadata(kClientSpanIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaSpanId));
@@ -225,6 +235,80 @@ UTEST_F(GrpcTracing, BackgroundTaskWithoutOtelContextDefaultsToSampled) {
         EXPECT_EQ(parsed->trace_flags, "01");
         EXPECT_TRUE(GetMetadataValue(metadata, kClientTracestateEcho).empty());
     }).Get();
+}
+
+namespace {
+
+constexpr std::string_view kSayHelloCallName = "sample.ugrpc.UnitTestService/SayHello";
+
+class GrpcTracingCallSpanLogging : public utest::LogCaptureFixture<> {
+protected:
+    struct CallResult {
+        grpc::string server_span_id;
+        grpc::string server_span_id_for_child_logs;
+        std::vector<utest::LogRecord> call_span_logs;
+    };
+
+    CallResult MakeCall(bool always_log_call_spans) {
+        const tracing::TracingStateGuard tracing_state_guard;
+        tracing::SetSpanLogLevel(logging::Level::kWarning);
+
+        UnitTestServiceWithTracingChecks service_impl;
+        ugrpc::tests::ServiceBase service;
+        service.GetServer().AddService(
+            service_impl,
+            {
+                .task_processor = engine::current_task::GetTaskProcessor(),
+                .middlewares = {},
+                .status_codes_log_level = {},
+                .config_source = service.GetConfigSource(),
+                .always_log_call_spans = always_log_call_spans,
+            }
+        );
+        service.StartServer();
+        auto client = service.MakeClient<sample::ugrpc::UnitTestServiceClient>();
+        GetLogCapture().Clear();
+
+        auto future = client.AsyncSayHello(sample::ugrpc::GreetingRequest{});
+        future.Get();
+        const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+        CallResult result{
+            GetMetadataValue(metadata, kServerSpanId),
+            GetMetadataValue(metadata, kServerSpanIdForChildLogs),
+            {},
+        };
+
+        // The server writes the call span after Finish, possibly after the client has returned.
+        service.GetServer().StopServing();
+        result.call_span_logs = GetLogCapture().Filter(
+            "",
+            {{
+                {std::string_view("span_kind"), std::string_view("server")},
+                {std::string_view("stopwatch_name"), kSayHelloCallName},
+            }}
+        );
+        return result;
+    }
+};
+
+}  // namespace
+
+UTEST_F(GrpcTracingCallSpanLogging, AlwaysLogCallSpans) {
+    const auto result = MakeCall(true);
+
+    EXPECT_EQ(result.server_span_id_for_child_logs, result.server_span_id);
+    const auto span_log = utest::GetSingleLog(result.call_span_logs);
+    EXPECT_EQ(span_log.GetTag("span_id"), result.server_span_id) << span_log;
+    EXPECT_EQ(span_log.GetTagOptional(tracing::kGrpcCode), "OK") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("grpc_component"), "server") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("meta_type"), kSayHelloCallName) << span_log;
+}
+
+UTEST_F(GrpcTracingCallSpanLogging, CallSpanFollowsSpanLogLevelByDefault) {
+    const auto result = MakeCall(false);
+
+    EXPECT_NE(result.server_span_id_for_child_logs, result.server_span_id);
+    EXPECT_TRUE(result.call_span_logs.empty());
 }
 
 USERVER_NAMESPACE_END

@@ -100,9 +100,6 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     auto& span = context.GetSpan();
     span.SetLocalLogLevel(settings_.local_log_level);
 
-    span.AddTag(ugrpc::impl::kComponentTag, "server");
-    span.AddTag("meta_type", std::string{context.GetCallName()});
-
     const Logger logger{settings_.log_level};
     if (!IsSingleRequestMethod(context.GetRpcType())) {
         logger.Log(settings_.msg_log_level, [&](auto& log_helper) {

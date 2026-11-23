@@ -354,6 +354,84 @@ UTEST_F(Span, NotLoggableRootSpanKeepsTraceIdInLogs) {
     );
 }
 
+namespace {
+
+std::string GetLineWith(const std::string& logs, std::string_view substring) {
+    const auto pos = logs.find(substring);
+    if (pos == std::string::npos) {
+        return {};
+    }
+    const auto begin = logs.rfind('\n', pos);
+    const auto end = logs.find('\n', pos);
+    const auto line_begin = begin == std::string::npos ? 0 : begin + 1;
+    return logs.substr(line_begin, end == std::string::npos ? std::string::npos : end - line_begin);
+}
+
+}  // namespace
+
+UTEST_F(Span, ForceLoggingIgnoresLogLevels) {
+    const logging::DefaultLoggerLevelScope default_logger_level{logging::Level::kWarning};
+    tracing::SetSpanLogLevel(logging::Level::kWarning);
+
+    std::string forced_span_id;
+    {
+        tracing::Span span{"forced_span"};
+        span.SetLocalLogLevel(logging::Level::kError);
+        span.SetSpanForcedWriting(true);
+        EXPECT_TRUE(span.IsSpanForcedWriting());
+        EXPECT_TRUE(span.ShouldLogDefault());
+        forced_span_id = span.GetSpanId();
+        EXPECT_EQ(span.GetSpanIdForChildLogs(), forced_span_id);
+
+        const tracing::Span child{"child_span"};
+        EXPECT_FALSE(child.IsSpanForcedWriting());
+        EXPECT_FALSE(child.ShouldLogDefault());
+        EXPECT_EQ(child.GetParentId(), forced_span_id);
+        EXPECT_EQ(child.GetSpanIdForChildLogs(), forced_span_id);
+        LOG_ERROR() << "child_message";
+    }
+    logging::LogFlush();
+
+    const auto expected_span_id_tag = fmt::format("span_id={}", forced_span_id);
+    EXPECT_THAT(
+        GetStreamString(),
+        testing::AllOf(
+            HasSubstr("stopwatch_name=forced_span"),
+            Not(HasSubstr("stopwatch_name=child_span")),
+            HasSubstr(expected_span_id_tag)
+        )
+    );
+    EXPECT_THAT(GetLineWith(GetStreamString(), "text=child_message"), HasSubstr(expected_span_id_tag));
+}
+
+UTEST_F(Span, NoLogSpansSuppressForcedLogging) {
+    tracing::NoLogSpans no_logs;
+    no_logs.names = {"no_log_span"};
+    tracing::SetNoLogSpans(std::move(no_logs));
+
+    {
+        tracing::Span span{"no_log_span"};
+        EXPECT_FALSE(span.ShouldLogDefault());
+        span.SetSpanForcedWriting(true);
+        EXPECT_FALSE(span.ShouldLogDefault());
+        EXPECT_EQ(span.GetSpanIdForChildLogs(), std::nullopt);
+    }
+    logging::LogFlush();
+
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=no_log_span")));
+}
+
+UTEST_F(Span, ForceLoggingRespectsSampling) {
+    {
+        tracing::Span span{"unsampled_forced_span"};
+        span.SetSpanForcedWriting(true);
+        span.SetSampled(false);
+    }
+    logging::LogFlush();
+
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=unsampled_forced_span")));
+}
+
 UTEST_F(Span, NoLogNames) {
     constexpr const char* kLogFirstSpan = "first_span_to_log";
     constexpr const char* kLogSecondSpan = "second_span_to_log";

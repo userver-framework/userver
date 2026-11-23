@@ -26,6 +26,14 @@ def disable_otel_trace_sampling():
     return _do_patch
 
 
+@pytest.fixture(scope='session')
+def enable_always_log_request_span():
+    def _do_patch(config_yaml, _config_vars):
+        config_yaml['components_manager']['components']['handler-echo-no-body']['always-log-request-span'] = True
+
+    return _do_patch
+
+
 # Overriding userver fixture
 @pytest.fixture(name='userver_service_client_options')
 def _userver_service_client_options(userver_service_client_options):

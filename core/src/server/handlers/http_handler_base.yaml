@@ -8,6 +8,12 @@ properties:
             Overrides log level for this handle.
 
             Default: <no override>
+    always-log-request-span:
+        type: boolean
+        description: |
+            Write the HTTP request span regardless of log levels when the tracing middleware is enabled.
+            Trace sampling and USERVER_NO_LOG_SPANS still apply.
+        default: false
     status-codes-log-level:
         type: object
         properties: {}

@@ -4,14 +4,11 @@
 #include <optional>
 #include <string_view>
 
-#include <boost/container/flat_map.hpp>
-
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_context.h>
 
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/logging/fwd.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/utils/any_storage.hpp>
 
@@ -19,7 +16,6 @@
 #include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/storage_context.hpp>
-#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,6 +24,8 @@ class StatisticsStorage;
 }  // namespace ugrpc::impl
 
 namespace ugrpc::server::impl {
+
+struct ServiceTracingConfig;
 
 // Non-templated dependencies of CallProcessor. Must be movable.
 struct CallParams {
@@ -40,8 +38,7 @@ struct CallParams {
     ugrpc::impl::StatisticsStorage& statistics_storage;
     const Middlewares& middlewares;
     const dynamic_config::Source& config_source;
-    const boost::container::flat_map<grpc::StatusCode, logging::Level>& status_codes_log_level;
-    const bool otel_trace_sampling_enabled;
+    const ServiceTracingConfig& tracing_config;
 };
 
 // Non-templated state of CallProcessor. Can be non-movable.

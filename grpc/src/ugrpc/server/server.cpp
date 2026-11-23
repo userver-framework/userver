@@ -344,8 +344,11 @@ impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config
         statistics_storage_,
         std::move(config.middlewares),
         config.config_source,
-        std::move(config.status_codes_log_level),
-        otel_trace_sampling_enabled_,
+        {
+            .status_codes_log_level = std::move(config.status_codes_log_level),
+            .otel_trace_sampling_enabled = otel_trace_sampling_enabled_,
+            .always_log_call_spans = config.always_log_call_spans,
+        },
         use_callback_api_,
     };
 }

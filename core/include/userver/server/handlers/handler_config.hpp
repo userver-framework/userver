@@ -53,6 +53,9 @@ struct HandlerConfig {
     bool enable_write_statistics{true};
     http::HttpStatus deadline_expired_status_code{498};
 
+    /// Force logging of this handler's request spans.
+    bool always_log_request_span{false};
+
     const std::string& GetLowCardinalityRequestPath() const;
 };
 

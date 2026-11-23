@@ -35,6 +35,9 @@ struct ServiceConfig final {
 
     /// The @ref dynamic_config::Source used to serve RPCs for this service.
     dynamic_config::Source config_source;
+
+    /// Force logging of the service's RPC spans. Trace sampling and USERVER_NO_LOG_SPANS still apply.
+    bool always_log_call_spans{false};
 };
 
 /// @brief The type-erased base class for all gRPC service implementations

@@ -9,6 +9,7 @@
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
+#include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,8 +87,11 @@ void ReportFinished(const grpc::Status& status, CallState& state) noexcept {
             span.AddNonInheritableTag(tracing::kErrorMessage, status.error_message());
             const auto default_error_log_level =
                 IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
-            const auto error_log_level =
-                utils::FindOrDefault(state.status_codes_log_level, status.error_code(), default_error_log_level);
+            const auto error_log_level = utils::FindOrDefault(
+                state.tracing_config.status_codes_log_level,
+                status.error_code(),
+                default_error_log_level
+            );
             span.SetLogLevel(error_log_level);
         }
     } catch (const std::exception& ex) {

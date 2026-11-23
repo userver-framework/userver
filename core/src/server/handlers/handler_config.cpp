@@ -107,6 +107,7 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
         value["deadline_expired_status_code"].As<http::HttpStatus>(handler_defaults.deadline_expired_status_code);
 
     config.enable_write_statistics = value["enable_write_statistics"].As<bool>(config.enable_write_statistics);
+    config.always_log_request_span = value["always-log-request-span"].As<bool>(false);
 
     return config;
 }

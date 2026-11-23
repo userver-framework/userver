@@ -12,7 +12,9 @@
 
 #include <userver/ugrpc/impl/to_string.hpp>
 
+#include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/server/impl/service_internals.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +26,7 @@ void ConstructSpan(
     std::optional<tracing::InPlaceSpan>& span_storage,
     std::string_view call_name,
     const grpc::ServerContextBase& server_context,
-    bool otel_sampling_enabled
+    const ServiceTracingConfig& tracing_config
 ) {
     const auto& client_metadata = server_context.client_metadata();
 
@@ -46,7 +48,7 @@ void ConstructSpan(
                 traceparent_data.trace_flags
             );
 
-            if (otel_sampling_enabled) {
+            if (tracing_config.otel_trace_sampling_enabled) {
                 span_storage->Get().SetSampled(
                     (tracing::GetInheritedOtelTraceFlags() & tracing::OtelTraceFlags::kSampled) !=
                     tracing::OtelTraceFlags::kNoTracing
@@ -71,8 +73,13 @@ void ConstructSpan(
         span_storage.emplace(std::string{call_name}, utils::impl::SourceLocation::Current());
     }
 
+    auto& span = span_storage->Get();
+    span.SetSpanForcedWriting(tracing_config.always_log_call_spans);
+    span.AddTag(ugrpc::impl::kComponentTag, "server");
+    span.AddTag("meta_type", std::string{call_name});
+
     if (const auto* const request_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaRequestId)) {
-        span_storage->Get().SetParentLink(ugrpc::impl::ToStringView(*request_id));
+        span.SetParentLink(ugrpc::impl::ToStringView(*request_id));
     }
 }
 
@@ -90,7 +97,7 @@ CallState::CallState(CallParams&& params)
       statistics_scope(method_statistics),
       config_snapshot(config_source.GetSnapshot())
 {
-    ConstructSpan(span, call_name, server_context, otel_trace_sampling_enabled);
+    ConstructSpan(span, call_name, server_context, tracing_config);
     AddServiceMethodTags(span->Get(), service_name, method_name);
 }
 

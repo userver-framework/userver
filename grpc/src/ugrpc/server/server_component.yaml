@@ -85,3 +85,7 @@ properties:
             task-processor:
                 type: string
                 description: the task processor to use for responses
+            always-log-call-spans:
+                type: boolean
+                description: default value of always-log-call-spans for gRPC service components
+                default: false

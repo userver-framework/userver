@@ -155,7 +155,8 @@ Span::Impl::~Impl() {
 
     {
         const impl::DetachLocalSpansScope ignore_local_span;
-        logging::LogHelper lh{logging::GetDefaultLogger(), log_level_, logging::LogClass::kTrace, source_location_};
+        const auto record_level = log_level_ == logging::Level::kNone ? logging::Level::kInfo : log_level_;
+        logging::LogHelper lh{logging::GetDefaultLogger(), record_level, logging::LogClass::kTrace, source_location_};
         std::move(*this).PutIntoLogger(lh.GetTagWriter());
     }
 }
@@ -230,6 +231,12 @@ std::string_view Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
 bool Span::Impl::ShouldLogDefault() const { return is_sampled_ && ShouldLogAtLevel(); }
 
 bool Span::Impl::ShouldLogAtLevel() const {
+    if (is_no_log_span_) {
+        return false;
+    }
+    if (span_writing_forced_) {
+        return true;
+    }
     /* We must honour default log level, but use span's level from ourselves,
      * not the previous spans.
      * If local_log_level is set, it overrides the global level in both
@@ -411,6 +418,12 @@ logging::Level Span::GetLogLevel() const noexcept { return pimpl_->log_level_; }
 void Span::SetLocalLogLevel(std::optional<logging::Level> log_level) noexcept { pimpl_->local_log_level_ = log_level; }
 
 std::optional<logging::Level> Span::GetLocalLogLevel() const noexcept { return pimpl_->local_log_level_; }
+
+void Span::SetSpanForcedWriting(bool span_writing_forced) noexcept {
+    pimpl_->span_writing_forced_ = span_writing_forced;
+}
+
+bool Span::IsSpanForcedWriting() const noexcept { return pimpl_->span_writing_forced_; }
 
 void Span::AddTag(std::string key, logging::LogExtra::Value value) {
     pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value));

@@ -6,6 +6,11 @@ properties:
         type: string
         description: the task processor to use for responses
         default: uses grpc-server.service-defaults.task-processor
+    always-log-call-spans:
+        type: boolean
+        description: |
+            Write RPC spans regardless of log levels. Trace sampling and USERVER_NO_LOG_SPANS still apply.
+            Defaults to the value from grpc-server.service-defaults.always-log-call-spans.
     status-codes-log-level:
         type: object
         properties: {}

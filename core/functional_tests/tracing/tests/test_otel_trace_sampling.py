@@ -134,6 +134,25 @@ async def test_response_diagnostics_follow_final_sampling(
         assert spans[0]['body'] == body
 
 
+@pytest.mark.uservice_oneshot(config_hooks=['enable_always_log_request_span'])
+async def test_always_log_request_span(service_client, mockserver):
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def upstream(request):
+        return mockserver.make_response()
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            headers=SAMPLED_HEADERS,
+            params={'local_log_level': 'warning'},
+        )
+
+    assert response.status_code == 200
+    spans = capture.select(trace_id=SAMPLED_TRACE_ID, stopwatch_name='GET /echo-no-body')
+    assert len(spans) == 1
+    assert spans[0]['level'] == 'INFO'
+
+
 async def test_error_response_diagnostics_use_final_log_level(service_client, mockserver, dynamic_config):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def upstream(request):

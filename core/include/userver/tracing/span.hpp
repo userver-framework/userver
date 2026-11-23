@@ -214,6 +214,22 @@ public:
     /// See @ref tracing::Span::SetLocalLogLevel.
     std::optional<logging::Level> GetLocalLogLevel() const noexcept;
 
+    /// @brief Forces the current span itself to be written into the tracing system.
+    ///
+    /// The span is written even if its @ref tracing::Span::SetLogLevel "log level",
+    /// @ref tracing::Span::SetLocalLogLevel "local log level", the global span log level, or the default logger level
+    /// would suppress it. A span with logging::Level::kNone is written with logging::Level::kInfo.
+    /// Trace sampling and @ref USERVER_NO_LOG_SPANS still apply.
+    ///
+    /// When logging is enabled for this span, child spans and logs created after the call refer to its ID,
+    /// see @ref tracing::Span::GetSpanIdForChildLogs. Set it right after creating the span.
+    ///
+    /// Not inherited by child spans.
+    void SetSpanForcedWriting(bool span_writing_forced) noexcept;
+
+    /// See @ref tracing::Span::SetSpanForcedWriting.
+    bool IsSpanForcedWriting() const noexcept;
+
     /// Set link - a request ID within a service. Can be called only once.
     ///
     /// Propagates within a single service, but not from client to server. A new

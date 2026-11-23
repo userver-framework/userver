@@ -90,6 +90,7 @@ private:
     logging::Level log_level_;
     std::optional<logging::Level> local_log_level_;
     bool is_sampled_{true};
+    bool span_writing_forced_{false};
     const ReferenceType reference_type_;
     const utils::impl::SourceLocation source_location_;
 

@@ -86,21 +86,11 @@ Use `ERROR` for critical errors:
 
 Use `CRITICAL` optionally for service-scale critical errors.
 
+@anchor logging_level
 ### Filter to the log level
 
 Not all logs get into the log file, but only those that are not lower than the logger's log level. The logger log level
 is set in static config (see components::Logging).
-
-The `span-log-level` option of components::Logging sets the minimum log level for span completion records independently
-of application logs. When omitted, spans use the default logger's level. The option applies before components derived
-from components::ComponentBase are constructed, including when `loggers` is empty.
-
-```yaml
-components_manager:
-    components:
-        logging:
-            span-log-level: info
-```
 
 The log level can be changed in the static config for a particular handle. In this case, the log level of the logger
 is changed only for the request handling task of the handle and for all the subtasks:
@@ -519,6 +509,40 @@ with tracing::Format::kYandexTaxi the following headers would be used:
 X-YaRequestId
 X-YaSpanId
 X-YaTraceId
+```
+
+### Span log level and forced writing
+
+Each span has a log level, which defaults to `INFO`. Use @ref tracing::Span::SetLogLevel to change it.
+By default, userver writes span completion records at or above the @ref logging_level "default logger's level".
+
+Set `span-log-level` in components::Logging to use a separate minimum level for span completion records.
+This option applies before components derived from components::ComponentBase are constructed, including when
+`loggers` is empty.
+
+```yaml
+components_manager:
+    components:
+        logging:
+            span-log-level: info
+```
+
+Use @ref tracing::Span::SetSpanForcedWriting to write a particular span regardless of log level filters.
+Trace sampling and @ref USERVER_NO_LOG_SPANS still apply. If the span is written, subsequent logs and child spans
+refer to its `span_id`.
+
+For HTTP request spans, enable the tracing middleware and set `always-log-request-span: true` in the handler's
+static config.
+
+For gRPC call spans, set `always-log-call-spans: true` on the @ref ugrpc::server::ServiceComponentBase component
+or set the default for all services of a @ref ugrpc::server::ServerComponent:
+
+```yaml
+components_manager:
+    components:
+        grpc-server:
+            service-defaults:
+                always-log-call-spans: true
 ```
 
 ### Selectively disabling Span logging

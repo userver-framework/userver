@@ -185,3 +185,36 @@ async def test_grpc_trace_sampled_log_field(
     expected_log_flag = str(int(expected_sampled))
     assert all(entry.get('trace_sampled') == expected_log_flag for entry in trace_logs)
     assert any('stopwatch_name' in entry for entry in trace_logs) == expected_sampled
+
+
+@pytest.mark.parametrize(
+    'expect_server_span_id',
+    [
+        pytest.param(
+            True,
+            id='server-default',
+            marks=pytest.mark.uservice_oneshot(config_hooks=['force_server_call_spans']),
+        ),
+        pytest.param(
+            False,
+            id='service-override',
+            marks=pytest.mark.uservice_oneshot(
+                config_hooks=['force_server_call_spans', 'disable_greeter_call_spans'],
+            ),
+        ),
+    ],
+)
+async def test_grpc_force_call_span_config(grpc_client, mockserver, expect_server_span_id):
+    outgoing_span_id = None
+
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def upstream(request):
+        nonlocal outgoing_span_id
+        outgoing_span_id = request.headers['traceparent'].split('-')[2]
+        return mockserver.make_response()
+
+    request = greeter_pb2.GreetingRequest(name='test')
+    response = await grpc_client.CallEchoNobody(request, metadata=[('traceparent', SAMPLED_TRACEPARENT)])
+    assert response.greeting == 'Call Echo Nobody'
+    assert outgoing_span_id
+    assert (outgoing_span_id != SAMPLED_TRACEPARENT.split('-')[2]) == expect_server_span_id

@@ -24,6 +24,7 @@ namespace ugrpc::server::impl {
 namespace {
 
 constexpr std::string_view kTaskProcessorKey = "task-processor";
+constexpr std::string_view kAlwaysLogCallSpansKey = "always-log-call-spans";
 constexpr std::string_view kStatusCodesLogLevelKey = "status-codes-log-level";
 
 template <typename ParserFunc>
@@ -82,6 +83,7 @@ ServiceDefaults ParseServiceDefaults(
 ) {
     return ServiceDefaults{
         .task_processor = ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
+        .always_log_call_spans = value[kAlwaysLogCallSpansKey].As<bool>(false),
     };
 }
 
@@ -97,6 +99,7 @@ server::ServiceConfig ParseServiceConfig(
         .status_codes_log_level =
             value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
         .config_source = context.FindComponent<components::DynamicConfig>().GetSource(),
+        .always_log_call_spans = value[kAlwaysLogCallSpansKey].As<bool>(defaults.always_log_call_spans),
     };
 }
 

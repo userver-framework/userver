@@ -20,6 +20,12 @@ namespace ugrpc::server::impl {
 
 class CompletionQueuePool;
 
+struct ServiceTracingConfig final {
+    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
+    bool otel_trace_sampling_enabled;
+    bool always_log_call_spans;
+};
+
 /// Config for a `ServiceWorker`, provided by `ugrpc::server::Server`
 struct ServiceInternals final {
     CompletionQueuePool* completion_queues;
@@ -27,8 +33,7 @@ struct ServiceInternals final {
     ugrpc::impl::StatisticsStorage& statistics_storage;
     Middlewares middlewares;
     const dynamic_config::Source config_source;
-    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
-    bool otel_trace_sampling_enabled;
+    ServiceTracingConfig tracing_config;
     bool use_callback_api;
 };
 
