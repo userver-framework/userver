@@ -28,6 +28,7 @@ RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisG
         config.max_failed_shards = value["max_failed_shards"]["amount"].As<uint32_t>(0);
         config.max_failed_shards_percent = value["max_failed_shards"]["percent"].As<uint32_t>(0);
     }
+    config.refresh_topology_on_primary_unavailable = value["refresh_topology_on_primary_unavailable"].As<bool>(false);
     return config;
 }
 

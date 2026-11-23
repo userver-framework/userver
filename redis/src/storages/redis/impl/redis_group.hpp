@@ -36,6 +36,7 @@ struct RedisGroup {
     std::chrono::seconds max_disconnect_time{kDefaultMaxDisconnectTime};
     bool enable_subscriptions{false};
     bool per_channel_stats_enabled{true};
+    bool refresh_topology_on_primary_unavailable{false};
 };
 
 RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisGroup>);
@@ -83,6 +84,7 @@ struct SentinelStaticConfig {
     ConnectionMode connection_mode{ConnectionMode::kCommands};
     bool per_channel_stats_enabled{true};
     std::optional<CommandControl> subscription_command_control{};
+    bool refresh_topology_on_primary_unavailable{false};
 };
 
 /// @brief Helper: build a SentinelStaticConfig from a RedisGroup.
@@ -110,6 +112,7 @@ inline SentinelStaticConfig MakeSentinelStaticConfig(
         config.subscription_command_control.emplace()
             .allow_reads_from_master = subscribe_group->allow_reads_from_master;
     }
+    config.refresh_topology_on_primary_unavailable = group.refresh_topology_on_primary_unavailable;
     return config;
 }
 

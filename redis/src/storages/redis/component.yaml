@@ -78,6 +78,12 @@ properties:
                     minimum: 0
                     maximum: 1000
                     default: 35
+                refresh_topology_on_primary_unavailable:
+                    type: boolean
+                    description: |
+                        In Sentinel mode, request a rate-limited topology refresh when a primary-targeted command
+                        gets READONLY or cannot be sent to the primary.
+                    default: false
                 max_failed_shards:
                     type: object
                     description: |

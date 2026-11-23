@@ -107,9 +107,11 @@ SentinelTest::SentinelTest(
     int magic_value_add_slave,
     size_t redis_thread_count,
     storages::redis::impl::KeyShardFactory key_shard,
-    std::chrono::seconds max_disconnect_time
+    std::chrono::seconds max_disconnect_time,
+    bool refresh_topology_on_primary_unavailable
 )
     : max_disconnect_time_(max_disconnect_time),
+      refresh_topology_on_primary_unavailable_(refresh_topology_on_primary_unavailable),
       masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(slave_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
@@ -124,7 +126,8 @@ SentinelTest::SentinelTest(
     size_t sentinel_count,
     size_t master_count,
     size_t slave_count,
-    std::chrono::seconds max_disconnect_time
+    std::chrono::seconds max_disconnect_time,
+    bool refresh_topology_on_primary_unavailable
 )
     : SentinelTest(
           sentinel_count,
@@ -134,7 +137,8 @@ SentinelTest::SentinelTest(
           0,
           1,
           {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32},
-          max_disconnect_time
+          max_disconnect_time,
+          refresh_topology_on_primary_unavailable
       )
 {}
 
@@ -159,6 +163,7 @@ void SentinelTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory k
 
     storages::redis::impl::SentinelStaticConfig config{"test_client_name", std::move(key_shard), {}, {}};
     config.max_disconnect_time = max_disconnect_time_;
+    config.refresh_topology_on_primary_unavailable = refresh_topology_on_primary_unavailable_;
     sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_,
         settings,

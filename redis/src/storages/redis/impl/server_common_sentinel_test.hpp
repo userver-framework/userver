@@ -72,14 +72,16 @@ public:
         int magic_value_add_slave = 0,
         size_t redis_thread_count = 1,
         storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32},
-        std::chrono::seconds max_disconnect_time = std::chrono::seconds(35)
+        std::chrono::seconds max_disconnect_time = std::chrono::seconds(35),
+        bool refresh_topology_on_primary_unavailable = false
     );
 
     SentinelTest(
         size_t sentinel_count,
         size_t master_count,
         size_t slave_count,
-        std::chrono::seconds max_disconnect_time
+        std::chrono::seconds max_disconnect_time,
+        bool refresh_topology_on_primary_unavailable = false
     );
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
@@ -104,6 +106,7 @@ private:
 
     const std::string redis_name_{"redis_name"};
     const std::chrono::seconds max_disconnect_time_;
+    const bool refresh_topology_on_primary_unavailable_;
     MockRedisServerArray masters_;
     MockRedisServerArray slaves_;
     MockRedisServerArray sentinels_;

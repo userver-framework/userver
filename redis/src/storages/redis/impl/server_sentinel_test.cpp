@@ -168,6 +168,105 @@ UTEST(Redis, SentinelMastersChanging) {
     }
 }
 
+UTEST(Redis, SentinelReadonlyRefreshesMaster) {
+    const size_t master_count = 2;
+    const size_t slave_count = 0;
+    const size_t sentinel_count = 1;
+    const int magic_value_add = 0;
+
+    for (const bool enabled : {false, true}) {
+        SCOPED_TRACE(enabled);
+        SentinelTest sentinel_test(sentinel_count, master_count, slave_count, std::chrono::seconds::zero(), enabled);
+        auto& sentinel = sentinel_test.SentinelClient();
+
+        auto old_masters_handler = sentinel_test.Sentinel().RegisterSentinelMastersHandler(
+            {{sentinel_test.RedisName(), kLocalhost, sentinel_test.Master().GetPort()}}
+        );
+        const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+        while (old_masters_handler->GetReplyCount() < 2 && !deadline.IsReached()) {
+            engine::SleepFor(std::chrono::milliseconds(10));
+        }
+
+        ASSERT_GE(old_masters_handler->GetReplyCount(), 2);
+        engine::SleepFor(std::chrono::milliseconds(50));
+
+        auto new_masters_handler = sentinel_test.Sentinel().RegisterSentinelMastersHandler(
+            {{sentinel_test.RedisName(), kLocalhost, sentinel_test.Master(1).GetPort()}}
+        );
+        auto readonly_handler = sentinel_test.Master().RegisterErrorReplyHandler("GET", "READONLY replica");
+        storages::redis::CommandControl cc;
+        cc.force_request_to_master = true;
+        cc.max_retries = 1;
+        auto request = MakeGetRequest(sentinel, "value", cc);
+
+        ASSERT_TRUE(readonly_handler->WaitForFirstReply(kSuccessTimeout));
+        EXPECT_TRUE(request.Get()->IsReadonlyError());
+        if (enabled) {
+            ASSERT_TRUE(new_masters_handler->WaitForFirstReply(std::chrono::milliseconds(1500)));
+            ASSERT_TRUE(sentinel_test.Master(1).WaitForFirstPingReply(kSuccessTimeout));
+            ASSERT_TRUE(CheckMasterChanged(sentinel, 1, magic_value_add));
+        } else {
+            EXPECT_FALSE(new_masters_handler->WaitForFirstReply(kSentinelChangeHostsWaitingTime));
+        }
+    }
+}
+
+UTEST(Redis, SentinelUnavailableMasterRefreshesTopology) {
+    const size_t master_count = 2;
+    const size_t slave_count = 0;
+    const size_t sentinel_count = 1;
+    const int magic_value_add = 0;
+    const bool enabled = true;
+    SentinelTest sentinel_test(sentinel_count, master_count, slave_count, std::chrono::seconds::zero(), enabled);
+    auto& sentinel = sentinel_test.SentinelClient();
+
+    const auto old_master_port = sentinel_test.Master().GetPort();
+    sentinel_test.Masters().at(0).reset();
+    const storages::redis::HealthCheckParams health{storages::redis::WaitConnectedMode::kMaster};
+    const auto disconnect_deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+    while (sentinel.IsReady(health) && !disconnect_deadline.IsReached()) {
+        engine::SleepFor(std::chrono::milliseconds(10));
+    }
+
+    ASSERT_FALSE(sentinel.IsReady(health));
+    auto old_masters_handler =
+        sentinel_test.Sentinel()
+            .RegisterSentinelMastersHandler({{sentinel_test.RedisName(), kLocalhost, old_master_port}});
+    const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+    while (old_masters_handler->GetReplyCount() < 2 && !deadline.IsReached()) {
+        engine::SleepFor(std::chrono::milliseconds(10));
+    }
+
+    ASSERT_GE(old_masters_handler->GetReplyCount(), 2);
+    engine::SleepFor(std::chrono::milliseconds(50));
+    const auto old_reply_count = old_masters_handler->GetReplyCount();
+    storages::redis::CommandControl cc;
+    cc.force_request_to_master = true;
+    cc.max_retries = 1;
+    cc.timeout_all = std::chrono::milliseconds(100);
+    cc.timeout_single = std::chrono::milliseconds(100);
+    auto first_request = MakeGetRequest(sentinel, "value", cc);
+    static_cast<void>(first_request.Get());
+
+    const auto refresh_deadline = engine::Deadline::FromDuration(std::chrono::milliseconds(1500));
+    while (old_masters_handler->GetReplyCount() == old_reply_count && !refresh_deadline.IsReached()) {
+        engine::SleepFor(std::chrono::milliseconds(10));
+    }
+
+    ASSERT_GT(old_masters_handler->GetReplyCount(), old_reply_count);
+    engine::SleepFor(std::chrono::milliseconds(300));
+    const auto new_master_port = sentinel_test.Master(1).GetPort();
+    auto new_masters_handler =
+        sentinel_test.Sentinel()
+            .RegisterSentinelMastersHandler({{sentinel_test.RedisName(), kLocalhost, new_master_port}});
+    auto second_request = MakeGetRequest(sentinel, "value", cc);
+    static_cast<void>(second_request.Get());
+
+    ASSERT_TRUE(new_masters_handler->WaitForFirstReply(std::chrono::milliseconds(1500)));
+    ASSERT_TRUE(sentinel_test.Master(1).WaitForFirstPingReply(kSuccessTimeout));
+    ASSERT_TRUE(CheckMasterChanged(sentinel, 1, magic_value_add));
+}
+
 UTEST(Redis, SentinelMastersChangingErrors) {
     const size_t master_count = 5;
     const size_t slave_count = 0;

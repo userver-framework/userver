@@ -288,6 +288,11 @@ SentinelImpl::SentinelImpl(
             );
         }
 
+        if (creation_config.refresh_topology_on_primary_unavailable) {
+            const utils::TokenBucket::RefillPolicy policy{.amount = 1, .interval = std::chrono::milliseconds(250)};
+            topology_refresh_limit_.emplace(1, policy);
+        }
+
         return std::make_unique<SentinelTopologyHolder>(
             ev_thread_,
             redis_thread_pool,
@@ -420,6 +425,11 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
                     << " movedto:" << ParseMovedShard(reply->data.GetError()) << " args:" << ccommand->args;
                 this->topology_holder_->SendUpdateClusterTopology();
             }
+
+            if (topology_refresh_limit_ && master && reply->IsReadonlyError()) {
+                RequestSentinelTopologyUpdate();
+            }
+
             const bool retry_to_master =
                 !master && reply->data.IsNil() && command->control.force_retries_to_master_on_nil_reply;
             const auto retry_outcome = ClassifyReplyForRetry(*reply);
@@ -518,9 +528,21 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
     const auto topology = topology_holder_->GetTopology();
     const auto& master_shard = topology->GetClusterShardByIndex(shard);
     if (!master_shard.AsyncCommand(command_check_errors)) {
+        if (topology_refresh_limit_ && master) {
+            RequestSentinelTopologyUpdate();
+        }
+
         scommand.command->args = std::move(command_check_errors->args);
         AsyncCommandFailed(scommand);
         return;
+    }
+}
+
+void SentinelImpl::RequestSentinelTopologyUpdate() {
+    if (!delete_started_ && topology_refresh_limit_->Obtain()) {
+        // The holder may drop this request if a refresh is already in progress.
+        // Periodic polling still runs.
+        topology_holder_->SendUpdateClusterTopology();
     }
 }
 

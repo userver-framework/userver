@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <limits>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -16,6 +17,7 @@
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/swappingsmart.hpp>
+#include <userver/utils/token_bucket.hpp>
 
 #include <storages/redis/impl/connection_kind.hpp>
 #include <storages/redis/impl/keyshard.hpp>
@@ -115,6 +117,7 @@ private:
     void Init();  // used from constructor
 
     void AsyncCommandFailed(const SentinelCommand& scommand);
+    void RequestSentinelTopologyUpdate();
     bool EnqueueCommand(SentinelCommand command);
     bool StartClosingCommandQueue();
     void WaitForCommandProducers() const noexcept;
@@ -134,6 +137,7 @@ private:
     void ProcessWaitingCommandsOnStop();
 
     std::unique_ptr<TopologyHolderBase> topology_holder_;
+    std::optional<utils::TokenBucket> topology_refresh_limit_;
     const KeyShardFactory key_shard_factory_;
     const std::unique_ptr<KeyShard> key_shard_;
     std::atomic<int> publish_shard_{0};
