@@ -14,6 +14,7 @@
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/kafka/exceptions.hpp>
+#include <userver/kafka/impl/consumer_params.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
@@ -654,6 +655,25 @@ UTEST_F(ConsumerTest, SeekOfUnknownPartitionThrows) {
     seek_completed.Wait();
     ASSERT_EQ(received_messages.size(), messages.size());
     EXPECT_EQ(received_messages[0].key, messages[0].key);
+}
+
+UTEST_F(ConsumerTest, MultiSeekReportsFailedPartition) {
+    const auto topic = GenerateTopic(/*partition_cnt=*/1);
+    const std::array messages{kafka::utest::Message{.topic = topic, .key = "key", .payload = "value", .partition = 0}};
+    SendMessages(messages);
+
+    engine::SingleConsumerEvent message_received;
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+    auto consumer_scope = consumer.MakeConsumerScope();
+    consumer_scope.Start([&](kafka::MessageBatchView) { message_received.Send(); });
+    ASSERT_TRUE(message_received.WaitForEventFor(utest::kMaxTestWaitTime));
+
+    const std::array seeks{
+        kafka::impl::SeekParams{.topic = topic, .partition_id = 0, .offset = 0},
+        kafka::impl::SeekParams{.topic = topic, .partition_id = 1, .offset = 0},
+    };
+    UEXPECT_THROW_MSG(consumer.MultiSeek(seeks, utest::kMaxTestWaitTime), kafka::SeekException, "partition 1");
+    EXPECT_TRUE(message_received.WaitForEventFor(utest::kMaxTestWaitTime));
 }
 
 UTEST_F(ConsumerTest, ConsumerRecreatesAfterFatalLibrdkafkaError) {

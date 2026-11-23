@@ -88,6 +88,7 @@ public:
     ) const;
 
     /// @brief Seeks multiple topic partitions to the given offsets in one call.
+    /// @throws SeekException if the call or any partition seek fails. Other partitions may already have moved.
     /// @param params Topic, partition_id and offset for each seek.
     /// @param timeout Timeout for the operation.
     void MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const;

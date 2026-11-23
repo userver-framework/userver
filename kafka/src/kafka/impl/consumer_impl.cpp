@@ -917,19 +917,29 @@ void ConsumerImpl::SeekToOffsets(utils::span<const SeekParams> params, std::chro
         );
     });
 
-    const ErrorHolder err{
-        rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline))
+    const int timeout_ms = std::max(ToRdKafkaTimeout(deadline), kMinSynchronousSeekTimeoutMs);
+    const ErrorHolder err{rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), timeout_ms)
     };
-    if (!err) {
-        LOG_INFO("MultiSeek: sought {} partition(s) successfully", params.size());
-        return;
+    if (err) {
+        throw SeekException(fmt::format(
+            "Failed to multi-seek {} partition(s). err: {}",
+            params.size(),
+            rd_kafka_error_string(err.GetHandle())
+        ));
     }
 
-    throw SeekException(fmt::format(
-        "Failed to multi-seek {} partition(s). err: {}",
-        params.size(),
-        rd_kafka_error_string(err.GetHandle())
-    ));
+    for (const auto& partition : utils::span{topic_partitions_list->elems, params.size()}) {
+        if (partition.err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+            throw SeekException(fmt::format(
+                "Failed to seek topic '{}' partition {} to offset {}: {}",
+                partition.topic,
+                partition.partition,
+                partition.offset,
+                rd_kafka_err2str(partition.err)
+            ));
+        }
+    }
+    LOG_DEBUG("MultiSeek: sought {} partition(s) successfully", params.size());
 }
 
 void ConsumerImpl::SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
