@@ -6996,6 +6996,7 @@
   "universal/src/utils/strong_typedef_test.cpp":"taxi/uservices/userver/universal/src/utils/strong_typedef_test.cpp",
   "universal/src/utils/struct_subsets_test.cpp":"taxi/uservices/userver/universal/src/utils/struct_subsets_test.cpp",
   "universal/src/utils/text_light.cpp":"taxi/uservices/userver/universal/src/utils/text_light.cpp",
+  "universal/src/utils/text_light_benchmark.cpp":"taxi/uservices/userver/universal/src/utils/text_light_benchmark.cpp",
   "universal/src/utils/text_light_test.cpp":"taxi/uservices/userver/universal/src/utils/text_light_test.cpp",
   "universal/src/utils/third_party_ugly.hpp":"taxi/uservices/userver/universal/src/utils/third_party_ugly.hpp",
   "universal/src/utils/thread_name.cpp":"taxi/uservices/userver/universal/src/utils/thread_name.cpp",
