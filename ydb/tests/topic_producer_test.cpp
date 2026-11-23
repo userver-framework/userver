@@ -40,6 +40,10 @@ NYdb::NTopic::TWriteResult MakeWriteResult(NYdb::NTopic::EWriteStatus status) {
     return NYdb::NTopic::TWriteResult{.Status = status, .ClosedDescription = {}};
 }
 
+NYdb::NTopic::TCloseResult MakeCloseResult(NYdb::NTopic::ECloseStatus status) {
+    return NYdb::NTopic::TCloseResult{.Status = status, .ClosedDescription = {}};
+}
+
 UTEST(TopicProducer, WriteForwardsQueued) {
     auto native_producer = std::make_shared<ProducerMock>();
     ydb::TopicProducer producer{utils::impl::InternalTag{}, native_producer, std::chrono::milliseconds::zero()};
@@ -56,7 +60,7 @@ UTEST(TopicProducer, DestructorClosesWithConfiguredTimeoutOnBlockingTaskProcesso
     EXPECT_CALL(*native_producer, Close(TDuration::MilliSeconds(close_timeout.count())))
         .WillOnce([&blocking_task_processor](TDuration) {
             EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &blocking_task_processor);
-            return NYdb::NTopic::TCloseResult{.Status = NYdb::NTopic::ECloseStatus::Success};
+            return MakeCloseResult(NYdb::NTopic::ECloseStatus::Success);
         });
 
     ydb::TopicProducer producer{utils::impl::InternalTag{}, native_producer, close_timeout};
@@ -67,7 +71,7 @@ UTEST(TopicProducer, ExplicitCloseIsNotRepeated) {
     const auto close_timeout = std::chrono::milliseconds{123};
 
     EXPECT_CALL(*native_producer, Close(TDuration::MilliSeconds(close_timeout.count())))
-        .WillOnce(Return(NYdb::NTopic::TCloseResult{.Status = NYdb::NTopic::ECloseStatus::Success}));
+        .WillOnce(Return(MakeCloseResult(NYdb::NTopic::ECloseStatus::Success)));
 
     ydb::TopicProducer producer{utils::impl::InternalTag{}, native_producer, std::chrono::milliseconds::zero()};
     EXPECT_TRUE(producer.Close(close_timeout).IsSuccess());
@@ -87,7 +91,7 @@ UTEST(TopicProducer, MoveTransfersCloseOwnership) {
     ASSERT_TRUE(::testing::Mock::VerifyAndClearExpectations(native_producer.get()));
 
     EXPECT_CALL(*native_producer, Close(TDuration::MilliSeconds(close_timeout.count())))
-        .WillOnce(Return(NYdb::NTopic::TCloseResult{.Status = NYdb::NTopic::ECloseStatus::Success}));
+        .WillOnce(Return(MakeCloseResult(NYdb::NTopic::ECloseStatus::Success)));
     moved_producer.reset();
 }
 
@@ -98,7 +102,7 @@ UTEST(TopicProducer, ExplicitCloseRunsOnBlockingTaskProcessor) {
     EXPECT_CALL(*native_producer, Close(TDuration::MilliSeconds(close_timeout.count())))
         .WillOnce([&blocking_task_processor](TDuration) {
             EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &blocking_task_processor);
-            return NYdb::NTopic::TCloseResult{.Status = NYdb::NTopic::ECloseStatus::Success};
+            return MakeCloseResult(NYdb::NTopic::ECloseStatus::Success);
         });
 
     ydb::TopicProducer producer{utils::impl::InternalTag{}, native_producer, close_timeout};
@@ -110,7 +114,7 @@ UTEST(TopicProducer, CloseCompletesDespiteCallerCancellation) {
         auto native_producer = std::make_shared<StrictMock<ProducerMock>>();
         const auto close_timeout = std::chrono::milliseconds{123};
         EXPECT_CALL(*native_producer, Close(TDuration::MilliSeconds(close_timeout.count())))
-            .WillOnce(Return(NYdb::NTopic::TCloseResult{.Status = NYdb::NTopic::ECloseStatus::Success}));
+            .WillOnce(Return(MakeCloseResult(NYdb::NTopic::ECloseStatus::Success)));
 
         ydb::TopicProducer producer{utils::impl::InternalTag{}, native_producer, close_timeout};
         engine::current_task::RequestCancel();
