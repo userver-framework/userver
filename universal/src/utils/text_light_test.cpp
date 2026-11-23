@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <climits>
+#include <cstdint>
 
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -11,6 +12,12 @@ USERVER_NAMESPACE_BEGIN
 
 using utils::encoding::ToHex;
 using utils::text::RemoveQuotes;
+
+namespace {
+
+constexpr std::size_t kMaxAsciiPrefixSize = 80;
+
+}  // namespace
 
 TEST(RemoveQuotes, One) {
     EXPECT_STREQ("", RemoveQuotes("").c_str());
@@ -354,6 +361,57 @@ TEST(GetCodePointsCountTest, All) {
     ASSERT_EQ(5U, GetCodePointsCount("Антон"));
     ASSERT_EQ(11U, GetCodePointsCount("Антон anton"));
     UEXPECT_THROW(GetCodePointsCount("Ант" + bad + "он"), std::runtime_error);
+}
+
+TEST(GetCodePointsCountTest, AsciiBoundariesAndAlignment) {
+    using utils::text::utf8::GetCodePointsCount;
+    for (std::size_t size = 0; size <= kMaxAsciiPrefixSize; ++size) {
+        for (std::size_t offset = 0; offset < sizeof(std::uint64_t); ++offset) {
+            const std::string storage(size + offset, 'a');
+            EXPECT_EQ(size, GetCodePointsCount(std::string_view{storage}.substr(offset)));
+        }
+        EXPECT_EQ(size, GetCodePointsCount(std::string(size, '\0')));
+    }
+}
+
+TEST(GetCodePointsCountTest, Utf8AfterAsciiPrefix) {
+    using utils::text::utf8::GetCodePointsCount;
+    for (std::size_t size = 0; size <= kMaxAsciiPrefixSize; ++size) {
+        const std::string prefix(size, 'a');
+        EXPECT_EQ(size + 6, GetCodePointsCount(prefix + "\xc2\x80\xdf\xbfАн\xe2\x82\xac\xf0\x9f\x98\x80"));
+        EXPECT_EQ(size + 7, GetCodePointsCount(prefix + "Антон a"));
+    }
+}
+
+TEST(GetCodePointsCountTest, InvalidSuffixAfterFastPaths) {
+    using utils::text::utf8::GetCodePointsCount;
+    for (std::size_t size = 0; size <= kMaxAsciiPrefixSize; ++size) {
+        for (const std::string_view valid_suffix : {"", "Антон", "\xc2\x80\xdf\xbf"}) {
+            const auto prefix = std::string(size, 'a') + std::string(valid_suffix);
+            for (const std::string_view invalid :
+                 {"\x80",
+                  "\xc0\x80",
+                  "\xc1\xbf",
+                  "\xc2",
+                  "\xc2x",
+                  "\xdf",
+                  "\xdf\xff",
+                  "\xe0\x80\x80",
+                  "\xed\xa0\x80",
+                  "\xe2\x82",
+                  "\xf0\x80\x80\x80",
+                  "\xf4\x90\x80\x80",
+                  "\xf0\x9f\x98",
+                  "\xff"})
+            {
+                UEXPECT_THROW_MSG(
+                    GetCodePointsCount(prefix + std::string(invalid)),
+                    std::runtime_error,
+                    "GetCodePointsCount: text is not in utf-8"
+                );
+            }
+        }
+    }
 }
 
 TEST(CheckIsCString, IsCString) {

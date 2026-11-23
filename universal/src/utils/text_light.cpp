@@ -4,6 +4,8 @@
 #include <array>
 #include <cctype>
 #include <climits>
+#include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
 #include <unordered_map>
@@ -119,9 +121,37 @@ bool IsAsciiSpace(char ch) noexcept {
     return false;
 }
 
-bool IsAscii(std::string_view text) noexcept {
-    return std::ranges::all_of(text, [](auto ch) { return IsAscii(ch); });
+namespace {
+
+std::size_t CountAsciiCodePoints(std::string_view text) noexcept {
+    constexpr std::uint64_t kHighBits = UINT64_C(0x8080808080808080);
+    constexpr auto kWordSize = sizeof(std::uint64_t);
+    auto load_word = [](const char* data) noexcept {
+        std::uint64_t word;
+        std::memcpy(&word, data, sizeof(word));
+        return word;
+    };
+
+    std::size_t offset = 0;
+    while (text.size() - offset >= 2 * kWordSize) {
+        const auto* data = text.data() + offset;
+        if ((load_word(data) | load_word(data + kWordSize)) & kHighBits) {
+            break;
+        }
+        offset += 2 * kWordSize;
+    }
+    if (text.size() - offset >= kWordSize && !(load_word(text.data() + offset) & kHighBits)) {
+        offset += kWordSize;
+    }
+    while (offset < text.size() && IsAscii(text[offset])) {
+        ++offset;
+    }
+    return offset;
 }
+
+}  // namespace
+
+bool IsAscii(std::string_view text) noexcept { return CountAsciiCodePoints(text) == text.size(); }
 
 namespace utf8 {
 
@@ -180,6 +210,16 @@ bool IsValidBytes(std::string_view bytes, const InclusiveRange (&range)[Rows][Co
     }
 
     return false;
+}
+
+template <std::size_t Rows, std::size_t Width>
+std::size_t CountCodePointRun(std::string_view text, const InclusiveRange (&ranges)[Rows][Width]) noexcept {
+    std::size_t count = 0;
+    while (text.size() >= Width && IsValidBytes(text, ranges)) {
+        text.remove_prefix(Width);
+        ++count;
+    }
+    return count;
 }
 
 size_t FindTruncatedEndingCorrectSize(std::string_view str) {
@@ -275,13 +315,29 @@ bool IsValid(std::string_view text) noexcept {
 }
 
 std::size_t GetCodePointsCount(std::string_view text) {
-    const auto size = text.size();
     std::size_t count = 0;
-    for (std::size_t i = 0; i < size; i += CodePointLengthByFirstByte(text[i])) {
-        if (!IsWellFormedCodePoint(text.substr(i))) {
+    while (!text.empty()) {
+        const auto width = CodePointLengthByFirstByte(text.front());
+        std::size_t run = 0;
+        switch (width) {
+            case 1:
+                run = CountAsciiCodePoints(text);
+                break;
+            case 2:
+                run = CountCodePointRun(text, kWellFormed2Bytes);
+                break;
+            case 3:
+                run = CountCodePointRun(text, kWellFormed3Bytes);
+                break;
+            case 4:
+                run = CountCodePointRun(text, kWellFormed4Bytes);
+                break;
+        }
+        if (run == 0) {
             throw std::runtime_error("GetCodePointsCount: text is not in utf-8");
         }
-        count++;
+        text.remove_prefix(run * width);
+        count += run;
     }
     return count;
 }
