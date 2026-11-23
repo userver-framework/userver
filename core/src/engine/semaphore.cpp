@@ -177,7 +177,7 @@ CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(const Counte
     bool success = false;
 
     while (expected <= capacity - count && !success) {
-        success = acquired_locks_.compare_exchange_weak(expected, expected + count, std::memory_order_relaxed);
+        success = acquired_locks_.compare_exchange_weak(expected, expected + count, std::memory_order_acquire);
     }
 
     return success ? TryLockStatus::kSuccess : TryLockStatus::kTransientFailure;

@@ -15,6 +15,27 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(Semaphore, Ctr) { const engine::Semaphore s{100}; }
 
+UTEST_MT(Semaphore, PublishesProtectedData, 2) {
+    engine::Semaphore semaphore{1};
+    int counter = 0;
+    constexpr int kIncrementsPerTask = 1000;
+    auto increment = [&] {
+        for (int i = 0; i < kIncrementsPerTask; ++i) {
+            while (!semaphore.try_lock_shared()) {
+                engine::Yield();
+            }
+            const utils::FastScopeGuard unlock([&]() noexcept { semaphore.unlock_shared(); });
+            ++counter;
+        }
+    };
+
+    auto task = engine::AsyncNoTracing(increment);
+    increment();
+    task.Get();
+
+    EXPECT_EQ(counter, 2 * kIncrementsPerTask);
+}
+
 UTEST(Semaphore, OnePass) {
     engine::Semaphore s{1};
     auto task = engine::AsyncNoTracing([&s]() { const std::shared_lock guard{s}; });
