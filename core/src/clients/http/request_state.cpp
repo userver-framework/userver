@@ -504,18 +504,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
         holder->response()->SetStatusCode(Status::kInternalServerError);
     }
 
-    // TODO don't swallow errors, report them to StreamedResponse
-    auto* stream_data = std::get_if<StreamData>(&holder->data_);
-    if (stream_data && !stream_data->headers_promise_set.exchange(true)) {
-        LOG_DEBUG() << "Stream API, status code is set (with body)";
-        if (!err) {
-            stream_data->headers_promise.set_value();
-        } else {
-            // The task will wake up and may reuse RequestState.
-            auto promise = std::move(stream_data->headers_promise);
-            promise.set_exception(holder->PrepareException(err));
-        }
-    }
+    const auto* stream_data = std::get_if<StreamData>(&holder->data_);
 
     const auto status_code = static_cast<Status>(easy.get_response_code());
 
@@ -578,11 +567,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(holder->PrepareException(err));
             },
-            [](StreamData& stream_data) {
-                auto producer = std::move(stream_data.queue_producer);
-                // The task will wake up and may reuse RequestState.
-                std::move(producer).Reset();
-            },
+            [&holder, &err](StreamData& stream_data) { stream_data.Complete(holder->PrepareException(err)); },
             [&holder, &err](WebSocketHandshakeData& data) {
                 {
                     [[maybe_unused]] const auto cleanup = holder->response_move();
@@ -612,11 +597,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
                 // The task will wake up and may reuse RequestState.
                 promise.set_value(holder->response_move());
             },
-            [](StreamData& stream_data) {
-                auto producer = std::move(stream_data.queue_producer);
-                // The task will wake up and may reuse RequestState.
-                std::move(producer).Reset();
-            },
+            [](StreamData& stream_data) { stream_data.Complete(nullptr); },
             [&holder, &easy](WebSocketHandshakeData& data) {
                 auto promise = std::move(data.promise);
                 // Preamble was drained on the curl thread before multi remove.
@@ -845,6 +826,28 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::imp
     return future;
 }
 
+void RequestState::StreamData::Complete(std::exception_ptr error) {
+    if (!headers_promise_set.exchange(true)) {
+        if (error) {
+            headers_promise.set_exception(error);
+        } else {
+            headers_promise.set_value();
+        }
+    }
+
+    if (error) {
+        body_promise.set_exception(std::move(error));
+    } else {
+        body_promise.set_value();
+    }
+    // ReadChunk must be able to retrieve the result without waiting once the queue is closed.
+    std::move(queue_producer).Reset();
+}
+
+engine::Future<void> RequestState::GetStreamCompletionFuture() {
+    return std::get<StreamData>(data_).body_promise.get_future();
+}
+
 engine::Future<void> RequestState::async_perform_stream(
     const std::shared_ptr<Queue>& queue,
     utils::impl::SourceLocation location
@@ -929,7 +932,7 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
                         utils::Overloaded{
                             [](FullBufferedData& data) { data.promise.set_exception(std::current_exception()); },
                             [](WebSocketHandshakeData& data) { data.promise.set_exception(std::current_exception()); },
-                            [](StreamData&) {},
+                            [](StreamData& data) { data.Complete(std::current_exception()); },
                         },
                         data_
                     );
@@ -1045,13 +1048,7 @@ void RequestState::HandleDeadlineAlreadyPassed() {
             // The task will wake up and may reuse RequestState.
             promise.set_exception(std::move(exc));
         },
-        [&exc](StreamData& stream_data) {
-            if (!stream_data.headers_promise_set.exchange(true)) {
-                auto promise = std::move(stream_data.headers_promise);
-                // The task will wake up and may reuse RequestState.
-                promise.set_exception(std::move(exc));
-            }
-        },
+        [&exc](StreamData& stream_data) { stream_data.Complete(std::move(exc)); },
         [&exc](WebSocketHandshakeData& data) {
             auto promise = std::move(data.promise);
             promise.set_exception(std::move(exc));

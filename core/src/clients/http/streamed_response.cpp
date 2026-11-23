@@ -6,6 +6,7 @@
 #include <clients/http/request_state.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,6 +28,7 @@ StreamedResponse::StreamedResponse(
     : request_state_(std::move(request_state)),
       deadline_(std::min(ComputeBaseDeadline(*request_state_), request_state_->GetDeadline())),
       headers_future_(std::move(headers_future)),
+      body_future_(request_state_->GetStreamCompletionFuture()),
       queue_consumer_(std::move(queue_consumer))
 {}
 
@@ -85,7 +87,29 @@ const Response::CookiesMap& StreamedResponse::GetCookies() {
 bool StreamedResponse::ReadChunk(std::string& output, engine::Deadline deadline) {
     WaitForHeadersOrThrow(deadline_);
 
-    return queue_consumer_->Pop(output, deadline);
+    if (queue_consumer_->Pop(output, deadline)) {
+        return true;
+    }
+    if (!queue_consumer_->Queue()->NoMoreProducers()) {
+        return false;
+    }
+    // Pop may have timed out just before the producer queued its final chunk and closed the queue.
+    if (queue_consumer_->PopNoblock(output)) {
+        return true;
+    }
+
+    if (body_future_.valid()) {
+        UASSERT(body_future_.is_ready());
+        try {
+            body_future_.get();
+        } catch (...) {
+            body_error_ = std::current_exception();
+        }
+    }
+    if (body_error_) {
+        std::rethrow_exception(body_error_);
+    }
+    return false;
 }
 
 }  // namespace clients::http

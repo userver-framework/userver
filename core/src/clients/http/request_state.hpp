@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
@@ -73,6 +74,8 @@ public:
         const std::shared_ptr<Queue>& queue,
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );
+
+    engine::Future<void> GetStreamCompletionFuture();
 
     engine::Future<WebSocketResponse> async_perform_websocket_handshake(
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
@@ -288,9 +291,12 @@ private:
             : queue_producer(std::move(queue_producer))
         {}
 
+        void Complete(std::exception_ptr error);
+
         Queue::Producer queue_producer;
         std::atomic<bool> headers_promise_set{false};
         engine::Promise<void> headers_promise;
+        engine::Promise<void> body_promise;
     };
 
     struct FullBufferedData {

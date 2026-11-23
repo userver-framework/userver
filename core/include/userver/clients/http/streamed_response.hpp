@@ -4,6 +4,7 @@
 /// @brief @copybrief clients::http::StreamedResponse
 
 #include <cstddef>
+#include <exception>
 #include <future>
 #include <memory>
 #include <string>
@@ -51,8 +52,14 @@ public:
 
     using Queue = concurrent::StringStreamQueue;
 
-    /// Read another HTTP response body part into 'output'. Any previous data in 'output' is dropped.
-    /// @returns true if data was successfully received in 'output' before current task cancellation and 'deadline'.
+    /// @brief Read another HTTP response body part into 'output'. Any previous data in 'output' is dropped.
+    /// @returns true if data was successfully received in 'output'; false on normal end of the body
+    /// or if waiting for a body chunk was interrupted by task cancellation or the read deadline.
+    /// @throws clients::http::BaseException if the HTTP transfer fails, including on transfer timeout.
+    /// Already queued body chunks are returned before the transfer error is reported.
+    /// @throws clients::dns::ResolverException if the configured DNS resolver fails before headers are received.
+    /// @note Once headers have been received, a read deadline or task cancellation only interrupts waiting
+    /// for the next body chunk. It does not cancel the HTTP transfer, and reading can be resumed.
     ///
     /// @note The chunk size is not guaranteed to be exactly
     /// multipart/form-data chunk size or any other HTTP-related size
@@ -78,6 +85,8 @@ private:
     engine::Deadline deadline_;
 
     engine::Future<void> headers_future_;
+    engine::Future<void> body_future_;
+    std::exception_ptr body_error_;
 
     static constexpr std::size_t kQueueConsumerSize = 3 * sizeof(void*);
     static constexpr std::size_t kQueueConsumerAlignment = alignof(void*);
