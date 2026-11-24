@@ -11,9 +11,9 @@ option(USERVER_FORCE_DOWNLOAD_OPENSSL "Download OpenSSL even if there is an inst
 
 if(NOT USERVER_FORCE_DOWNLOAD_OPENSSL AND NOT OpenSSL_CPM)
     if(USERVER_DOWNLOAD_PACKAGE_OPENSSL)
-        find_package(OpenSSL)
+        find_package(OpenSSL 1.1)
     else()
-        find_package(OpenSSL REQUIRED)
+        find_package(OpenSSL 1.1 REQUIRED)
     endif()
 
     if(OpenSSL_FOUND)
