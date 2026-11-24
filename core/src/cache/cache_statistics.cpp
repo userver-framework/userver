@@ -44,24 +44,13 @@ void CombineStatistics(
 namespace impl {
 
 void DumpMetric(utils::statistics::Writer& writer, const UpdateStatistics& stats) {
-    // Note about sensor duplication with 'v2' suffix:
-    // We have to duplicate metrics with different sensor name to change
-    // their type to RATE. Unfortunately, we can't change existing metrics
-    // because it will break dashboards/alerts for all current users.
     if (auto update = writer["update"]) {
-        update["attempts_count"] = stats.update_attempt_count.Load().value;
-        update["no_changes_count"] = stats.update_no_changes_count.Load().value;
-        update["failures_count"] = stats.update_failures_count.Load().value;
-        // v2 - please see note above
         update["attempts_count.v2"] = stats.update_attempt_count;
         update["no_changes_count.v2"] = stats.update_no_changes_count;
         update["failures_count.v2"] = stats.update_failures_count;
     }
 
     if (auto documents = writer["documents"]) {
-        documents["read_count"] = stats.documents_read_count.Load().value;
-        documents["parse_failures"] = stats.documents_parse_failures.Load().value;
-        // v2 - please see note above
         documents["read_count.v2"] = stats.documents_read_count;
         documents["parse_failures.v2"] = stats.documents_parse_failures;
     }

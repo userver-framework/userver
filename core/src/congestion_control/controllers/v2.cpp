@@ -19,10 +19,6 @@ void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
     if (stats.current_limit) {
         writer["current-limit"] = stats.current_limit;
     }
-    // "enabled-seconds" is used in production alerts (e.g. hejmdal-mongo-congestion-control) that
-    // still rely on the legacy GAUGE + derivative pattern, so keep emitting the legacy value
-    // alongside the new RATE ".v2" metric until the alerts are migrated.
-    writer["enabled-seconds"] = stats.enabled_epochs.Load().value;
     writer["enabled-seconds"]["v2"] = stats.enabled_epochs;
 }
 

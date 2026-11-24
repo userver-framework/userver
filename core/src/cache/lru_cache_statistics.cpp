@@ -7,15 +7,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
 
-namespace {
-
-void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
-    writer = metric.value;
-    writer["v2"] = metric;
-}
-
-}  // namespace
-
 ExpirableLruCacheStatisticsAggregator ExpirableLruCacheStatisticsBase::Load() const {
     ExpirableLruCacheStatisticsAggregator stats;
     stats.hits = hits.Load();
@@ -55,10 +46,10 @@ void CacheBackgroundUpdate(ExpirableLruCacheStatistics& stats) {
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const ExpirableLruCacheStatisticsBase& stats) {
-    WriteRateAndLegacyMetrics(writer["hits"], stats.hits.Load());
-    WriteRateAndLegacyMetrics(writer["misses"], stats.misses.Load());
-    WriteRateAndLegacyMetrics(writer["stale"], stats.stale.Load());
-    WriteRateAndLegacyMetrics(writer["background-updates"], stats.background_updates.Load());
+    writer["hits"]["v2"] = stats.hits.Load();
+    writer["misses"]["v2"] = stats.misses.Load();
+    writer["stale"]["v2"] = stats.stale.Load();
+    writer["background-updates"]["v2"] = stats.background_updates.Load();
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const ExpirableLruCacheStatistics& stats) {

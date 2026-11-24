@@ -91,7 +91,7 @@ public:
         const utils::FastScopeGuard reset_time([]() noexcept { utils::datetime::MockNowUnset(); });
         Check(component, context, sink);
 
-        EXPECT_EQ(GetMetrics(context).SingleMetric("background-updates").AsInt(), 0);
+        EXPECT_EQ(GetMetrics(context).SingleMetric("background-updates.v2").AsRate().value, 0);
     }
 };
 
@@ -198,9 +198,10 @@ void CheckMetrics(ExplicitAdmissionCache& component, const components::Component
     utils::datetime::MockSleep(std::chrono::ceil<
                                std::chrono::milliseconds>(cache->GetStatistics().recent_hits.GetEpochDuration()));
     const auto metrics = GetMetrics(context);
-    EXPECT_EQ(metrics.SingleMetric("hits").AsInt(), 1);
-    EXPECT_EQ(metrics.SingleMetric("misses").AsInt(), 2);
-    EXPECT_EQ(metrics.SingleMetric("stale").AsInt(), 1);
+    EXPECT_FALSE(metrics.SingleMetricOptional("hits"));
+    EXPECT_FALSE(metrics.SingleMetricOptional("misses"));
+    EXPECT_FALSE(metrics.SingleMetricOptional("stale"));
+    EXPECT_FALSE(metrics.SingleMetricOptional("background-updates"));
     EXPECT_EQ(metrics.SingleMetric("hits.v2").AsRate().value, 1);
     EXPECT_EQ(metrics.SingleMetric("misses.v2").AsRate().value, 2);
     EXPECT_EQ(metrics.SingleMetric("stale.v2").AsRate().value, 1);

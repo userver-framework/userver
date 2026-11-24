@@ -174,10 +174,6 @@ The `current-state` values correspond to the state metrics as follows:
 | `3` | `states.overloaded-no-pressure.v2` |
 | `4` | `states.overloaded-under-pressure.v2` |
 
-For compatibility with existing alerts, `states.overloaded-no-pressure` and
-`states.overloaded-under-pressure` are also exported as legacy GAUGE metrics containing raw cumulative counter values.
-New dashboards and alerts should use their RATE counterparts with the `.v2` suffix.
-
 ## Diagnostics
 
 In case RPS mechanism is triggered it is recommended to ensure that there is no mistake. If RPS triggering coincided

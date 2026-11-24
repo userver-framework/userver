@@ -134,11 +134,6 @@ void PortInfo::Stop() {
 
 bool PortInfo::IsRunning() const noexcept { return request_handler && request_handler->IsAddHandlerDisabled(); }
 
-void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
-    writer = metric.value;
-    writer["v2"] = metric;
-}
-
 void CollectRequestPaths(const PortInfo& info, std::unordered_set<std::string>& paths) {
     if (!info.request_handler) {
         return;
@@ -460,14 +455,14 @@ void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
     const auto server_stats = pimpl_->GetServerStats();
     if (auto conn_stats = writer["connections"]) {
         conn_stats["active"] = server_stats.active_connections;
-        WriteRateAndLegacyMetrics(conn_stats["opened"], server_stats.connections_created);
-        WriteRateAndLegacyMetrics(conn_stats["closed"], server_stats.connections_closed);
+        conn_stats["opened"]["v2"] = server_stats.connections_created;
+        conn_stats["closed"]["v2"] = server_stats.connections_closed;
     }
 
     if (auto request_stats = writer["requests"]) {
         request_stats["active"] = server_stats.active_request_count;
         request_stats["avg-lifetime-ms"] = pimpl_->GetAvgRequestTimeMs().count();
-        WriteRateAndLegacyMetrics(request_stats["processed"], server_stats.requests_processed_count);
+        request_stats["processed"]["v2"] = server_stats.requests_processed_count;
         request_stats["parsing"] = server_stats.parser_stats.parsing_request_count;
 
         if (auto http2_request_stats = request_stats["http2"]) {

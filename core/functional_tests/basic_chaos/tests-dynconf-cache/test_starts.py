@@ -47,7 +47,7 @@ async def test_all_dynconf_updates_failed(
     assert ms_since_last_update_attempt < _INF_DURATION_MS
     assert ms_since_last_update_success > _INF_DURATION_MS
 
-    attempts = snapshot.value_at('cache.any.update.attempts_count')
-    failures = snapshot.value_at('cache.any.update.failures_count')
+    attempts = snapshot.value_at('cache.any.update.attempts_count.v2')
+    failures = snapshot.value_at('cache.any.update.failures_count.v2')
     assert attempts > 0
     assert attempts == failures

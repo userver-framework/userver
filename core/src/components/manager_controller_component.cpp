@@ -14,15 +14,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
-void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
-    writer = metric.value;
-    writer["v2"] = metric;
-}
-
-}  // namespace
-
 namespace engine {
 
 void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& task_processor) {
@@ -33,23 +24,23 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
     const auto stopped = counter.GetStoppedTasks();
 
     if (auto tasks = writer["tasks"]) {
-        WriteRateAndLegacyMetrics(tasks["created"], created);
+        tasks["created"]["v2"] = created;
         tasks["alive"] = (created - std::min(destroyed, created)).value;
         tasks["running"] = counter.GetRunningTasks();
         tasks["queued"] = GetQueueSize(task_processor);
-        WriteRateAndLegacyMetrics(tasks["finished"], stopped);
-        WriteRateAndLegacyMetrics(tasks["cancelled"], counter.GetCancelledTasks());
-        WriteRateAndLegacyMetrics(tasks["cancelled_overload"], counter.GetCancelledTasksOverload());
+        tasks["finished"]["v2"] = stopped;
+        tasks["cancelled"]["v2"] = counter.GetCancelledTasks();
+        tasks["cancelled_overload"]["v2"] = counter.GetCancelledTasksOverload();
     }
 
     writer["errors"].ValueWithLabels(counter.GetTasksOverload(), {{"task_processor_error", "wait_queue_overload"}});
 
     if (auto context_switch = writer["context_switch"]) {
-        WriteRateAndLegacyMetrics(context_switch["slow"], counter.GetTasksStartedRunning());
-        WriteRateAndLegacyMetrics(context_switch["spurious_wakeups"], counter.GetSpuriousWakeups());
+        context_switch["slow"]["v2"] = counter.GetTasksStartedRunning();
+        context_switch["spurious_wakeups"]["v2"] = counter.GetSpuriousWakeups();
 
-        WriteRateAndLegacyMetrics(context_switch["overloaded"], counter.GetTasksOverloadSensor());
-        WriteRateAndLegacyMetrics(context_switch["no_overloaded"], counter.GetTasksNoOverloadSensor());
+        context_switch["overloaded"]["v2"] = counter.GetTasksOverloadSensor();
+        context_switch["no_overloaded"]["v2"] = counter.GetTasksNoOverloadSensor();
     }
 
     writer["worker-threads"] = task_processor.GetWorkerCount();

@@ -39,7 +39,7 @@ async def _incremental_update_span(service_client, mocked_time, cache_name) -> d
 
 async def _incremental_documents_read(monitor_client, cache_name) -> int:
     metric = await monitor_client.single_metric(
-        'cache.incremental.documents.read_count',
+        'cache.incremental.documents.read_count.v2',
         labels={'cache_name': cache_name},
     )
     return metric.value

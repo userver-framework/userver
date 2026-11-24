@@ -27,7 +27,7 @@ async def test_metrics_smoke(monitor_client):
     assert cache_hits.value >= 0
 
     cache_hits = await monitor_client.metrics(prefix='cache.hits')
-    assert cache_hits.value_at('cache.hits') >= 0
+    assert cache_hits.value_at('cache.hits.v2') >= 0
 
 
 async def test_metrics(monitor_client, load):
