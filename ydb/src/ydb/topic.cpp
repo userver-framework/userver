@@ -124,7 +124,13 @@ void TopicWriteSession::Write(NYdb::NTopic::TContinuationToken&& token, NYdb::NT
     write_session_->Write(std::move(token), std::move(message));
 }
 
-bool TopicWriteSession::Close(std::chrono::milliseconds timeout) { return write_session_->Close(timeout); }
+bool TopicWriteSession::Close(std::chrono::milliseconds timeout) {
+    // The SDK polls its queues with Sleep() until the acks arrive or the timeout expires
+    return utils::AsyncHideSpan(
+               engine::current_task::GetBlockingTaskProcessor(),
+               [this, timeout] { return write_session_->Close(timeout); }
+    ).Get();
+}
 
 NYdb::NTopic::IWriteSession& TopicWriteSession::GetNativeTopicWriteSession() USERVER_IMPL_LIFETIME_BOUND {
     UASSERT(write_session_);
