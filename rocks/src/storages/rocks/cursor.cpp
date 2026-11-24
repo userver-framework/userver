@@ -36,6 +36,7 @@ Cursor::Cursor(Cursor&& other) noexcept
 
 Cursor& Cursor::operator=(Cursor&& other) noexcept {
     if (this != &other) {
+        it_.reset();
         if (snap_ != nullptr) {
             db_->ReleaseSnapshot(snap_);
         }

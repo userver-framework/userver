@@ -107,6 +107,27 @@ UTEST(PessimisticTxn, SurvivesClientDestruction) {
     txn.Commit();
 }
 
+UTEST(PessimisticTxn, MoveAssignmentReleasesPreviousDatabaseAfterTransaction) {
+    const auto previous_dir = TempDirectory::Create();
+    const auto next_dir = TempDirectory::Create();
+    auto transaction = [&] {
+        storages::rocks::Client client{previous_dir.GetPath(), TransactionType::kPessimistic};
+        auto result = client.BeginTransaction();
+        result.Put("uncommitted", "previous");
+        return result;
+    }();
+
+    storages::rocks::Client next_client{next_dir.GetPath(), TransactionType::kPessimistic};
+    auto next = next_client.BeginTransaction();
+    next.Put("committed", "next");
+    transaction = std::move(next);
+    transaction.Commit();
+
+    EXPECT_EQ(next_client.Get("committed"), "next");
+    storages::rocks::Client reopened_previous{previous_dir.GetPath(), TransactionType::kPessimistic};
+    EXPECT_EQ(reopened_previous.Get("uncommitted"), std::nullopt);
+}
+
 UTEST(OptimisticTxn, CommitPersists) {
     const auto dir = TempDirectory::Create();
     storages::rocks::Client client{

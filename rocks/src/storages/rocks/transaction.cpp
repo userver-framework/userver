@@ -35,9 +35,7 @@ Transaction::Transaction(Transaction&& other) noexcept
 
 Transaction& Transaction::operator=(Transaction&& other) noexcept {
     if (this != &other) {
-        if (!done_ && txn_ != nullptr) {
-            txn_->Rollback();
-        }
+        Transaction previous{std::move(*this)};
         db_ = std::move(other.db_);
         tp_ = other.tp_;
         txn_ = std::move(other.txn_);

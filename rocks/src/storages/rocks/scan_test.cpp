@@ -139,6 +139,27 @@ UTEST(Scan, ResumeAcrossBatches) {
     }
 }
 
+UTEST(Scan, MoveAssignmentReleasesPreviousDatabaseAfterIterator) {
+    const auto previous_dir = TempDirectory::Create();
+    const auto next_dir = TempDirectory::Create();
+    auto cursor = [&] {
+        storages::rocks::Client client{previous_dir.GetPath()};
+        client.Put("previous", "value");
+        return client.Scan();
+    }();
+    ASSERT_EQ(cursor.FetchBatch(1).size(), 1);
+
+    storages::rocks::Client next_client{next_dir.GetPath()};
+    next_client.Put("next", "value");
+    cursor = next_client.Scan();
+
+    const auto result = DrainCursor(cursor);
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result.front().key, "next");
+    storages::rocks::Client reopened_previous{previous_dir.GetPath()};
+    EXPECT_EQ(reopened_previous.Get("previous"), "value");
+}
+
 UTEST(SnapshotScan, IsolatesFromLaterWrite) {
     const auto dir = TempDirectory::Create();
     storages::rocks::Client client{dir.GetPath()};
