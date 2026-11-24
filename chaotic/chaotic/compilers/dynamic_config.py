@@ -97,7 +97,7 @@ class CompilerBase:
 
     def extract_definition_names(self, filepath: str) -> list[str]:
         with open(filepath, 'r') as ifile:
-            content = yaml.load(ifile, Loader=yaml.CLoader)
+            content = yaml.load(ifile, Loader=getattr(yaml, 'CLoader', yaml.Loader))
         return list(set(self._extract_definition_names(content)) - {''})
 
     def _extract_definition_names(self, content: Any) -> list[str]:
@@ -288,7 +288,7 @@ class CompilerBase:
     def _parse_variable_file(self, filepath: str, name: str) -> None:
         """Read the config file once, extracting default value and schema hash."""
         with open(filepath, 'r') as fh:
-            content = yaml.load(fh, Loader=yaml.CLoader)
+            content = yaml.load(fh, Loader=getattr(yaml, 'CLoader', yaml.Loader))
         self._defaults[name] = content['default']
         schema = content.get('schema')
         if not schema:
