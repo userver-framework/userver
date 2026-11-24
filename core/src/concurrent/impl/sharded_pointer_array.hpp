@@ -88,7 +88,9 @@ private:
 #endif
     }
 
-    std::ranges::iota_view<std::size_t, std::size_t> Indices() const noexcept { return {std::size_t{0}, GetSize()}; }
+    std::ranges::iota_view<std::size_t, std::size_t> Indices() const noexcept {
+        return std::views::iota(std::size_t{0}, GetSize());
+    }
 
     template <typename Self, typename T>
     using RefLike = decltype(utils::ForwardLike<Self&>(std::declval<T&>()));

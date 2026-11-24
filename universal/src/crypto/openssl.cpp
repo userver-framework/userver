@@ -10,7 +10,9 @@
 #endif
 
 #include <openssl/crypto.h>
+#ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
@@ -53,6 +55,7 @@ void LockingCallback(int mode, int n, const char*, int) noexcept {
 }
 #endif
 
+#ifndef OPENSSL_NO_ENGINE
 void TrySetDefaultEngineRdrand() noexcept {
     ENGINE_load_rdrand();
     ENGINE* eng = ENGINE_by_id("rdrand");
@@ -66,6 +69,7 @@ void TrySetDefaultEngineRdrand() noexcept {
     ENGINE_free(eng);
     ERR_clear_error();
 }
+#endif
 
 }  // namespace
 
@@ -82,7 +86,9 @@ Openssl::Openssl() noexcept {
     CRYPTO_set_id_callback(&LegacyIdCallback);
 #endif
 
+#ifndef OPENSSL_NO_ENGINE
     TrySetDefaultEngineRdrand();
+#endif
 }
 
 void Openssl::Init() noexcept { [[maybe_unused]] static const Openssl kLock; }
