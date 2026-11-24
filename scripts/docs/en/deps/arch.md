@@ -27,7 +27,7 @@ makepkg|clang-format-static-bin
 mariadb-libs
 mongo-c-driver
 ninja
-openssl
+openssl-3
 postgresql
 postgresql-libs
 pugixml
