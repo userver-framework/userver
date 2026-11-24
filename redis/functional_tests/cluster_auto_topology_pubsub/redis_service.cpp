@@ -146,6 +146,11 @@ std::string ReadStoreReturn::Get(const server::http::HttpRequest& request) const
         return std::to_string(redis_subscribe_client_->ShardsCount());
     }
 
+    const auto& script = request.GetArg("load_shard0_script");
+    if (!script.empty()) {
+        return redis_client_->ScriptLoad(script, 0, {}).Get();
+    }
+
     {
         const auto& publish_msg = request.GetArg("publish");
         if (!publish_msg.empty()) {

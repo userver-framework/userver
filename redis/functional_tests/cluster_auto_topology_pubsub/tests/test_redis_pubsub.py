@@ -1,6 +1,6 @@
 import asyncio
+import uuid
 
-import pytest
 import pytest_userver.utils.sync as sync
 import redis
 
@@ -339,6 +339,11 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
     # Add shard
     await redis_cluster_topology.add_shard()
 
+    # The new shard owns three disjoint ranges, but is still a single master/replica pair.
+    node = redis_cluster_topology.added_master
+    assert len(node.get_primary_addresses()) == 4
+    assert len(node.get_replica_addresses()) == 4
+
     for node in redis_cluster_topology.nodes:
         await _test_service_subscription(service_client, node, 'extended_')
 
@@ -356,6 +361,8 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
 
     # restore initial config
     await redis_cluster_topology.remove_shard()
+    assert len(redis_cluster_topology.get_masters()) == 3
+    assert len(redis_cluster_topology.get_replicas()) == 3
     await _check_shard_count(service_client, 3)
 
     for node in redis_cluster_topology.nodes:
@@ -374,7 +381,6 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
 
 
 # kill first three shards and leave only fourth shard
-@pytest.mark.skip(reason='Too many flaps. TAXICOMMON-10712')
 async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
     await service_client.delete('/redis-cluster')
 
@@ -388,9 +394,20 @@ async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
     await redis_cluster_topology.add_shard()
     await _check_shard_count(service_client, 4)
 
+    # All discovery seeds will stop; the publisher must already know the final shard0 mapping.
+    script = f'return "{uuid.uuid4()}"'
+
+    async def publisher_topology_ready():
+        response = await service_client.get('/redis-cluster', params={'load_shard0_script': script})
+        assert response.status == 200, response.content
+        async with redis_cluster_topology.added_master.get_async_client() as client:
+            return (await client.script_exists(response.content))[0]
+
+    await sync.wait(publisher_topology_ready, failure_msg='Publisher shard0 still points to an old master')
+
     # kill all nodes from first three shards
     for node in original_nodes:
-        node.stop()
+        await node.stop()
 
     # should work due to ClusterSintinelImpl (Publish)
     new_nodes = [
@@ -410,7 +427,6 @@ async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
 
 
 # kill all replicas
-@pytest.mark.skip(reason='Too many flaps. TAXICOMMON-10712')
 async def test_cluster_failover_pubsub2(
     service_client,
     redis_cluster_topology,
@@ -427,7 +443,7 @@ async def test_cluster_failover_pubsub2(
 
     # kill all replicas
     for node in replicas:
-        node.stop()
+        await node.stop()
 
     await _validate_service_publish(service_client, masters)
     await _validate_service_publish(service_client, masters, 3)

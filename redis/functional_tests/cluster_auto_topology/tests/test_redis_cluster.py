@@ -4,9 +4,10 @@ import logging
 import pytest
 import pytest_userver.utils.sync as sync
 
+from taxi.uservices.userver.redis.functional_tests.pytest_redis_cluster_topology_plugin import pytest_plugin as topology
+
 logger = logging.getLogger(__name__)
 
-KEYS_SEQ_LEN = 20  # enough sequential keys to test all slots
 REDIS_PORT = 6379
 FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 
@@ -17,12 +18,11 @@ async def test_happy_path(service_client, redis_cluster_topology):
             '/redis-cluster',
             params={'key': f'key{i}', 'value': 'abc'},
         )
-        for i in range(KEYS_SEQ_LEN)
+        for i in range(topology.KEYS_SEQ_LEN)
     ]
     assert all(res.status == 201 for res in await asyncio.gather(*post_reqs))
 
-    get_reqs = [service_client.get('/redis-cluster', params={'key': f'key{i}'}) for i in range(KEYS_SEQ_LEN)]
-    assert all(res.status == 200 and res.text == 'abc' for res in await asyncio.gather(*get_reqs))
+    await topology.assert_read_all_keys(service_client, 'key', 'abc')
 
 
 async def _check_write_all_slots(service_client, key_prefix, value):
@@ -31,25 +31,14 @@ async def _check_write_all_slots(service_client, key_prefix, value):
             '/redis-cluster',
             params={'key': f'{key_prefix}{i}', 'value': value},
         )
-        for i in range(KEYS_SEQ_LEN)
+        for i in range(topology.KEYS_SEQ_LEN)
     ]
     return all(res.status != 500 for res in await asyncio.gather(*post_reqs))
 
 
-async def _assert_read_all_slots(service_client, key_prefix, value):
-    get_reqs = [
-        service_client.get(
-            '/redis-cluster',
-            params={'key': f'{key_prefix}{i}'},
-        )
-        for i in range(KEYS_SEQ_LEN)
-    ]
-    assert all(res.status == 200 and res.text == value for res in await asyncio.gather(*get_reqs))
-
-
 @pytest.mark.uservice_oneshot(config_hooks=['redis_failover_timeouts'])
 async def test_hard_failover(service_client, redis_cluster_topology):
-    # Write enough different keys to have something in every slot
+    # Write keys across all shards before failover.
     assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
 
     # Start the failover
@@ -66,10 +55,9 @@ async def test_hard_failover(service_client, redis_cluster_topology):
 
     await sync.wait(is_ready)
 
-    # Now that one of the replicas has become the master,
-    # check reading from the remaining replica
-    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
-    await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
+    # Check that existing data and new writes are readable after failover.
+    await topology.assert_read_all_keys(service_client, 'hf_key1', 'abc')
+    await topology.assert_read_all_keys(service_client, 'hf_key2', 'cde')
 
 
 async def _check_modes(
@@ -345,24 +333,21 @@ async def test_required_redis_failed_connection(service_client, redis_cluster_to
     await sync.wait(is_ready, total_wait_seconds=60)
 
 
-@pytest.mark.skip(reason='Flaky TAXICOMMON-11677')
 async def test_add_shard(service_client, redis_cluster_topology):
-    # Write enough different keys to have something in every slot
-    assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
+    # Keep data separate from test_hard_failover in the shared cluster.
+    assert await _check_write_all_slots(service_client, 'add_shard_before_', 'abc')
 
     await redis_cluster_topology.add_shard()
 
-    # Failover starts in ~10 seconds
     async def is_ready():
         return await _check_write_all_slots(
             service_client,
-            'hf_key2',
+            'add_shard_after_',
             'cde',
         )
 
     await sync.wait(is_ready)
 
-    # Now that one of the replicas has become the master,
-    # check reading from the remaining replica
-    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
-    await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
+    # Read migrated data and new writes through the service after the topology change.
+    await topology.assert_read_all_keys(service_client, 'add_shard_before_', 'abc')
+    await topology.assert_read_all_keys(service_client, 'add_shard_after_', 'cde')

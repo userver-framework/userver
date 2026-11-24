@@ -27,6 +27,9 @@ TOTAL_WAIT_SECONDS = 180
 CLUSTER_MINIMUM_NODES_COUNT = 6
 REPLICA_COUNT = 1
 REDIS_CLUSTER_HOST = '127.0.0.1'
+REDIS_PING_TIMEOUT_SECONDS = 1
+SLOT_MIGRATION_BATCH_SIZE = 32
+KEYS_SEQ_LEN = 20  # enough sequential keys to cover every shard
 
 logger = logging.getLogger(__name__)
 pm = port_manager.PortManager()
@@ -38,6 +41,30 @@ Socket: TypeAlias = socket.socket
 
 class RedisClusterTopologyError(Exception):
     pass
+
+
+async def assert_read_all_keys(service_client, key_prefix, value):
+    async def is_ready():
+        get_reqs = [
+            service_client.get(
+                '/redis-cluster',
+                params={'key': f'{key_prefix}{i}'},
+            )
+            for i in range(KEYS_SEQ_LEN)
+        ]
+        responses = await asyncio.gather(*get_reqs)
+        for response in responses:
+            assert response.status in (200, 404), response.content
+            if response.status == 200:
+                assert response.text == value
+        # Reads may use a replica that has not received the key yet.
+        return all(response.status == 200 for response in responses)
+
+    await sync.wait(
+        is_ready,
+        failure_msg=f'Keys {key_prefix}* are not readable through the service',
+        relax_msg=f'Waiting for keys {key_prefix}* to be readable through the service...',
+    )
 
 
 def _get_base_path() -> str:
@@ -67,10 +94,13 @@ async def _call_binary(binary_name: str, *args: str) -> None:
         logger.info(outs)
         logger.warning(errs)
         if proc.returncode:
-            raise RuntimeError('Process exited with return code {proc.returncode}')
+            raise RuntimeError(f'{binary_name} exited with return code {proc.returncode}')
     except TimeoutError:
-        logger.error('Timeout while waiting for {binary_name}, killing...')
-        proc.kill()
+        logger.error('Timeout while waiting for %s, killing...', binary_name)
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
         outs, errs = await proc.communicate()
         logger.info(outs)
         logger.warning(errs)
@@ -276,10 +306,9 @@ class _RedisClusterNode:
         await self.proxy.to_server_pass()
         self.proxy.start()
 
-    def get_info(self, section=None):
-        client = self.get_client()
-        ret = client.info(section)
-        return ret
+    async def get_info(self, section=None):
+        async with self.get_async_client() as client:
+            return await client.info(section)
 
     def get_client(self) -> redis.Redis:
         return redis.Redis(host=self.host, port=self.port)
@@ -287,38 +316,7 @@ class _RedisClusterNode:
     def get_async_client(self) -> aredis.Redis:
         return aredis.Redis(connection_pool=self.connection_pool)
 
-    def _get_nodes_by_role(self, role) -> list[str]:
-        if self.version < '8.0.0':
-            return []
-
-        try:
-            client = self.get_client()
-            cluster_shards = client.cluster('SHARDS')
-        except (BaseException, redis.exceptions.ConnectionError):
-            return []
-
-        ret = []
-        for shard in cluster_shards:
-            nodes = shard[3]  # "nodes" field
-            for node in nodes:
-                # node is a list of [key, value, key, value, ...] - like a map
-                node_dict = {}
-                for i in range(0, len(node), 2):
-                    node_dict[node[i]] = node[i + 1]
-                # Check if this node matches the requested role
-                node_role = node_dict.get(b'role', b'').decode()
-                if node_role == role:
-                    ip = node_dict.get(b'ip', b'').decode()
-                    port = node_dict.get(b'port')
-                    if ip and port:
-                        ret.append(f'{ip}:{port}')
-        ret.sort()
-        return ret
-
     def get_primary_addresses(self) -> list[str]:
-        if ret := self._get_nodes_by_role('master'):
-            return ret
-
         try:
             client = self.get_client()
             cluster_slots = client.cluster('SLOTS')
@@ -329,13 +327,10 @@ class _RedisClusterNode:
         for interval in cluster_slots:
             master = interval[2]
             ret.append(f'{master[0].decode()}:{master[1]}')
-        ret.sort()
-        return ret
+        # A node can own several disjoint slot ranges after a migration.
+        return sorted(set(ret))
 
     def get_replica_addresses(self) -> list[str]:
-        if ret := self._get_nodes_by_role('replica'):
-            return ret
-
         try:
             client = self.get_client()
             cluster_slots = client.cluster('SLOTS')
@@ -347,8 +342,7 @@ class _RedisClusterNode:
             replicas = interval[3:]
             for replica in replicas:
                 ret.append(f'{replica[0].decode()}:{replica[1]}')
-        ret.sort()
-        return ret
+        return sorted(set(ret))
 
     def get_address(self):
         return f'{self.host}:{self.port}'
@@ -378,7 +372,7 @@ class _RedisClusterNode:
         self.started = True
 
         # string version from INFO response
-        info = self.get_info()
+        info = await self.get_info()
         self.version = info.get('valkey_version', info.get('redis_version'))
 
     async def stop(self):
@@ -393,31 +387,29 @@ class _RedisClusterNode:
             logger.info('Terminating %s: process PID %d seems already exited', 'redis', pid)
             return
 
-        while _is_pid_running(pid):
-            time.sleep(1)
+        await sync.wait(
+            lambda: not _is_pid_running(pid),
+            failure_msg=f'Redis process {pid} did not stop',
+        )
         if self.proxy:
             await self.proxy.stop()
         self.started = False
 
-    def assert_running(self):
-        pid = self._read_pid()
-        assert pid is not None and _is_pid_running(pid), (
-            f'Redis server process is dead, please look at the logfile {self.log_path}'
-        )
-
-    def _check_instance(self):
-        with self.get_client() as client:
+    async def _check_instance(self):
+        # Synchronous connection retries would block other nodes' startup callbacks.
+        async with self.get_async_client() as client:
             try:
-                client.ping()
-            except redis.exceptions.ConnectionError as exc:
+                await asyncio.wait_for(client.ping(), timeout=REDIS_PING_TIMEOUT_SECONDS)
+            except (redis.exceptions.ConnectionError, asyncio.TimeoutError) as exc:
                 logger.warning('Cannot get instance: %s', str(exc))
-                self.assert_running()
+                # The daemon can still be initializing without a PID file.
                 return False
         return True
 
     async def wait_ready(self):
         await sync.wait(
             check=self._check_instance,
+            failure_msg=f'Redis {self.get_address()} did not start; see {self.log_path}',
             relax_msg='Redis cluster is not up yet, waiting',
             total_wait_seconds=TOTAL_WAIT_SECONDS,
         )
@@ -541,6 +533,9 @@ class RedisClusterTopology:
         nodes = old_masters + [new_master] + self.get_replicas() + [new_replica]
         # wait until nodes know each other
         await self._wait_cluster_nodes_known(nodes, len(nodes))
+        # The new shard has no slots yet, but must accept migrated keys.
+        await self._wait_cluster_nodes_ready(nodes, len(self.nodes))
+        await self._bump_config_epoch(new_master, new_replica)
 
         # move part of hash slots from each of old master to new master
         slot_count = 16384 // 3 // 4
@@ -620,19 +615,58 @@ class RedisClusterTopology:
         if self.added_replica:
             await self.added_replica.stop()
 
+    async def _bump_config_epoch(self, master: _RedisClusterNode, replica: _RedisClusterNode) -> None:
+        # Valkey applies SETSLOT on replicas before the master. Publish the new
+        # epoch first so stale gossip cannot reclaim the first imported slots
+        # and make the replica leave the new shard.
+        async with master.get_async_client() as client:
+            await client.cluster('BUMPEPOCH')
+            epoch = int((await client.cluster('INFO'))['cluster_my_epoch'])
+
+        async def replica_has_epoch():
+            async with replica.get_async_client() as client:
+                nodes = await client.cluster('NODES')
+            master_info = nodes.get(master.get_address())
+            return master_info is not None and int(master_info['epoch']) >= epoch
+
+        await sync.wait(
+            replica_has_epoch,
+            relax_msg='Waiting for the replica to learn the new master epoch before slot migration...',
+            total_wait_seconds=TOTAL_WAIT_SECONDS,
+        )
+
+    async def _set_slot(self, client: aredis.Redis, slot: int, state: str, node_id: str) -> None:
+        async def is_ready():
+            try:
+                await client.cluster('SETSLOT', slot, state, node_id)
+            except redis.exceptions.ResponseError as error:
+                if not str(error).startswith('NOREPLICAS '):
+                    raise
+                # Valkey aborts SETSLOT on the master when replica ACKs time out.
+                # Retrying this command is safe; do not retry the whole key migration.
+                return False
+            return True
+
+        await sync.wait(
+            is_ready,
+            failure_msg=f'Replica acknowledgements timed out for SETSLOT {slot} {state} {node_id}',
+            relax_msg=f'Waiting for replica acknowledgements for SETSLOT {slot} {state}...',
+        )
+
     async def _move_slot(
         self,
         from_node: _RedisClusterNode,
         to_node: _RedisClusterNode,
-        slot,
+        slot: int,
+        *,
+        from_id: str,
+        to_id: str,
     ):
         from_client = from_node.get_async_client()
         to_client = to_node.get_async_client()
         try:
-            from_id = (await from_client.cluster('myid')).decode()
-            to_id = (await to_client.cluster('myid')).decode()
-            await to_client.cluster('SETSLOT', slot, 'IMPORTING', from_id)
-            await from_client.cluster('SETSLOT', slot, 'MIGRATING', to_id)
+            await self._set_slot(to_client, slot, 'IMPORTING', from_id)
+            await self._set_slot(from_client, slot, 'MIGRATING', to_id)
 
             batch = 1000
             timeout = 10000  # it flaps with 1000: 'IOERR error or timeout reading to target instance'
@@ -648,13 +682,14 @@ class RedisClusterTopology:
                     db,
                     timeout,
                 )
-            await to_client.cluster('SETSLOT', slot, 'NODE', to_id)
+            await self._set_slot(to_client, slot, 'NODE', to_id)
             try:
-                await from_client.cluster('SETSLOT', slot, 'NODE', to_id)
-            except redis.exceptions.ResponseError:
+                await self._set_slot(from_client, slot, 'NODE', to_id)
+            except redis.exceptions.ResponseError as error:
                 # In case it was the last slot.
                 # Host without any slot is not a master
-                pass
+                if str(error) != 'Please use SETSLOT only with masters.':
+                    raise
         finally:
             await from_client.aclose()
             await to_client.aclose()
@@ -674,11 +709,29 @@ class RedisClusterTopology:
             raise Exception(
                 f'Invalid number of slots to move {hash_slot_count}:{len(from_slots)}',
             )
-        tasks = []
-        for i in range(hash_slot_count):
-            slot = from_slots.pop()
-            tasks.append(self._move_slot(from_node, to_node, slot))
-        await asyncio.gather(*tasks)
+        # Always move slot 0 to the added shard, even after earlier add/remove cycles.
+        slots = sorted(from_slots)[:hash_slot_count]
+        if not slots:
+            return
+        async with from_node.get_async_client() as client:
+            from_id = (await client.cluster('myid')).decode()
+        async with to_node.get_async_client() as client:
+            to_id = (await client.cluster('myid')).decode()
+
+        # Bound the Redis connection pools and leave room for replication ACKs.
+        # Thousands of concurrent migrations also exceed the chaos proxy's select() FD limit.
+        for start in range(0, len(slots), SLOT_MIGRATION_BATCH_SIZE):
+            results = await asyncio.gather(
+                *[
+                    self._move_slot(from_node, to_node, slot, from_id=from_id, to_id=to_id)
+                    for slot in slots[start : start + SLOT_MIGRATION_BATCH_SIZE]
+                ],
+                return_exceptions=True,
+            )
+            # Finish the whole batch before propagating an error into fixture teardown.
+            for result in results:
+                if isinstance(result, BaseException):
+                    raise result
 
     async def _add_node_to_cluster(
         self,
@@ -808,6 +861,11 @@ class RedisClusterTopology:
         for node in nodes:
 
             async def is_ready():
+                async with node.get_async_client() as client:
+                    cluster_info = await client.cluster('INFO')
+                if cluster_info.get('cluster_state') != 'ok':
+                    logger.warning('Redis node %s is not ready yet: %s', node.get_address(), cluster_info)
+                    return False
                 return await self._count_hosts_in_cluster(node) == expected_nodes_count
 
             await sync.wait(
@@ -869,10 +927,14 @@ class RedisClusterTopologyPlugin:
 
 @pytest.fixture
 async def redis_cluster_topology(redis_cluster_topology_session):
-    # remove shard if was previously added
-    await redis_cluster_topology_session.remove_shard()
     # start nodes if some was previously stopped
     await redis_cluster_topology_session.start_all_nodes()
+    # remove shard if was previously added
+    await redis_cluster_topology_session.remove_shard()
+    await redis_cluster_topology_session._wait_cluster_nodes_ready(
+        redis_cluster_topology_session.nodes,
+        CLUSTER_MINIMUM_NODES_COUNT,
+    )
     return redis_cluster_topology_session
 
 
