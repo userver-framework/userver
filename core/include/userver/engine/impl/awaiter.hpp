@@ -26,7 +26,7 @@ public:
 protected:
     enum class StaticType : std::uint8_t { kPolymorphic, kTaskContext };
 
-    explicit Awaiter(StaticType type) noexcept;
+    explicit Awaiter(StaticType type) noexcept : type_(type) {}
     ~Awaiter() = default;
 
 private:
@@ -64,8 +64,15 @@ public:
     virtual void DisposeWithoutNotification() noexcept = 0;
 
 protected:
-    PolymorphicAwaiter();
+    PolymorphicAwaiter()
+        : Awaiter(StaticType::kPolymorphic)
+    {}
+
     ~PolymorphicAwaiter() = default;
+
+private:
+    // Key function to avoid vtable being generated in each translation unit that includes the header.
+    virtual void ImplMovePolymorphicAwaiterVirtualTableToCpp() final;
 };
 
 inline void NotifyAndDispose(AwaiterPtr&& awaiter, std::uintptr_t context) noexcept {

@@ -1,13 +1,20 @@
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 
 #include <atomic>
+#include <cstdint>
+#include <memory>
 #include <optional>
+#include <utility>
 
+#include <boost/intrusive_ptr.hpp>
+
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
-#include <userver/utils/not_null.hpp>
 
-#include <concurrent/intrusive_walkable_pool.hpp>
+#include <concurrent/impl/locked_list.hpp>
+#include <concurrent/impl/sharded_pointer_array.hpp>
 #include <engine/impl/task_context_accessor.hpp>
 #include <engine/task/task_context.hpp>
 
@@ -15,57 +22,69 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-struct DetachedTasksSyncBlock::Token final : public PolymorphicAwaiter {
-    explicit Token(DetachedTasksSyncBlock& owner)
-        : owner(owner)
+namespace {
+
+struct Token final : public PolymorphicAwaiter {
+    Token(concurrent::impl::ShardedPointerArray& shards, std::optional<utils::impl::WaitTokenStorage>& wait_tokens)
+        : shard(shards[shards.GetCurrentShardId()]),
+          wait_token(wait_tokens ? wait_tokens->GetToken() : utils::impl::WaitTokenStorageLock{})
     {}
 
-    void NotifyAndDispose(std::uintptr_t context) noexcept override {
-        UASSERT(context == 0);
-        DetachedTasksSyncBlock::Dispose(*this);
-    }
+    TaskCancellationReason RegisterIfNotCancelled(
+        TaskContext& context,
+        const std::atomic<TaskCancellationReason>& cancel_new_tasks
+    ) noexcept;
+
+    void NotifyAndDispose(std::uintptr_t context) noexcept override;
 
     void DisposeWithoutNotification() noexcept override {
         utils::AbortWithStacktrace("DetachedTasksSyncBlock::Token should never be removed without notification");
     }
 
-    concurrent::impl::IntrusiveWalkablePoolHook<Token> pool_hook{};
-
-    utils::NotNull<DetachedTasksSyncBlock*> owner;
-
-    // For cancellations
-    std::atomic<TaskContext*> task{nullptr};
-
-    // For waiting for a cancelled task
-    utils::impl::WaitTokenStorageLock wait_token{};
+    std::intptr_t& shard;
+    utils::impl::WaitTokenStorageLock wait_token;
+    // Non-null while linked. The caller keeps the context alive during Add, and the worker
+    // holds a reference through NotifyAndDispose. Access to the pointer and hook requires the shard lock.
+    TaskContext* task{nullptr};
+    concurrent::impl::DoublyLinkedHook<Token> hook;
 };
 
-// Token is non-standard-layout type, because it is a polymorphic class.
-// GCC complains that compilers are not required to implement offsetof for such types.
-// TODO Find some way to work around that, e.g. split Token into multiple types?
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winvalid-offsetof"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#endif
+using LockedTokenList = concurrent::impl::LockedList<Token, concurrent::impl::MemberHook<&Token::hook>>;
+
+TaskCancellationReason Token::RegisterIfNotCancelled(
+    TaskContext& context,
+    const std::atomic<TaskCancellationReason>& cancel_new_tasks
+) noexcept {
+    LockedTokenList locked{shard};
+    // - If we insert this token first, `RequestCancellation` will find it under the shard lock
+    //   and cancel the task unless it has already finished.
+    // - If `RequestCancellation` locks the shard first, its release on unlock and our acquire on lock
+    //   make its store to `cancel_new_tasks` visible here. `Add` requests cancellation with the returned reason.
+    const auto reason = cancel_new_tasks.load(std::memory_order_relaxed);
+    if (reason == TaskCancellationReason::kNone) {
+        task = &context;
+        locked.GetList().PushFront(*this);
+    }
+    return reason;
+}
+
+void Token::NotifyAndDispose(std::uintptr_t context) noexcept {
+    UASSERT(context == 0);
+    // The wait token must outlive the guard: releasing it can let the waiter destroy the shards.
+    const std::unique_ptr<Token> self{this};
+    LockedTokenList locked{shard};
+    if (task) {
+        locked.GetList().Erase(*this);
+    }
+}
+
+}  // namespace
 
 struct DetachedTasksSyncBlock::Impl final {
-    std::optional<utils::impl::WaitTokenStorage> wait_tokens{};
-    concurrent::impl::IntrusiveWalkablePool<  //
-        Token,
-        concurrent::impl::MemberHook<&Token::pool_hook>,
-        offsetof(Token, pool_hook)>
-        cancel_tokens{};
+    std::optional<utils::impl::WaitTokenStorage> wait_tokens;
+    concurrent::impl::ShardedPointerArray shards;
     std::atomic<TaskCancellationReason> cancel_new_tasks{TaskCancellationReason::kNone};
 };
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 
 DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) {
     if (stop_mode == StopMode::kCancelAndWait) {
@@ -76,23 +95,14 @@ DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) {
 DetachedTasksSyncBlock::~DetachedTasksSyncBlock() = default;
 
 void DetachedTasksSyncBlock::Add(TaskContext& context) {
-    auto& token = impl_->cancel_tokens.Acquire([this] { return Token(*this); });
-    UASSERT(token.task == nullptr);
-
-    boost::intrusive_ptr<TaskContext> context_copy(&context);
-
-    token.task.store(context_copy.detach());
-    if (impl_->wait_tokens) {
-        token.wait_token = impl_->wait_tokens->GetToken();
-    }
-
-    AwaiterPtr awaiter{&token};
+    auto token = std::make_unique<Token>(impl_->shards, impl_->wait_tokens);
+    const auto cancel_reason = token->RegisterIfNotCancelled(context, impl_->cancel_new_tasks);
+    AwaiterPtr awaiter{token.release()};
     context.TryAppendAwaiter(awaiter, 0);
     if (awaiter != nullptr) {  // task has already finished.
         impl::NotifyAndDispose(std::move(awaiter), 0);
     }
 
-    const auto cancel_reason = impl_->cancel_new_tasks.load();
     if (cancel_reason != TaskCancellationReason::kNone) {
         context.RequestCancel(cancel_reason);
     }
@@ -104,32 +114,25 @@ void DetachedTasksSyncBlock::Add(Task& task) {
     [[maybe_unused]] const auto extracted = TaskContextAccessor::ExtractContext(std::move(task));
 }
 
-void DetachedTasksSyncBlock::Dispose(Token& token) noexcept {
-    auto* const context_ptr = token.task.exchange(nullptr);
-    if (context_ptr != nullptr) {
-        const boost::intrusive_ptr<TaskContext> context(
-            context_ptr,
-            /*add_ref=*/false
-        );
-    }
-    [[maybe_unused]] const auto wait_token = std::move(token.wait_token);
-    token.owner->impl_->cancel_tokens.Release(token);
-}
-
 void DetachedTasksSyncBlock::RequestCancellation(TaskCancellationReason reason) noexcept {
-    impl_->cancel_new_tasks.store(reason);
+    impl_->cancel_new_tasks.store(reason, std::memory_order_relaxed);
 
-    impl_->cancel_tokens.Walk([&](Token& token) {
-        auto* const context_ptr = token.task.exchange(nullptr);
-
-        if (context_ptr != nullptr) {
-            const boost::intrusive_ptr<TaskContext> context(
-                context_ptr,
-                /*add_ref=*/false
-            );
-            context->RequestCancel(reason);
+    for (auto& shard : impl_->shards.Elements()) {
+        for (;;) {
+            boost::intrusive_ptr<TaskContext> task;
+            {
+                LockedTokenList locked{shard};
+                auto& list = locked.GetList();
+                if (list.IsEmpty()) {
+                    break;
+                }
+                auto& token = list.PopFront();
+                task.reset(token.task);
+                token.task = nullptr;
+            }
+            task->RequestCancel(reason);
         }
-    });
+    }
 
     if (impl_->wait_tokens) {
         impl_->wait_tokens->WaitForAllTokens();

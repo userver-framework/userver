@@ -35,10 +35,6 @@ public:
 
     std::int64_t ActiveTasksApprox() const noexcept;
 
-    struct Token;
-
-    static void Dispose(Token& token) noexcept;
-
 private:
     struct Impl;
     utils::FastPimpl<Impl, 96, 16> impl_;

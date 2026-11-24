@@ -1,16 +1,24 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <utility>
 
 #include <engine/tests/task_processor_utils.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
+#include <utils/statistics/system_statistics.hpp>
 
 using namespace std::chrono_literals;
 
@@ -18,6 +26,16 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(BackgroundTaskStorage, Unused) {
     const concurrent::BackgroundTaskStorage bts;
+    EXPECT_EQ(bts.ActiveTasksApprox(), 0);
+}
+
+UTEST(BackgroundTaskStorage, DetachAlreadyFinished) {
+    concurrent::BackgroundTaskStorageCore bts;
+    auto task = engine::AsyncNoTracing([] {});
+    task.Wait();
+
+    bts.Detach(std::move(task));
+    EXPECT_FALSE(task.IsValid());
     EXPECT_EQ(bts.ActiveTasksApprox(), 0);
 }
 
@@ -253,6 +271,30 @@ UTEST(BackgroundTaskStorage, WaitAndDisposeSlow) {
     EXPECT_TRUE(finished);
 }
 
+// When all three tokens share a shard, finishing the middle task must link its two neighbors to each other.
+// Otherwise CancelAndWait could skip a live task or follow a dangling pointer to the middle token.
+UTEST(BackgroundTaskStorage, CancelAfterMiddleTaskFinishes) {
+    engine::SingleConsumerEvent finish_middle;
+    concurrent::BackgroundTaskStorage bts;
+    const auto wait_for_cancel = [] {
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    };
+
+    bts.CriticalAsyncDetach("first", wait_for_cancel);
+    bts.CriticalAsyncDetach("middle", [&finish_middle] { EXPECT_TRUE(finish_middle.WaitForEvent()); });
+    bts.CriticalAsyncDetach("last", wait_for_cancel);
+    finish_middle.Send();
+
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (bts.ActiveTasksApprox() != 2) {
+        ASSERT_FALSE(deadline.IsReached()) << "BTS did not release the middle task's token";
+        engine::Yield();
+    }
+
+    bts.CancelAndWait();
+}
+
 UTEST(BackgroundTaskStorage, SleepWhileCancelled) {
     concurrent::BackgroundTaskStorageCore bts;
     engine::SingleConsumerEvent event;
@@ -274,7 +316,10 @@ UTEST(BackgroundTaskStorage, DetachWhileWaiting) {
         // Make sure the main task enters CancelAndWait
         engine::Yield();
 
-        bts.Detach(utils::CriticalAsync("inner", [&] { finished = true; }));
+        bts.Detach(utils::CriticalAsync("inner", [&finished] {
+            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+            finished = true;
+        }));
     }));
 
     bts.CancelAndWait();
@@ -312,6 +357,50 @@ TEST(BackgroundTaskStorage, CustomTaskProcessor) {
         EXPECT_TRUE(finished.WaitForEvent());
     });
 }
+
+#ifdef __linux__
+// Sanitizer quarantines retain freed pages in RSS. Use live heap bytes when the runtime provides them.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp,readability-identifier-naming)
+extern "C" std::size_t __sanitizer_get_current_allocated_bytes() __attribute__((weak));
+
+TEST(BackgroundTaskStorage, ReleasesMemoryAfterCrossThreadDetach) {
+    // The per-CPU free list retained over 10 MiB in 1 s in Release on an i7-13700H.
+    constexpr std::int64_t kMaxGrowthKiB = 4 * 1024;
+    const auto memory_kb = []() -> std::int64_t {
+        if (__sanitizer_get_current_allocated_bytes) {
+            return __sanitizer_get_current_allocated_bytes() / 1024;
+        }
+        return utils::statistics::impl::GetSelfSystemStatistics().rss_kb.value();
+    };
+
+    engine::tests::TwoStandaloneTaskProcessors tp;
+    tp.RunBlocking([&] {
+        concurrent::BackgroundTaskStorageCore bts;
+        auto& worker = tp.GetSecondary();
+        const auto run_tasks = [&](std::chrono::milliseconds duration) {
+            const auto deadline = engine::Deadline::FromDuration(duration);
+            while (!deadline.IsReached()) {
+                engine::Promise<void> promise;
+                auto finished = promise.get_future();
+                bts.Detach(engine::CriticalAsyncNoTracing(worker, [promise = std::move(promise)]() mutable {
+                    promise.set_value();
+                }));
+                finished.get();
+            }
+            // The single worker finishes disposing the last token before running this task.
+            engine::CriticalAsyncNoTracing(worker, [] {}).Get();
+        };
+
+        run_tasks(30ms);  // Warm up the coroutine stacks and allocator caches.
+        const auto before = memory_kb();
+        run_tasks(1s);
+        const auto growth_kb = memory_kb() - before;
+        bts.CancelAndWait();
+        RecordProperty("memory_growth_kb", growth_kb);
+        EXPECT_LT(growth_kb, kMaxGrowthKiB);
+    });
+}
+#endif
 
 TEST(BackgroundTaskStorage, StrongTaskProcessorBinding) {
     engine::tests::TwoStandaloneTaskProcessors tp;

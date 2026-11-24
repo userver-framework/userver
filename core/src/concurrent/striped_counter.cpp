@@ -20,9 +20,7 @@ struct StripedCounter::Impl final {
     // All the code here is highly unportable, and for now it's x86 only.
     // For x86 the value being not-atomic works just fine.
     //
-    // rseq could be unavailable, or std::thread::hardware_concurrency() could
-    // also return 0 if it failed go get something meaningful from the OS, in both
-    // cases we fall back to just using a std::atomic (see StripedCounter::Add).
+    // If rseq or the range of possible CPU IDs is unavailable, Add uses the fallback counter.
     impl::StripedArray counters;
 
     std::atomic<NativeCounterType> fallback{0};

@@ -13,10 +13,6 @@ TaskContext& Awaiter::CastToTaskContext() noexcept {
     return static_cast<TaskContext&>(*this);
 }
 
-Awaiter::Awaiter(StaticType type) noexcept
-    : type_(type)
-{}
-
 void Awaiter::NotifyAndDisposeTaskContext(Awaiter* self, std::uintptr_t context) noexcept {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     boost::intrusive_ptr<TaskContext> task_context(&static_cast<TaskContext&>(*self), /*add_ref=*/false);
@@ -28,9 +24,7 @@ void Awaiter::DisposeWithoutNotificationTaskContext(Awaiter* self) noexcept {
     intrusive_ptr_release(&static_cast<TaskContext&>(*self));
 }
 
-PolymorphicAwaiter::PolymorphicAwaiter()
-    : Awaiter(StaticType::kPolymorphic)
-{}
+void PolymorphicAwaiter::ImplMovePolymorphicAwaiterVirtualTableToCpp() {}
 
 }  // namespace engine::impl
 

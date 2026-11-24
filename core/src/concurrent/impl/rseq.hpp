@@ -8,7 +8,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <thread>
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -49,8 +48,9 @@ __attribute__((constructor)) inline std::size_t GetRseqArraySize() noexcept {
         rseq_array_size =
             rseq_available(RSEQ_AVAILABLE_QUERY_LIBC)
                 // libc owns rseq. It automatically registers rseq at
-                // that start of each thread.
-                ? std::thread::hardware_concurrency()
+                // the start of each thread. Size for the highest possible CPU ID,
+                // even when the process is restricted to a subset of CPUs.
+                ? ::rseq_get_max_nr_cpus()
 
                 // Either rseq is unavailable, or it is unsupported by
                 // libc, in which case rseq initialization can be

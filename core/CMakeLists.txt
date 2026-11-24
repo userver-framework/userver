@@ -97,7 +97,13 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC userver-universal Boost::locale CURL::libcurl
-    PRIVATE Boost::program_options Boost::iostreams Iconv::Iconv OpenSSL::SSL OpenSSL::Crypto ZLIB::ZLIB
+    PRIVATE Boost::atomic
+            Boost::program_options
+            Boost::iostreams
+            Iconv::Iconv
+            OpenSSL::SSL
+            OpenSSL::Crypto
+            ZLIB::ZLIB
 )
 if(TARGET Boost::endian)
     # Boost from CPM
