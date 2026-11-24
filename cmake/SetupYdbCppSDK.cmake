@@ -2,7 +2,7 @@
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
 set(USERVER_YDBCPPSDK_VERSION
-    3.22.0
+    3.25.0
     CACHE STRING "ydb-cpp-sdk version"
 )
 set(USERVER_YDBCPPSDK_COMPONENTS
@@ -29,12 +29,14 @@ function(_userver_ydb_cpp_sdk_archive_sha256 version out_var)
         set(_hash 13cedb6e8f730f5bf45e35b0b40c5d0ebee0f07e51ac7cf09f72495a2d389de2)
     elseif(version STREQUAL "3.22.0")
         set(_hash 1c2ccb5bb42139532eb6fe931c9da097f532afc12411b7b3214cdd50d7c10ba0)
+    elseif(version STREQUAL "3.25.0")
+        set(_hash 9195869f5bd55c3f786e98a1fb5935ded49421892751f56963fbf6a13e10d513)
     else()
         message(
             FATAL_ERROR
             "Unknown ydb-cpp-sdk version '${version}'. "
             "Add its archive SHA256 to _userver_ydb_cpp_sdk_archive_sha256() in "
-            "cmake/SetupYdbCppSDK.cmake. Known versions: 3.21.0, 3.21.1, 3.22.0."
+            "cmake/SetupYdbCppSDK.cmake. Known versions: 3.21.0, 3.21.1, 3.22.0, 3.25.0."
         )
     endif()
     set(${out_var} "${_hash}" PARENT_SCOPE)
