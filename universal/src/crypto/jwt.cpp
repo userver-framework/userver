@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <stdexcept>
 #include <utility>
 
@@ -13,12 +14,16 @@
 #include <userver/crypto/verifiers.hpp>
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/json/exception.hpp>
-#include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/datetime_light.hpp>
+#include <userver/utils/expected.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -62,23 +67,32 @@ struct PartsView {
     std::string_view signing_input;
 };
 
-PartsView SplitIntoView(std::string_view token) {
+utils::expected<PartsView, utils::StringLiteral> SplitCompactToken(std::string_view token) {
+    constexpr utils::StringLiteral kInvalidStructure = "JWT must have three nonempty parts";
     const auto first = token.find('.');
     if (first == std::string_view::npos || first == 0) {
-        throw VerificationError("JWT must have three nonempty parts");
+        return utils::unexpected{kInvalidStructure};
     }
     const auto second = token.find('.', first + 1);
     if (second == std::string_view::npos || second == first + 1 || second + 1 == token.size() ||
         token.find('.', second + 1) != std::string_view::npos)
     {
-        throw VerificationError("JWT must have three nonempty parts");
+        return utils::unexpected{kInvalidStructure};
     }
-    return {
+    return PartsView{
         token.substr(0, first),
         token.substr(first + 1, second - first - 1),
         token.substr(second + 1),
         token.substr(0, second)
     };
+}
+
+PartsView SplitSignedToken(std::string_view token) {
+    const auto parts = SplitCompactToken(token);
+    if (!parts) {
+        throw VerificationError(parts.error());
+    }
+    return *parts;
 }
 
 std::string ReadCompactPart(std::string_view part) {
@@ -261,6 +275,31 @@ JoseHeader ParseCompactHeader(std::string_view encoded) {
     }
 }
 
+std::string MakeCompactToken(std::string_view header, std::string_view payload, const Signer& signer) {
+    const auto encoded_header = base64::Base64UrlEncode(header, base64::Pad::kWithout);
+    const auto encoded_payload = base64::Base64UrlEncode(payload, base64::Pad::kWithout);
+    const auto signature = signer.Sign({encoded_header, ".", encoded_payload});
+    const auto encoded_signature = base64::Base64UrlEncode(signature, base64::Pad::kWithout);
+    return utils::StrCat(encoded_header, ".", encoded_payload, ".", encoded_signature);
+}
+
+std::string MakeTokenWithHeader(
+    std::initializer_list<std::pair<std::string_view, std::string_view>> fields,
+    std::string_view payload,
+    const Signer& signer
+) {
+    formats::json::StringBuilder header;
+    {
+        const formats::json::StringBuilder::ObjectGuard guard{header};
+        for (const auto& [name, value] : fields) {
+            header.Key(name);
+            // RapidJSON requires a non-null pointer even for an empty string.
+            header.WriteString(value.empty() ? "" : value);
+        }
+    }
+    return MakeCompactToken(header.GetStringView(), payload, signer);
+}
+
 }  // namespace
 
 JoseHeader Parse(const formats::json::Value& value, formats::parse::To<JoseHeader>) {
@@ -321,23 +360,28 @@ std::string MakeToken(const formats::json::Value& payload, const crypto::Signer&
     if (!utils::text::IsUtf8(claims)) {
         throw SignError("JWT claims must be UTF-8");
     }
-    const auto header_json = formats::json::MakeObject("alg", signer.Name(), "typ", "JWT");
-    const auto input = fmt::format(
-        "{}.{}",
-        base64::Base64UrlEncode(formats::json::ToString(header_json), base64::Pad::kWithout),
-        base64::Base64UrlEncode(claims, base64::Pad::kWithout)
-    );
-    const auto signature = signer.Sign({input});
-    return fmt::format("{}.{}", input, base64::Base64UrlEncode(signature, base64::Pad::kWithout));
+    return MakeTokenWithHeader({{"alg", signer.Name()}, {"typ", "JWT"}}, claims, signer);
 }
 
-JoseHeader UnverifiedParseJoseHeader(std::string_view token) { return ParseCompactHeader(SplitIntoView(token).header); }
+std::string MakeToken(std::string_view json_payload, const crypto::Signer& signer) {
+    UASSERT_MSG(formats::json::FromString(json_payload).IsRoot(), "payload is not in json format");
+    return MakeTokenWithHeader({{"typ", "JWT"}, {"alg", signer.Name()}}, json_payload, signer);
+}
+
+std::string MakeToken(std::string_view json_payload, const crypto::Signer& signer, std::string_view key_id) {
+    UASSERT_MSG(formats::json::FromString(json_payload).IsRoot(), "payload is not in json format");
+    return MakeTokenWithHeader({{"typ", "JWT"}, {"alg", signer.Name()}, {"kid", key_id}}, json_payload, signer);
+}
+
+JoseHeader UnverifiedParseJoseHeader(std::string_view token) {
+    return ParseCompactHeader(SplitSignedToken(token).header);
+}
 
 Token Verify(std::string_view token, const crypto::Verifier& verifier, const VerificationOptions& options) {
     if (options.leeway < std::chrono::seconds::zero()) {
         throw std::invalid_argument("JWT leeway must be nonnegative");
     }
-    const auto parts = SplitIntoView(token);
+    const auto parts = SplitSignedToken(token);
     auto header = ParseCompactHeader(parts.header);
     if (header.algorithm != verifier.Name()) {
         throw VerificationError("JWT algorithm does not match the verifier");

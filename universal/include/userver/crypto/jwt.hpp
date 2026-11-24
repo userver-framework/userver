@@ -82,6 +82,17 @@ struct VerificationOptions {
 /// @throws crypto::SignError for an unsupported algorithm, invalid claims, or a signing failure.
 std::string MakeToken(const formats::json::Value& payload, const crypto::Signer& signer);
 
+/// @brief Creates a compact token from the exact bytes of a serialized JSON payload.
+/// The header contains `typ: JWT` followed by the signer's `alg`.
+/// Any @ref crypto::Signer is accepted, including @ref crypto::SignerNone for unsigned tokens.
+/// The caller is responsible for validating registered claims.
+/// @pre @a json_payload contains valid JSON with unique object member names.
+std::string MakeToken(std::string_view json_payload, const crypto::Signer& signer);
+
+/// @overload
+/// Appends `kid` to the header, including when @a key_id is empty.
+std::string MakeToken(std::string_view json_payload, const crypto::Signer& signer, std::string_view key_id);
+
 /// @brief Reads the unverified JOSE header from a compact JWT for key selection.
 /// Checks the three-part structure and decodes only the header. The returned algorithm may be unknown.
 /// Pass the original token to @ref crypto::jwt::Verify to check the algorithm, signature, and claims.

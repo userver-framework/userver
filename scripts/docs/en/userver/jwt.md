@@ -15,6 +15,13 @@ and expires in 15 minutes.
 
 @snippet universal/src/crypto/jwt_test.cpp jwt issue
 
+If you already have serialized JSON, pass it as a `std::string_view` to
+@ref crypto::jwt::MakeToken. These overloads preserve the payload bytes,
+including whitespace, and leave registered-claim validation to the caller.
+They write `typ` first and `alg` second. A third argument adds `kid` after `alg`,
+even when the key ID is an empty string.
+Passing @ref crypto::SignerNone produces an unsigned token, which @ref crypto::jwt::Verify rejects.
+
 ## Verify an authorization token
 
 Include `<userver/crypto/verifiers.hpp>` and create a @ref crypto::Verifier
@@ -55,7 +62,8 @@ registration and passing user data to handlers.
 | `leeway` | Nonnegative clock skew allowance, in seconds; defaults to zero. |
 | `expiration` | Require `exp` by default; @ref crypto::jwt::ExpirationPolicy::kOptional allows its absence. |
 
-Issuance and verification check the types of registered claims. The `iss` and
+Issuing from a @ref formats::json::Value and verifying with @ref crypto::jwt::Verify
+both check the types of registered claims. The `iss` and
 `sub` claims and each audience accept any JSON string, including strings with
 colons. Verification compares these values exactly. Expiration is always checked
 when present, even with optional expiration. The current time must be strictly before
@@ -92,15 +100,15 @@ application's responsibility.
 
 ## Supported token formats
 
-Supported algorithms are HS256/384/512, RS256/384/512, PS256/384/512, and
+@ref crypto::jwt::Verify supports HS256/384/512, RS256/384/512, PS256/384/512, and
 ES256/384/512, using the existing @ref crypto::Verifier implementations.
 The `alg` header must be a nonempty ASCII string and match the supplied verifier
-exactly. Unsigned tokens (`alg: none`), encrypted or nested JWTs, critical header
-extensions (`crit`), and the unencoded payload extension (`b64`) are unsupported.
+exactly. Verification rejects unsigned tokens (`alg: none`), encrypted or nested JWTs,
+critical header extensions (`crit`), and the unencoded payload extension (`b64`).
 A `cty` of `JWT` or `application/jwt` identifies a nested JWT even when it includes parameters.
 
-Tokens must use three nonempty, canonical, unpadded base64url segments. Header
-and payload must be UTF-8 JSON objects with unique member names. The verified
+@ref crypto::jwt::Verify requires three nonempty, canonical, unpadded base64url segments.
+The header and payload must be UTF-8 JSON objects with unique member names. The verified
 @ref crypto::jwt::Token contains a @ref crypto::jwt::JoseHeader with
 `algorithm`, `type`, `content_type`, and `key_id` for the JOSE parameters
 `alg`, `typ`, `cty`, and `kid`. Its `extensions` map preserves other noncritical

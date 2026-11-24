@@ -1,6 +1,7 @@
 #include <userver/crypto/jwt.hpp>
 
 #include <chrono>
+#include <initializer_list>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -15,6 +16,7 @@
 #include <userver/crypto/verifiers.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/datetime_light.hpp>
@@ -156,6 +158,40 @@ TEST_F(CryptoJwt, IssueToken) {
     const auto verified = jwt::Verify(token, verifier, {.type = "JWT"});
     EXPECT_EQ(verified.header.algorithm, "HS256");
     EXPECT_EQ(verified.payload, payload);
+}
+
+TEST(CryptoJwtInterop, SignsVerbatimPayloadWithJsonEscapedHeader) {
+    class CustomSigner final : public crypto::Signer {
+    public:
+        using Signer::Signer;
+
+        std::string Sign(std::initializer_list<std::string_view> data) const override {
+            return crypto::SignerHs256{std::string{kHmacKey}}.Sign(data);
+        }
+    };
+    using namespace std::string_view_literals;
+    const CustomSigner signer{std::string{"custom\"\\\n\0alg"sv}};
+    constexpr std::string_view kPayloadBuffer = R"({ "exp":null }!)";
+    constexpr auto kPayload = kPayloadBuffer.substr(0, kPayloadBuffer.size() - 1);
+    constexpr auto kKeyIdBuffer = "rotating\t\"\x1f\\key!"sv;
+    constexpr auto kKeyId = kKeyIdBuffer.substr(0, kKeyIdBuffer.size() - 1);
+
+    const auto header = formats::json::MakeObject("typ", "JWT", "alg", signer.Name());
+    EXPECT_EQ(jwt::MakeToken(kPayload, signer), SignRawJson(kPayload, formats::json::ToString(header)));
+    const auto header_with_key = formats::json::MakeObject("typ", "JWT", "alg", signer.Name(), "kid", kKeyId);
+    EXPECT_EQ(
+        jwt::MakeToken(kPayload, signer, kKeyId),
+        SignRawJson(kPayload, formats::json::ToString(header_with_key))
+    );
+}
+
+TEST(CryptoJwtInterop, DistinguishesMissingAndEmptyKeyId) {
+    const crypto::SignerNone signer;
+    EXPECT_EQ(jwt::MakeToken("null", signer), "eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.bnVsbA.");
+    EXPECT_EQ(
+        jwt::MakeToken("null", signer, std::string_view{}),
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIiwia2lkIjoiIn0.bnVsbA."
+    );
 }
 
 TEST(CryptoJwtInterop, MatchesRealmediumTokenFormat) {
