@@ -58,7 +58,7 @@ cpmaddpackage(
     VERSION ${BOOST_VERSION}
     URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz
         URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
-    PATCHES boost_locale_cmake45.patch
+    PATCHES boost_locale_pr_273.patch
     OPTIONS "BOOST_ENABLE_CMAKE ON"
             "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
             "BOOST_SKIP_INSTALL_RULES ON"
