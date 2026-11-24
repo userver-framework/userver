@@ -11,6 +11,10 @@ properties:
         description: |
             Write RPC spans regardless of log levels. Trace sampling and USERVER_NO_LOG_SPANS still apply.
             Defaults to the value from grpc-server.service-defaults.always-log-call-spans.
+    use-protobuf-arena:
+        type: boolean
+        description: Allocate typed requests and proto-struct responses on protobuf arenas.
+        defaultDescription: grpc-server.service-defaults.use-protobuf-arena (false by default)
     status-codes-log-level:
         type: object
         properties: {}

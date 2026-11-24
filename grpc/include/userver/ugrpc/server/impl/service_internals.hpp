@@ -35,6 +35,7 @@ struct ServiceInternals final {
     const dynamic_config::Source config_source;
     ServiceTracingConfig tracing_config;
     bool use_callback_api;
+    bool use_protobuf_arena;
 };
 
 }  // namespace ugrpc::server::impl

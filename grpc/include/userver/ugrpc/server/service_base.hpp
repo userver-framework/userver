@@ -38,6 +38,8 @@ struct ServiceConfig final {
 
     /// Force logging of the service's RPC spans. Trace sampling and USERVER_NO_LOG_SPANS still apply.
     bool always_log_call_spans{false};
+    /// Enable per-call protobuf arenas for typed RPCs. Disabled by default.
+    bool use_protobuf_arena{false};
 };
 
 /// @brief The type-erased base class for all gRPC service implementations

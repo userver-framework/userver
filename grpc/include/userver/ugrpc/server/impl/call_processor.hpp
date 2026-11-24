@@ -13,12 +13,14 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/optional_ref.hpp>
 
 #include <userver/ugrpc/impl/message_serialization.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
+#include <userver/ugrpc/server/impl/message_storage.hpp>
 #include <userver/ugrpc/server/impl/responder.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/result.hpp>
@@ -39,19 +41,23 @@ void ReportFinished(const grpc::Status& status, CallState& state) noexcept;
 void ReportInterrupted(CallState& state) noexcept;
 
 template <typename Response>
-void UnpackResult(Result<Response>&& result, std::optional<Response>& response, grpc::Status& status) {
+void UnpackResult(Result<Response>&& result, std::optional<MessageStorage<Response>>& response, grpc::Status& status) {
     if (result.IsSuccess()) {
-        response.emplace(result.ExtractResponse());
+        response.emplace(result.ExtractStorage(utils::impl::InternalTag{}));
     } else {
         status = result.ExtractErrorStatus();
     }
 }
 
 template <typename Response>
-void UnpackResult(StreamingResult<Response>&& result, std::optional<Response>& response, grpc::Status& status) {
+void UnpackResult(
+    StreamingResult<Response>&& result,
+    std::optional<MessageStorage<Response>>& response,
+    grpc::Status& status
+) {
     if (result.IsSuccess()) {
         if (result.HasLastResponse()) {
-            response.emplace(result.ExtractLastResponse());
+            response.emplace(result.ExtractStorage(utils::impl::InternalTag{}));
         }
     } else {
         status = result.ExtractStatus();
@@ -59,11 +65,15 @@ void UnpackResult(StreamingResult<Response>&& result, std::optional<Response>& r
 }
 
 template <typename CallTraits>
-void ValidateResponse(std::optional<typename CallTraits::Response>& response, grpc::Status& status) {
+void ValidateResponse(
+    std::optional<MessageStorage<typename CallTraits::Response>>& response_storage,
+    grpc::Status& status
+) {
+    auto response = response_storage ? utils::OptionalRef(response_storage->Get()) : std::nullopt;
     if constexpr (std::is_base_of_v<google::protobuf::Message, typename CallTraits::Response>) {
         if (status.ok() && response.has_value() && !response->IsInitialized()) {
             status = MakeUninitializedResponseStatus(*response);
-            response.reset();
+            response_storage.reset();
         }
     }
 }
@@ -71,7 +81,7 @@ void ValidateResponse(std::optional<typename CallTraits::Response>& response, gr
 template <typename CallTraits>
 [[nodiscard]] bool Finish(
     impl::Responder<CallTraits>& responder,
-    const std::optional<typename CallTraits::Response>& response,
+    utils::OptionalRef<typename CallTraits::Response> response,
     grpc::Status& status
 ) {
     if (status.ok()) {
@@ -137,7 +147,7 @@ public:
             RunOnCallStart();
         }
 
-        std::optional<Response> response;
+        std::optional<MessageStorage<Response>> response_storage;
 
         bool finished = false;
         // Should be executed before response destruction.
@@ -151,14 +161,15 @@ public:
         scope_time.Reset("call");
 
         if (!engine::current_task::ShouldCancel() && status_.ok()) {
-            RunWithCatch([this, &response] {
+            RunWithCatch([this, &response_storage] {
                 auto result = CallHandler();
-                impl::UnpackResult(std::move(result), response, status_);
+                impl::UnpackResult(std::move(result), response_storage, status_);
             });
-            impl::ValidateResponse<CallTraits>(response, status_);
+            impl::ValidateResponse<CallTraits>(response_storage, status_);
         }
 
         if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
+            auto response = response_storage ? utils::OptionalRef(response_storage->Get()) : std::nullopt;
             scope_time.Reset("pre_finish");
             RunPreFinishHooks(response);
             scope_time.Reset("finish");
@@ -182,8 +193,12 @@ public:
 private:
     void DeserializeInitialRequest() {
         if constexpr (IsSingleRequestMethod(CallTraits::kRpcType)) {
-            initial_request_.emplace();
-            status_ = ugrpc::impl::DeserializeMessage(std::move(serialized_initial_request_), *initial_request_);
+            using Storage = MessageStorage<Request>;
+            initial_request_storage_.emplace(state_.arena ? Storage::AllocateOnArena(*state_.arena) : Storage{});
+            status_ = ugrpc::impl::DeserializeMessage(
+                std::move(serialized_initial_request_),
+                initial_request_storage_->Get()
+            );
         }
     }
 
@@ -193,9 +208,9 @@ private:
         if constexpr (!IsSingleRequestMethod(CallTraits::kRpcType)) {
             return (service_.*service_method_)(context, responder_);
         } else if constexpr (CallTraits::kRpcType == RpcType::kUnary) {
-            return (service_.*service_method_)(context, std::move(*initial_request_));
+            return (service_.*service_method_)(context, std::move(initial_request_storage_->Get()));
         } else if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
-            return (service_.*service_method_)(context, std::move(*initial_request_), responder_);
+            return (service_.*service_method_)(context, std::move(initial_request_storage_->Get()), responder_);
         } else {
             static_assert(!sizeof(CallTraits), "Unexpected RpcType");
         }
@@ -214,7 +229,9 @@ private:
             if constexpr (IsSingleRequestMethod(CallTraits::kRpcType) &&
                           std::is_base_of_v<google::protobuf::Message, Request>)
             {
-                RunWithCatch([this, &m] { m->PostRecvMessage(middleware_call_context_, *initial_request_); });
+                RunWithCatch([this, &m] {
+                    m->PostRecvMessage(middleware_call_context_, initial_request_storage_->Get());
+                });
                 if (!status_.ok()) {
                     return;
                 }
@@ -222,7 +239,7 @@ private:
         }
     }
 
-    void RunPreFinishHooks(std::optional<Response>& response) {
+    void RunPreFinishHooks(utils::OptionalRef<Response> response) {
         const auto& mids = state_.middlewares;
         const auto rbegin = mids.rbegin() + (mids.size() - success_pre_hooks_count_);
         for (auto it = rbegin; it != mids.rend(); ++it) {
@@ -282,7 +299,7 @@ private:
     // Initial request is the request which is sent to the service together with RPC initiation.
     // Unary-request RPCs have an initial request, client-streaming RPCs don't.
     SerializedInitialRequest& serialized_initial_request_;
-    std::optional<Request> initial_request_;
+    std::optional<MessageStorage<Request>> initial_request_storage_;
     ServiceBase& service_;
     const ServiceMethod service_method_;
 

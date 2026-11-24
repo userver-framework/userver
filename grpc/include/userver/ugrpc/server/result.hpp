@@ -9,6 +9,9 @@
 #include <grpcpp/support/status.h>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+
+#include <userver/ugrpc/server/impl/message_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,8 +29,18 @@ class Result {
 public:
     /// Construct from `Response`, implies `OK` status.
     /*implicit*/ Result(Response&& response)
-        : result_{std::move(response)}
+        : result_{std::in_place_type<impl::MessageStorage<Response>>, std::move(response)}
     {}
+
+    /// @brief Construct a successful result that borrows an arena-backed protobuf response.
+    /// @param response A protobuf message allocated on an arena.
+    /// @pre The arena must remain alive and must not be reset until result consumption,
+    /// serialization, and middleware hooks have finished.
+    /// @returns A result referring to @a response without taking ownership.
+    static Result BorrowArenaResponse(Response& response) {
+        UINVARIANT(response.GetArena(), "The response must be allocated on an arena");
+        return Result(std::ref(response));
+    }
 
     /// Construct from `grpc::Status`, only error status is allowed.
     /*implicit*/ Result(grpc::Status&& status)
@@ -44,7 +57,7 @@ public:
     }
 
     /// @returns `true` if the `Result` contains `Response`, as opposed to an error status.
-    bool IsSuccess() const { return std::holds_alternative<Response>(result_); }
+    bool IsSuccess() const { return std::holds_alternative<impl::MessageStorage<Response>>(result_); }
 
     /// @returns the contained error status.
     /// @pre `IsSuccess() == false`.
@@ -62,20 +75,34 @@ public:
 
     /// @returns the contained response.
     /// @pre `IsSuccess() == true`.
+    /// @warning Extracting an arena-backed response is usually a mistake: moving it into a standalone message
+    /// copies its data off the arena. The returned reference does not extend the arena's lifetime.
+    /// Prefer @ref ugrpc::server::Result::GetResponse for read-only access.
     Response&& ExtractResponse() {
         UINVARIANT(IsSuccess(), "ExtractResponse is only allowed in case of OK status");
-        return std::get<Response>(std::move(result_));
+        return std::move(std::get<impl::MessageStorage<Response>>(result_).Get());
     }
 
-    /// @returns the contained error status.
+    /// @returns the contained response.
     /// @pre `IsSuccess() == true`.
     const Response& GetResponse() const {
         UINVARIANT(IsSuccess(), "GetResponse is only allowed in case of OK status");
-        return std::get<Response>(result_);
+        return std::get<impl::MessageStorage<Response>>(result_).Get();
     }
 
+    /// @cond
+    // For internal use only.
+    impl::MessageStorage<Response>&& ExtractStorage(utils::impl::InternalTag) {
+        return std::move(std::get<impl::MessageStorage<Response>>(result_));
+    }
+    /// @endcond
+
 private:
-    std::variant<Response, grpc::Status> result_;
+    explicit Result(std::reference_wrapper<Response> response)
+        : result_{std::in_place_type<impl::MessageStorage<Response>>, response}
+    {}
+
+    std::variant<impl::MessageStorage<Response>, grpc::Status> result_;
 };
 
 /// @brief Special result type for server-streaming service handlers.
@@ -104,6 +131,16 @@ public:
         : last_response_(std::move(last_response))
     {}
 
+    /// @brief Construct a successful result that borrows an arena-backed last response.
+    /// @param response A protobuf message allocated on an arena.
+    /// @pre The arena must remain alive and must not be reset until result consumption,
+    /// serialization, and middleware hooks have finished.
+    /// @returns A result referring to @a response without taking ownership.
+    static StreamingResult BorrowArenaResponse(Response& response) {
+        UINVARIANT(response.GetArena(), "The response must be allocated on an arena");
+        return StreamingResult(std::ref(response));
+    }
+
     /// @returns `true` if the `StreamingResult` contains `OK` status, possibly with a last response.
     bool IsSuccess() const { return status_.ok(); }
 
@@ -118,20 +155,32 @@ public:
 
     /// @returns the contained last response.
     /// @pre `HasLastResponse() == true`.
+    /// @warning Extracting an arena-backed response is usually a mistake: moving it into a standalone message
+    /// copies its data off the arena. The returned reference does not extend the arena's lifetime.
+    /// Prefer @ref ugrpc::server::StreamingResult::GetLastResponse for read-only access.
     Response&& ExtractLastResponse() {
         UINVARIANT(HasLastResponse(), "There is no last response in the StreamingResult");
-        return std::move(last_response_).value();
+        return std::move(last_response_->Get());
     }
 
     /// @returns the contained last response.
     /// @pre `HasLastResponse() == true`.
     const Response& GetLastResponse() const {
         UINVARIANT(HasLastResponse(), "There is no last response in the StreamingResult");
-        return last_response_.value();
+        return last_response_->Get();
     }
 
+    /// @cond
+    // For internal use only.
+    impl::MessageStorage<Response>&& ExtractStorage(utils::impl::InternalTag) { return std::move(*last_response_); }
+    /// @endcond
+
 private:
-    std::optional<Response> last_response_;
+    explicit StreamingResult(std::reference_wrapper<Response> response)
+        : last_response_(std::in_place, response)
+    {}
+
+    std::optional<impl::MessageStorage<Response>> last_response_;
     grpc::Status status_{grpc::Status::OK};
 };
 

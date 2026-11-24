@@ -70,6 +70,9 @@ public:
     /// Server middlewares can be modified before the first RegisterService call.
     void SetServerMiddlewares(server::Middlewares middlewares);
 
+    /// Enable or disable protobuf arenas for subsequently registered services.
+    void SetUseProtobufArena(bool enabled);
+
     /// Client middlewares can be modified before the first RegisterService call.
     void SetClientMiddlewares(client::Middlewares middlewares);
 
@@ -101,6 +104,7 @@ private:
     std::optional<std::string> unix_socket_path_;
     utils::WithResourceScopes<server::Server> server_;
     server::Middlewares server_middlewares_;
+    bool use_protobuf_arena_{false};
     SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
     bool middlewares_change_allowed_{true};
     testsuite::GrpcControl testsuite_;
@@ -122,6 +126,7 @@ struct ServiceConfigs {
     client::ClientFactorySettings client_factory_settings{};
     server::Middlewares server_middlewares{GetDefaultServerMiddlewares()};
     client::Middlewares client_middlewares{GetDefaultClientMiddlewares()};
+    bool use_protobuf_arena{false};
 };
 
 /// @brief Sets up a mini gRPC server using a single service implementation.
@@ -143,6 +148,7 @@ public:
     {
         SetServerMiddlewares(std::move(configs.server_middlewares));
         SetClientMiddlewares(std::move(configs.client_middlewares));
+        SetUseProtobufArena(configs.use_protobuf_arena);
         RegisterService(service_);
         StartServer(std::move(configs.client_factory_settings));
     }

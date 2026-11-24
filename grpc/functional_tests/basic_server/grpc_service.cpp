@@ -11,9 +11,12 @@
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/formats/json/inline.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/protobuf/arena.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/server/middlewares/headers_propagator.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -50,12 +53,18 @@ private:
 };
 
 GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
-    CallContext& /*context*/,
+    CallContext& context,
     api::GreetingRequest&& request
 ) {
-    api::GreetingResponse response;
+    api::GreetingResponse storage;
+    const auto arena = context.GetArena();
+    auto& response = arena ? *protobuf::CreateArenaMessage<api::GreetingResponse>(*arena) : storage;
     response.set_greeting(fmt::format("Hello, {}!", request.name()));
-    return response;
+    TESTPOINT(
+        "grpc-arenas",
+        formats::json::MakeObject("request", request.GetArena() != nullptr, "response", response.GetArena() != nullptr)
+    );
+    return arena ? SayHelloResult::BorrowArenaResponse(response) : std::move(response);
 }
 
 GreeterServiceComponent::CallEchoNobodyResult GreeterServiceComponent::CallEchoNobody(

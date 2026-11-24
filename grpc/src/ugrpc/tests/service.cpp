@@ -39,6 +39,7 @@ server::ServiceConfig ServiceBase::MakeServiceConfig() {
         .middlewares = server_middlewares_,
         .status_codes_log_level = {},
         .config_source = config_storage_.GetSource(),
+        .use_protobuf_arena = use_protobuf_arena_,
     };
 }
 
@@ -92,6 +93,8 @@ void ServiceBase::SetServerMiddlewares(server::Middlewares middlewares) {
     );
     server_middlewares_ = std::move(middlewares);
 }
+
+void ServiceBase::SetUseProtobufArena(bool enabled) { use_protobuf_arena_ = enabled; }
 
 void ServiceBase::SetClientMiddlewares(client::Middlewares middlewares) {
     UINVARIANT(

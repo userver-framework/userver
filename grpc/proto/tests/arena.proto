@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package sample.ugrpc.arena;
+
+message Payload {
+  repeated Payload children = 1;
+  repeated string values = 2;
+  uint64 id = 3;
+}
+
+message BuildRequest {
+  uint32 rows = 1;
+  uint32 fields_per_row = 2;
+  uint32 value_bytes = 3;
+}
+
+service ArenaBenchmarkService {
+  rpc Echo(Payload) returns (Payload) {}
+  rpc Build(BuildRequest) returns (Payload) {}
+}

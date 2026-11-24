@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <userver/proto-structs/convert.hpp>
+#include <userver/protobuf/arena.hpp>
 #include <userver/ugrpc/server/stream.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,7 +36,8 @@ public:
     ///
     /// @see @ref ugrpc::server::Reader::Read method for details.
     bool Read(Request& request) {
-        RequestMessage message;
+        google::protobuf::Arena arena;
+        auto& message = *protobuf::CreateArenaMessage<RequestMessage>(arena);
         if (reader_.Read(message)) {
             proto_structs::MessageToStruct(message, request);
             return true;
@@ -70,10 +72,13 @@ public:
     /// Convert response to corresponding protobuf message and pass it to @ref ugrpc::server::Writer::Write.
     ///
     /// @see @ref ugrpc::server::Writer::Write method for details.
-    void Write(Response&& response) { writer_.Write(proto_structs::StructToMessage(std::move(response))); }
+    void Write(Response&& response) { Write(std::move(response), {}); }
 
     void Write(Response&& response, const grpc::WriteOptions& options) {
-        writer_.Write(proto_structs::StructToMessage(std::move(response)), options);
+        google::protobuf::Arena arena;
+        auto& message = *protobuf::CreateArenaMessage<ResponseMessage>(arena);
+        proto_structs::StructToMessage(std::move(response), message);
+        writer_.Write(std::move(message), options);
     }
     /// @}
 
@@ -84,10 +89,13 @@ public:
     /// Convert response to corresponding protobuf message and pass it to @ref ugrpc::server::Writer::Write.
     ///
     /// @see @ref ugrpc::server::Writer::Write method for details.
-    void WriteCopy(const Response& response) { writer_.Write(proto_structs::StructToMessage(response)); }
+    void WriteCopy(const Response& response) { WriteCopy(response, {}); }
 
     void WriteCopy(const Response& response, const grpc::WriteOptions& options) {
-        writer_.Write(proto_structs::StructToMessage(response), options);
+        google::protobuf::Arena arena;
+        auto& message = *protobuf::CreateArenaMessage<ResponseMessage>(arena);
+        proto_structs::StructToMessage(response, message);
+        writer_.Write(std::move(message), options);
     }
     /// @}
 

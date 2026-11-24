@@ -253,6 +253,31 @@ These settings can only be applied before gRPC is first used in the process:
 * the `GRPC_POLL_STRATEGY` environment variable must be unset or select `epoll1`, and `GRPC_EXPERIMENTS`
   must not disable the `event_engine_listener` experiment or enable `event_engine_client` and `event_engine_dns`.
 
+### Protobuf arenas
+
+Set `use-protobuf-arena` to `true` on a gRPC service component to enable an arena
+per typed RPC. Set `grpc-server.service-defaults.use-protobuf-arena` to configure
+the default for all services; individual services can override it in either direction.
+It is disabled by default and supported by both server backends. Generic RPCs are unaffected.
+
+@ref ugrpc::server::CallContextBase::GetArena returns the call arena, or an empty
+reference when unavailable. Initial unary and server-streaming requests use this
+arena. Allocate a response with @ref protobuf::CreateArenaMessage, fill it, and
+return it using @ref ugrpc::server::Result::BorrowArenaResponse or
+@ref ugrpc::server::StreamingResult::BorrowArenaResponse. The arena must outlive
+serialization and middleware finish hooks. The ordinary result constructors own
+the response, including when it was allocated on a handler-local arena.
+
+Proto-struct final responses use the call arena automatically. Streaming
+@ref grpc_proto_structs::server::Reader::Read,
+@ref grpc_proto_structs::server::Writer::Write, and
+@ref grpc_proto_structs::server::Writer::WriteCopy use a temporary local arena for
+each operation. Its allocations are released when the operation completes.
+
+Handlers and middleware can share ownership through
+@ref ugrpc::server::CallContextBase::GetArenaSharedPtr. Keep the returned shared
+pointer alive to retain arena messages beyond the call's lifetime.
+
 ### Service method handling
 
 Each method receives:

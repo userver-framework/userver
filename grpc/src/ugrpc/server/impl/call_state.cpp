@@ -97,6 +97,9 @@ CallState::CallState(CallParams&& params)
       statistics_scope(method_statistics),
       config_snapshot(config_source.GetSnapshot())
 {
+    if (use_protobuf_arena) {
+        arena = std::make_shared<google::protobuf::Arena>();
+    }
     ConstructSpan(span, call_name, server_context, tracing_config);
     AddServiceMethodTags(span->Get(), service_name, method_name);
 }

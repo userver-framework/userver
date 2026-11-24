@@ -26,6 +26,12 @@ tracing::Span& CallContextBase::GetSpan() { return state_.GetSpan(); }
 
 utils::AnyStorage<StorageContext>& CallContextBase::GetStorageContext() { return state_.storage_context; }
 
+utils::OptionalRef<google::protobuf::Arena> CallContextBase::GetArena() const {
+    return state_.arena ? utils::OptionalRef{*state_.arena} : std::nullopt;
+}
+
+std::shared_ptr<google::protobuf::Arena> CallContextBase::GetArenaSharedPtr() const noexcept { return state_.arena; }
+
 void GenericCallContext::SetMetricsCallName(std::string_view call_name) {
     auto& state = GetCallState(utils::impl::InternalTag{});
     state.statistics_scope.RedirectTo(state.statistics_storage.GetGenericStatistics(call_name, std::nullopt));

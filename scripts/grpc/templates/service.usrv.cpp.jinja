@@ -123,7 +123,7 @@ namespace structs {
     {{service.name}}ProtobufBase::{{method.name}}ReaderWriter& stream) {
     {{method.name}}ReaderWriter proto_struct_stream{stream};
     auto result = {{method.name}}(context, proto_struct_stream);
-    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result), context.GetArena());
 }
 
 {% elif method.client_streaming %}
@@ -140,7 +140,7 @@ namespace structs {
     {{service.name}}ProtobufBase::{{method.name}}Reader& reader) {
     {{method.name}}Reader proto_struct_reader{reader};
     auto result = {{method.name}}(context, proto_struct_reader);
-    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result), context.GetArena());
 }
 
 {% elif method.server_streaming %}
@@ -163,7 +163,7 @@ namespace structs {
         USERVER_NAMESPACE::proto_structs::MessageToStruct<{{ method.input_type | grpc_to_structs_name }}>(std::move(request)),
         proto_struct_writer
     );
-    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result), context.GetArena());
 }
 
 {% else %}
@@ -182,7 +182,7 @@ namespace structs {
         context,
         USERVER_NAMESPACE::proto_structs::MessageToStruct<{{ method.input_type | grpc_to_structs_name }}>(std::move(request))
     );
-    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+    return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result), context.GetArena());
 }
 
 {% endif %}

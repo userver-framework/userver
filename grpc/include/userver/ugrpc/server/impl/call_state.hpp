@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string_view>
 
+#include <google/protobuf/arena.h>
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_context.h>
 
@@ -39,6 +41,7 @@ struct CallParams {
     const Middlewares& middlewares;
     const dynamic_config::Source& config_source;
     const ServiceTracingConfig& tracing_config;
+    const bool use_protobuf_arena;
 };
 
 // Non-templated state of CallProcessor. Can be non-movable.
@@ -50,6 +53,7 @@ struct CallState : CallParams {
         return span->Get();
     }
 
+    std::shared_ptr<google::protobuf::Arena> arena;
     std::optional<tracing::InPlaceSpan> span;
     ugrpc::impl::RpcStatisticsScope statistics_scope;
     // Wire size of the request message most recently received. Written only by the read side.

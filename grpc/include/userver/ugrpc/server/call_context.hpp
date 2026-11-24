@@ -7,9 +7,14 @@
 
 #include <userver/tracing/span.hpp>
 #include <userver/utils/any_storage.hpp>
+#include <userver/utils/optional_ref.hpp>
 
 #include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
+
+namespace google::protobuf {
+class Arena;
+}
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,6 +51,18 @@ public:
 
     /// @brief Get the span of the current RPC
     tracing::Span& GetSpan();
+
+    /// @brief Borrow the call's protobuf arena.
+    /// @returns An empty reference if arenas are disabled or the call is generic.
+    /// To retain arena messages beyond the call's lifetime, keep a shared pointer
+    /// obtained with @ref ugrpc::server::CallContextBase::GetArenaSharedPtr.
+    utils::OptionalRef<google::protobuf::Arena> GetArena() const;
+
+    /// @brief Share ownership of the call's protobuf arena.
+    /// @returns An empty pointer if arenas are disabled or the call is generic.
+    /// The call retains ownership; the returned pointer can extend the lifetime
+    /// of the arena and its messages beyond the call's lifetime.
+    std::shared_ptr<google::protobuf::Arena> GetArenaSharedPtr() const noexcept;
 
     /// @brief Returns call context for storing per-call custom data
     ///

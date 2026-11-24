@@ -89,3 +89,7 @@ properties:
                 type: boolean
                 description: default value of always-log-call-spans for gRPC service components
                 default: false
+            use-protobuf-arena:
+                type: boolean
+                description: Allocate typed requests and proto-struct responses on protobuf arenas.
+                default: false

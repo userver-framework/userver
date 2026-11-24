@@ -11,3 +11,4 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-proto ${PROJECT_NAME}-unus
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-tls)
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-unix-socket)
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-tracing)
+userver_chaos_testsuite_add(TESTS_DIRECTORY tests-arena)

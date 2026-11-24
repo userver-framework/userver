@@ -350,6 +350,7 @@ impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config
             .always_log_call_spans = config.always_log_call_spans,
         },
         use_callback_api_,
+        config.use_protobuf_arena,
     };
 }
 

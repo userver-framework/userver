@@ -84,6 +84,7 @@ ServiceDefaults ParseServiceDefaults(
     return ServiceDefaults{
         .task_processor = ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
         .always_log_call_spans = value[kAlwaysLogCallSpansKey].As<bool>(false),
+        .use_protobuf_arena = value["use-protobuf-arena"].As<bool>(false),
     };
 }
 
@@ -100,6 +101,7 @@ server::ServiceConfig ParseServiceConfig(
             value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
         .config_source = context.FindComponent<components::DynamicConfig>().GetSource(),
         .always_log_call_spans = value[kAlwaysLogCallSpansKey].As<bool>(defaults.always_log_call_spans),
+        .use_protobuf_arena = value["use-protobuf-arena"].As<bool>(defaults.use_protobuf_arena),
     };
 }
 

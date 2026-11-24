@@ -210,6 +210,8 @@ private:
                 method_data_.service_data.internals.middlewares,
                 method_data_.service_data.internals.config_source,
                 method_data_.service_data.internals.tracing_config,
+                method_data_.service_data.internals.use_protobuf_arena &&
+                    !std::is_same_v<typename CallTraits::Context, GenericCallContext>,
             },
             responder_,
             serialized_initial_request_,
