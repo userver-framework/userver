@@ -214,7 +214,7 @@ def read_schemas(
     schemas = []
     for fname in filepaths:
         with open(fname) as ifile:
-            data = yaml.load(ifile, Loader=yaml.CLoader)
+            data = yaml.load(ifile, Loader=getattr(yaml, 'CLoader', yaml.Loader))
 
         scan_objects = extract_schemas_to_scan(data, name_map)
 
