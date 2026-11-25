@@ -324,8 +324,8 @@ UTEST_F(ProducerTest, WaitingForMessageDelivery) {
     producer_configuration.delivery_timeout = std::chrono::milliseconds{1500};
     producer_configuration.queue_buffering_max = std::chrono::milliseconds{1000};
 
-    auto producer = std::make_unique<kafka::Producer>(utils::LazyPrvalue([this] {
-        return MakeProducer("kafka-producer");
+    auto producer = std::make_unique<kafka::Producer>(utils::LazyPrvalue([this, &producer_configuration] {
+        return MakeProducer("kafka-producer", producer_configuration);
     }));
 
     auto send_tasks = utils::GenerateFixedArray(kSendCount, [&producer, topic = GenerateTopic()](std::size_t i) {

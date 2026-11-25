@@ -130,6 +130,8 @@ ProducerImpl::ProducerImpl(
 
 const Stats& ProducerImpl::GetStats() const { return stats_; }
 
+utils::impl::WaitTokenStorage::Token ProducerImpl::GetSendToken() const { return active_sends_.GetToken(); }
+
 DeliveryResult ProducerImpl::Send(
     utils::zstring_view topic_name,
     std::string_view key,
@@ -428,6 +430,7 @@ void ProducerImpl::EventCallback() {
 void ProducerImpl::WaitUntilAllMessagesDelivered() && {
     static constexpr std::size_t kFlushSteps{10};
 
+    active_sends_.WaitForAllTokens();
     log_events_handler_.Stop();
     /// unregister EventCallback
     rd_kafka_queue_cb_event_enable(producer_.GetQueue(), nullptr, nullptr);

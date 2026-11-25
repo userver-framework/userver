@@ -56,9 +56,6 @@ class HeadersHolder;
 /// Producer maintains per topic statistics including the broker
 /// connection errors.
 ///
-/// @remark Destructor may wait for no more than a 2 x `delivery_timeout` to
-/// ensure all sent messages are properly delivered.
-///
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
 public:
@@ -73,8 +70,8 @@ public:
     );
     /// @endcond
 
-    /// @brief Waits until all messages are sent for at most 2 x
-    /// `delivery_timeout` and destroys the producer.
+    /// @brief Waits without a timeout for outstanding SendAsync tasks, including
+    /// tasks still queued to run. Then flushes Kafka for up to 2 x `delivery_timeout`.
     ///
     /// @remark In a basic producer use cases, the destructor returns immediately.
     ~Producer();
@@ -143,6 +140,7 @@ public:
 
     /// @brief Same as Producer::Send, but returns the task which can be
     /// used to wait the message delivery manually.
+    /// The producer destructor waits for outstanding sends.
     ///
     /// @warning If user schedules a batch of send requests with Producer::SendAsync, some send
     /// requests may be retried by the library (for instance, in case of network
@@ -190,7 +188,7 @@ private:
     const std::string name_;
     engine::TaskProcessor& producer_task_processor_;
 
-    static constexpr std::size_t kImplSize{944};
+    static constexpr std::size_t kImplSize{960};
     static constexpr std::size_t kImplAlign{16};
     utils::FastPimpl<impl::ProducerImpl, kImplSize, kImplAlign> producer_;
 };

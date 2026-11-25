@@ -10,6 +10,7 @@
 #include <userver/kafka/impl/messages.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
@@ -32,6 +33,8 @@ public:
 
     const Stats& GetStats() const;
 
+    [[nodiscard]] utils::impl::WaitTokenStorage::Token GetSendToken() const;
+
     /// @brief Send the message and waits for its delivery.
     /// While waiting handles other messages delivery reports, errors and logs.
     [[nodiscard]] DeliveryResult Send(
@@ -52,8 +55,8 @@ public:
         std::vector<HeadersHolder> headers
     ) const;
 
-    /// @brief Waits until scheduled messages are delivered for
-    /// at most 2 x `delivery_timeout`.
+    /// @brief Waits without a timeout for outstanding SendAsync tasks, including
+    /// tasks still queued to run. Then flushes Kafka for up to 2 x `delivery_timeout`.
     ///
     /// @warning The function must be called before the destructor. After this
     /// call producer stops working and cannot be used anymore.
@@ -111,6 +114,7 @@ private:
 
     ConcurrentEventWaiters waiters_;
     ProducerHolder producer_;
+    mutable utils::impl::WaitTokenStorage active_sends_;
 
     /// If no messages are send, some errors may occurred and we want to log them anyway.
     utils::PeriodicTask log_events_handler_;

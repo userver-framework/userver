@@ -173,11 +173,14 @@ engine::TaskWithResult<void> Producer::SendAsync(
         producer_task_processor_,
         "producer_send_async",
         [this,
+         token = producer_->GetSendToken(),
          topic_name = std::move(topic_name),
          key = std::move(key),
          message = std::move(message),
          partition,
          headers_holder = impl::HeadersHolder{headers}]() mutable {
+            // The capture also releases the token if this task is cancelled before it starts.
+            (void)token;
             SendImpl(topic_name, key, message, partition, std::move(headers_holder));
         }
     );
