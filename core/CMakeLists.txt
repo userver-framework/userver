@@ -107,9 +107,12 @@ target_link_libraries(
 )
 if(TARGET Boost::endian)
     # Boost from CPM
+    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::endian Boost::lockfree)
+endif()
+if(BOOST_CPM)
     target_link_libraries(
         ${PROJECT_NAME}
-        PUBLIC Boost::endian Boost::lockfree Boost::algorithm
+        PUBLIC Boost::algorithm
         PRIVATE Boost::exception
     )
 endif()
