@@ -1,11 +1,18 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
+
+#ifdef __linux__
+#include <sched.h>
+#endif
 
 #include <engine/tests/task_processor_utils.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
@@ -363,38 +370,121 @@ TEST(BackgroundTaskStorage, CustomTaskProcessor) {
 // NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp,readability-identifier-naming)
 extern "C" std::size_t __sanitizer_get_current_allocated_bytes() __attribute__((weak));
 
-TEST(BackgroundTaskStorage, ReleasesMemoryAfterCrossThreadDetach) {
-    // The per-CPU free list retained over 10 MiB in 1 s in Release on an i7-13700H.
-    constexpr std::int64_t kMaxGrowthKiB = 4 * 1024;
-    const auto memory_kb = []() -> std::int64_t {
-        if (__sanitizer_get_current_allocated_bytes) {
-            return __sanitizer_get_current_allocated_bytes() / 1024;
-        }
-        return utils::statistics::impl::GetSelfSystemStatistics().rss_kb.value();
-    };
+namespace {
 
+struct PinCpuOptions {
+    std::optional<int> excluded_cpu;
+};
+
+struct CpuSetDeleter {
+    void operator()(cpu_set_t* mask) const noexcept { CPU_FREE(mask); }
+};
+
+using CpuSet = std::unique_ptr<cpu_set_t, CpuSetDeleter>;
+
+struct CpuAffinityMask {
+    CpuSet mask;
+    int capacity;
+};
+
+std::optional<CpuAffinityMask> GetAllowedCpuMask() {
+    for (int cpu_count = CPU_SETSIZE; cpu_count <= std::numeric_limits<int>::max() / 2; cpu_count *= 2) {
+        CpuSet mask{CPU_ALLOC(cpu_count)};
+        if (!mask) {
+            return std::nullopt;
+        }
+
+        if (::sched_getaffinity(0, CPU_ALLOC_SIZE(cpu_count), mask.get()) == 0) {
+            return CpuAffinityMask{.mask = std::move(mask), .capacity = cpu_count};
+        }
+        if (errno != EINVAL) {
+            return std::nullopt;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<int> PinToAllowedCpu(PinCpuOptions options = {}) {
+    const auto allowed = GetAllowedCpuMask();
+    if (!allowed) {
+        return std::nullopt;
+    }
+
+    const auto size = CPU_ALLOC_SIZE(allowed->capacity);
+    const CpuSet selected{CPU_ALLOC(allowed->capacity)};
+    if (!selected) {
+        return std::nullopt;
+    }
+
+    for (int cpu = 0; cpu < allowed->capacity; ++cpu) {
+        if (cpu == options.excluded_cpu || !CPU_ISSET_S(cpu, size, allowed->mask.get())) {
+            continue;
+        }
+        CPU_ZERO_S(size, selected.get());
+        CPU_SET_S(cpu, size, selected.get());
+        if (::sched_setaffinity(0, size, selected.get()) == 0) {
+            return cpu;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::int64_t> GetMemoryKiB() {
+    if (__sanitizer_get_current_allocated_bytes) {
+        return __sanitizer_get_current_allocated_bytes() / 1024;
+    }
+    return utils::statistics::impl::GetSelfSystemStatistics().rss_kb;
+}
+
+}  // namespace
+
+TEST(BackgroundTaskStorage, ReleasesMemoryAfterCrossThreadDetach) {
+    // The old per-CPU free list retained 10 MiB for this many cross-CPU detaches in a local Release build.
+    constexpr int kMeasuredTasks = 128 * 1024;
+    constexpr std::int64_t kMaxGrowthKiB = 4 * 1024;
     engine::tests::TwoStandaloneTaskProcessors tp;
     tp.RunBlocking([&] {
-        concurrent::BackgroundTaskStorageCore bts;
         auto& worker = tp.GetSecondary();
-        const auto run_tasks = [&](std::chrono::milliseconds duration) {
-            const auto deadline = engine::Deadline::FromDuration(duration);
-            while (!deadline.IsReached()) {
+        const auto producer_cpu = PinToAllowedCpu();
+        if (!producer_cpu ||
+            !engine::CriticalAsyncNoTracing(worker, PinToAllowedCpu, PinCpuOptions{.excluded_cpu = producer_cpu}).Get())
+        {
+            GTEST_SKIP() << "Could not pin the two task processor threads to distinct allowed CPUs";
+        }
+
+        engine::SingleConsumerEvent registered;
+        concurrent::BackgroundTaskStorageCore bts;
+        const auto run_tasks = [&](int count) {
+            for (int i = 0; i < count; ++i) {
                 engine::Promise<void> promise;
                 auto finished = promise.get_future();
-                bts.Detach(engine::CriticalAsyncNoTracing(worker, [promise = std::move(promise)]() mutable {
-                    promise.set_value();
-                }));
+                bts.Detach(engine::CriticalAsyncNoTracing(
+                    worker,
+                    [&registered, promise = std::move(promise)]() mutable {
+                        if (registered.WaitForEvent()) {
+                            promise.set_value();
+                        }
+                    }
+                ));
+                // A task that finishes before Detach registers its token can return it on the producer CPU.
+                registered.Send();
                 finished.get();
             }
             // The single worker finishes disposing the last token before running this task.
             engine::CriticalAsyncNoTracing(worker, [] {}).Get();
         };
 
-        run_tasks(30ms);  // Warm up the coroutine stacks and allocator caches.
-        const auto before = memory_kb();
-        run_tasks(1s);
-        const auto growth_kb = memory_kb() - before;
+        run_tasks(1024);  // Warm up the coroutine stacks and allocator caches.
+        const auto before = GetMemoryKiB();
+        if (!before) {
+            GTEST_SKIP() << "Could not read RSS from /proc/self/stat before the detach loop";
+        }
+        run_tasks(kMeasuredTasks);
+        const auto after = GetMemoryKiB();
+        if (!after) {
+            GTEST_SKIP() << "Could not read RSS from /proc/self/stat after the detach loop";
+        }
+        const auto growth_kb = after.value() - before.value();
         bts.CancelAndWait();
         RecordProperty("memory_growth_kb", growth_kb);
         EXPECT_LT(growth_kb, kMaxGrowthKiB);
