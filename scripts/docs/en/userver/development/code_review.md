@@ -269,20 +269,9 @@ Code comments should clarify intent, rationale, and contracts rather than paraph
 the implementation. Explanations of how the implementation works are appropriate
 for non-obvious implementation details.
 
-## 11. Cover new behavior and bug fixes with tests
+## 11. Tests
 
-New functionality and bug fixes must have tests. Add or update relevant documentation.
-For flaky failures caused by production code rather than the test itself, first
-add a test that reliably reproduces the bug without flakiness, then fix the code.
-
-Keep the test set minimal. A bug fix needs one test that fails without the fix;
-add another test only if it covers a distinct behavior of the change that no other
-new or existing test exercises. When reviewing, request removal of tests that:
-- repeat the same code path with a different API flavor (sync/async, unary/streaming,
-  retry/no retry) unless the change affects that flavor specifically;
-- check scenarios that are practically unreachable or need artificial setup
-  that does not occur in real usage;
-- duplicate assertions of existing tests.
+Follow @ref scripts/docs/en/userver/development/writing_tests.md.
 
 ## 12. Use userver synchronization and I/O primitives
 
@@ -358,5 +347,5 @@ Keep unqualified calls only where ADL is an intentional customization mechanism.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/development/writing_tests.md ⇨
 @htmlonly </div> @endhtmlonly

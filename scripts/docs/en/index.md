@@ -210,6 +210,7 @@ and make sure that it builds and passes tests.
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
 * @ref scripts/docs/en/userver/development/code_review.md
+* @ref scripts/docs/en/userver/development/writing_tests.md
 * @ref scripts/docs/en/userver/driver_guide.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md

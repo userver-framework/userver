@@ -3,7 +3,8 @@
 ## Quality requirements
 
 Read and follow [the code review rules](scripts/docs/en/userver/development/code_review.md)
-when implementing changes and reviewing PRs.
+when implementing changes and reviewing PRs. For tests, also follow
+[the test writing rules](scripts/docs/en/userver/development/writing_tests.md).
 
 Before reporting implementation work as complete, review the entire diff
 against these rules, fix introduced violations, and rerun relevant checks.
