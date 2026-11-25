@@ -29,6 +29,19 @@ Allow variations in case, whitespace, and comment syntax without requiring
 Templates such as `.jinja` remain in scope even if they contain a future output
 banner; ordinary references to generation do not make a file generated.
 
+## Review task completion
+
+Carry the review through to completion in the current task. After each finding
+or progress update, continue with the remaining work on your own. Whenever
+you can name an authorized next step, take it before giving a final answer.
+
+Before finishing, compare what you reviewed with the full requested scope.
+Account for every changed file in scope, apply the relevant review rules,
+and finish investigating each potential finding.
+
+If a review item cannot be verified with the available evidence, skip it
+and immediately review the next item.
+
 ## 1. Preserve the public API
 
 Check backward compatibility even when there are no callers in this repository.
