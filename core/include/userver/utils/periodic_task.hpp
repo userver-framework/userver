@@ -212,7 +212,7 @@ public:
 
     /// @brief Returns the task name, or "<name not set>" before a name is assigned.
     /// The returned view remains valid until this object is destroyed.
-    std::string_view GetName() const noexcept;
+    std::string_view GetName() const;
 
 private:
     class Impl;
