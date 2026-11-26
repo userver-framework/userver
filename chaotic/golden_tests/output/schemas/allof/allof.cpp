@@ -1,5 +1,8 @@
 #include "allof.hpp"
 
+#include <string_view>
+#include <unordered_set>
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "allof_parsers.ipp"
@@ -279,13 +282,18 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.foo && hide_field_name != "foo") {
+            emitted_fields.insert("foo");
         sw.Key("foo");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
             *value.foo
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
@@ -302,13 +310,18 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.bar && hide_field_name != "bar") {
+            emitted_fields.insert("bar");
         sw.Key("bar");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<int>{
             *value.bar
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
@@ -325,28 +338,12 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
-        USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
-
-    if (value.foo && hide_field_name != "foo") {
-        sw.Key("foo");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
-            *value.foo
-        }, sw);
-    }
-                    USERVER_NAMESPACE::formats::common::Merge(vb, static_cast<const ::ns::AllOf::Foo__P0&>(value).extra);
-
-    if (value.bar && hide_field_name != "bar") {
-        sw.Key("bar");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<int>{
-            *value.bar
-        }, sw);
-    }
-                    USERVER_NAMESPACE::formats::common::Merge(vb, static_cast<const ::ns::AllOf::Foo__P1&>(value).extra);
-
-            auto additional_properties = vb.ExtractValue();
-            for (const auto& [name, item]: USERVER_NAMESPACE::formats::common::Items(additional_properties)) {
-                sw.Key(name);
-                WriteToStream(item, sw);
+            const auto serialized = USERVER_NAMESPACE::formats::json::ValueBuilder{value}.ExtractValue();
+            for (const auto& [name, item]: USERVER_NAMESPACE::formats::common::Items(serialized)) {
+                if (name != hide_field_name) {
+                    sw.Key(name);
+                    WriteToStream(item, sw);
+                }
             }
 }
 

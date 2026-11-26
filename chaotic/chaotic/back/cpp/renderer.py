@@ -1,4 +1,5 @@
 import collections
+from collections.abc import Iterable
 import dataclasses
 import os
 import pathlib
@@ -110,6 +111,26 @@ def sax_parser_includes(types: list[cpp_types.CppType]) -> list[str]:
     return sorted(includes)
 
 
+def needs_emitted_fields(
+    types: Iterable[cpp_types.CppType], generate_serializer: bool, generate_stream_writer: bool
+) -> bool:
+    if not (generate_serializer and generate_stream_writer):
+        return False
+
+    def tracks_fields(type_: cpp_types.CppType) -> bool:
+        if isinstance(type_, cpp_types.CppStruct) and type_.need_stream_writer() and type_.extra_type:
+            return True
+        for child in type_.subtypes():
+            if tracks_fields(child):
+                return True
+        return False
+
+    for type_ in types:
+        if tracks_fields(type_):
+            return True
+    return False
+
+
 def has_json_parse(parse_formats: list[str]) -> bool:
     return FORMATS_JSON in parse_formats
 
@@ -145,6 +166,7 @@ def make_env() -> jinja2.Environment:
     env.globals['cpp_struct_is_strict_parsing'] = cpp_struct_is_strict_parsing
 
     env.globals['declaration_includes'] = declaration_includes
+    env.globals['needs_emitted_fields'] = needs_emitted_fields
     env.globals['definition_includes'] = definition_includes
     env.globals['sax_parser_includes'] = sax_parser_includes
 

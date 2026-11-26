@@ -17,10 +17,13 @@
 {% endmacro %}
 
 
-{% macro _generate_cpp_struct_properties_stream_writer_definition(type) %}
+{% macro _generate_cpp_struct_properties_stream_writer_definition(type, track_fields=false) %}
     {% for fname, field in type.fields.items() %}
         {% if field.is_optional() %}
             if (value.{{ field.cpp_field_name() }} && hide_field_name != "{{ fname }}") {
+                {% if track_fields %}
+                    emitted_fields.insert("{{ fname }}");
+                {% endif %}
                 sw.Key("{{ fname }}");
                 WriteToStream({{ field.schema.parser_type('', '') }}{
                     *value.{{ field.cpp_field_name() }}
@@ -28,6 +31,9 @@
             }
         {% else %}
             if (hide_field_name != "{{ fname }}") {
+                {% if track_fields %}
+                    emitted_fields.insert("{{ fname }}");
+                {% endif %}
                 sw.Key("{{ fname }}");
                 WriteToStream({{ field.schema.parser_type('', '') }}{
                     value.{{ field.cpp_field_name() }}
@@ -58,11 +64,17 @@
     {# `discriminator` property can not apear in additionalProperties => no `hide_field_name` checks #}
     {% if type.extra_type == True %}
             for (const auto& [field_key, field_value]: {{ userver }}::formats::common::Items(value.extra)) {
+                if (emitted_fields.contains(field_key)) {
+                    continue;
+                }
                 sw.Key(field_key);
                 WriteToStream(field_value, sw);
             }
     {% elif type.extra_type %}
             for (const auto& [field_key, field_value]: value.extra) {
+                if (emitted_fields.contains(field_key)) {
+                    continue;
+                }
                 sw.Key(field_key);
                 WriteToStream({{ type.extra_type.parser_type('', '') }}{ field_value }, sw);
             }
@@ -85,7 +97,11 @@
             {% if type.get_py_type() == 'CppStruct' %}
                 {{- _generate_stream_writer_definition_guard(userver, type) -}}
 
-                {{- _generate_cpp_struct_properties_stream_writer_definition(type) -}}
+                {% if type.extra_type %}
+                    std::unordered_set<std::string_view> emitted_fields;
+                {% endif %}
+
+                {{- _generate_cpp_struct_properties_stream_writer_definition(type, type.extra_type) -}}
 
                 {{- _generate_cpp_struct_additional_properties_stream_writer_definition(userver, type) -}}
 
@@ -102,31 +118,25 @@
                 {{- _generate_stream_writer_definition_guard(userver, type) -}}
 
                 {% if type.has_nested_additional_properties() %}
-                {{ userver }}::formats::json::ValueBuilder vb = {{ userver }}::formats::common::Type::kObject;
-                {% endif %}
-
-                {% for parent in type.parents %}
-                    {% if parent.get_py_type() == 'CppRef' %}
-                        {% set parent = parent.orig_cpp_type %}
-                    {% endif%}
-
-                    {% if parent.get_py_type() == 'CppStruct' %}
-                        {{- _generate_cpp_struct_properties_stream_writer_definition(parent) -}}
-
-                        {% if parent.extra_type %}
-                            {{userver}}::formats::common::Merge(vb, static_cast<const {{ parent.cpp_global_name() }}&>(value).extra);
-                        {% endif %}
-                    {% else %}
-                        {{ NOT_IMPLEMENTED(parent) }}
-                    {% endif %}
-                {% endfor %}
-
-                {% if type.has_nested_additional_properties() %}
-                    auto additional_properties = vb.ExtractValue();
-                    for (const auto& [name, item]: {{ userver }}::formats::common::Items(additional_properties)) {
-                        sw.Key(name);
-                        WriteToStream(item, sw);
+                    const auto serialized = {{ userver }}::formats::json::ValueBuilder{value}.ExtractValue();
+                    for (const auto& [name, item]: {{ userver }}::formats::common::Items(serialized)) {
+                        if (name != hide_field_name) {
+                            sw.Key(name);
+                            WriteToStream(item, sw);
+                        }
                     }
+                {% else %}
+                    {% for parent in type.parents %}
+                        {% if parent.get_py_type() == 'CppRef' %}
+                            {% set parent = parent.orig_cpp_type %}
+                        {% endif %}
+
+                        {% if parent.get_py_type() == 'CppStruct' %}
+                            {{- _generate_cpp_struct_properties_stream_writer_definition(parent) -}}
+                        {% else %}
+                            {{ NOT_IMPLEMENTED(parent) }}
+                        {% endif %}
+                    {% endfor %}
                 {% endif %}
             {% else %}
                 {{ NOT_IMPLEMENTED() }}

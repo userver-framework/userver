@@ -157,7 +157,11 @@ public:
 
     formats::json::parser::BaseParser& GetParser() { return parser_.GetParser(); }
 
-    void Reset() { parser_.Reset(); }
+    void Reset() {
+        parser_.Reset();
+        map_.clear();
+        key_.clear();
+    }
 
     template <typename U>
     void SetExtra(U& s)

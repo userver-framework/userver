@@ -1,5 +1,8 @@
 #include "docs.hpp"
 
+#include <string_view>
+#include <unordered_set>
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "docs_parsers.ipp"
@@ -105,19 +108,25 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.kind && hide_field_name != "kind") {
+            emitted_fields.insert("kind");
         sw.Key("kind");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
             *value.kind
         }, sw);
     }
     if (value.radius && hide_field_name != "radius") {
+            emitted_fields.insert("radius");
         sw.Key("radius");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<double>{
             *value.radius
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
@@ -445,25 +454,32 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.kind && hide_field_name != "kind") {
+            emitted_fields.insert("kind");
         sw.Key("kind");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
             *value.kind
         }, sw);
     }
     if (value.width && hide_field_name != "width") {
+            emitted_fields.insert("width");
         sw.Key("width");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<double>{
             *value.width
         }, sw);
     }
     if (value.height && hide_field_name != "height") {
+            emitted_fields.insert("height");
         sw.Key("height");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<double>{
             *value.height
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }

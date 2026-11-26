@@ -33,6 +33,30 @@ TEST(Simple, IntegerSax) {
     EXPECT_EQ(TestWriteToStream(obj), TestDomSerializer(obj));
 }
 
+TEST(Simple, SaxDefaultsOnlyMissingFields) {
+    for (const std::string input : {R"({"int3":1})", R"({"int3":1,"int":7})"}) {
+        const auto dom = formats::json::FromString(input).As<ns::SimpleObject>();
+        const auto sax = CallSaxParser<ns::SimpleObject>(input);
+        EXPECT_EQ(sax, dom);
+    }
+}
+
+TEST(Simple, StreamDeclaredFieldOverridesTypedExtra) {
+    ns::ObjectWithAdditionalPropertiesInt value;
+    value.one = 7;
+    value.extra = {{"one", 2}, {"another", 3}};
+    EXPECT_EQ(TestWriteToStream(value), TestDomSerializer(value));
+    EXPECT_EQ(TestToJsonString(value), TestDomSerializer(value));
+}
+
+TEST(Simple, StreamDeclaredFieldOverridesJsonExtra) {
+    ns::ObjectWithAdditionalPropertiesTrue value;
+    value.one = 7;
+    value.extra = formats::json::MakeObject("one", 2, "another", 3);
+    EXPECT_EQ(TestWriteToStream(value), TestDomSerializer(value));
+    EXPECT_EQ(TestToJsonString(value), TestDomSerializer(value));
+}
+
 TEST(Simple, DefaultFieldValue) {
     const ns::SimpleObject obj;
     EXPECT_EQ(obj.int_, 1);

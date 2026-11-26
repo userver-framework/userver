@@ -104,7 +104,7 @@ return vb.ExtractValue();
 namespace dynamic_config {
 
 USERVER_NAMESPACE::dynamic_config::SchemaHash feature_flags::GetSchemaHash() {
-    return USERVER_NAMESPACE::dynamic_config::SchemaHash{"87532654226185e45e1e788e08df6be5e2a748579036dac7c7606f2ac0cd17ef"};
+return USERVER_NAMESPACE::dynamic_config::SchemaHash{"87532654226185e45e1e788e08df6be5e2a748579036dac7c7606f2ac0cd17ef"};
 }
 
 namespace {

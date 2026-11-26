@@ -1,5 +1,8 @@
 #include "min_messenger.hpp"
 
+#include <string_view>
+#include <unordered_set>
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "min_messenger_parsers.ipp"
@@ -1370,7 +1373,11 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
@@ -2483,7 +2490,11 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }

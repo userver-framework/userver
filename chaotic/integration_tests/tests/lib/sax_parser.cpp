@@ -1,3 +1,5 @@
+#include <map>
+
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/chaotic/sax_parser.hpp>
@@ -279,6 +281,53 @@ TEST(SaxParser, ObjectUnknownError)
 
     auto input = R"({"field": 12, "unknown": 42})";
     UEXPECT_THROW((formats::json::parser::ParseToType<X, Parser>(input)), formats::json::parser::ParseError);
+}
+
+struct DefaultedObject {
+    int field{};
+    std::string data;
+};
+
+TEST(SaxParser, ObjectDefaultsPreserveSuppliedStringsAcrossArrayElements) {
+    using Object = chaotic::Object<
+        DefaultedObject,
+        chaotic::UnknownFields::Ignore,
+        chaotic::Field<DefaultedObject, chaotic::Required<int>, &DefaultedObject::field, kField>,
+        chaotic::Field<
+            DefaultedObject,
+            chaotic::Defaulted<std::string, std::string_view, kDataDefault>,
+            &DefaultedObject::data,
+            kData>>;
+    using Parser = sax::Parser<chaotic::Array<Object, std::vector<DefaultedObject>>>;
+
+    const auto values = formats::json::parser::ParseToType<
+        std::vector<DefaultedObject>,
+        Parser>(R"([{"field":1,"data":"supplied"},{"field":2},{"field":3,"data":""},{"field":4}])");
+
+    ASSERT_EQ(values.size(), 4);
+    EXPECT_EQ(values[0].data, "supplied");
+    EXPECT_EQ(values[1].data, "foo");
+    EXPECT_EQ(values[2].data, "");
+    EXPECT_EQ(values[3].data, "foo");
+}
+
+struct TypedExtras {
+    std::map<std::string, int> extra;
+};
+
+TEST(SaxParser, ObjectTypedExtrasResetAcrossArrayElements) {
+    using Object = chaotic::Object<TypedExtras, chaotic::UnknownFields::StoreTyped<chaotic::Primitive<int>>>;
+    using Parser = sax::Parser<chaotic::Array<Object, std::vector<TypedExtras>>>;
+
+    const auto values = formats::json::parser::ParseToType<
+        std::vector<TypedExtras>,
+        Parser>(R"([{"old":1,"same":2},{"new":3,"same":4},{},{"same":5}])");
+
+    ASSERT_EQ(values.size(), 4);
+    EXPECT_EQ(values[0].extra, (std::map<std::string, int>{{"old", 1}, {"same", 2}}));
+    EXPECT_EQ(values[1].extra, (std::map<std::string, int>{{"new", 3}, {"same", 4}}));
+    EXPECT_TRUE(values[2].extra.empty());
+    EXPECT_EQ(values[3].extra, (std::map<std::string, int>{{"same", 5}}));
 }
 
 }  // namespace

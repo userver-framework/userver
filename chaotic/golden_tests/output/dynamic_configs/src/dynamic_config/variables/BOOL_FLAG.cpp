@@ -18,7 +18,7 @@ namespace dynamic_config {namespace bool_flag {
 namespace dynamic_config {
 
 USERVER_NAMESPACE::dynamic_config::SchemaHash bool_flag::GetSchemaHash() {
-    return USERVER_NAMESPACE::dynamic_config::SchemaHash{"7cb541e84f226754a46c21c79f131fa2898354e1242456e6fd1c162bce319553"};
+return USERVER_NAMESPACE::dynamic_config::SchemaHash{"7cb541e84f226754a46c21c79f131fa2898354e1242456e6fd1c162bce319553"};
 }
 
 namespace {

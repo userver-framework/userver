@@ -1,5 +1,8 @@
 #include "oneofdiscriminator.hpp"
 
+#include <string_view>
+#include <unordered_set>
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "oneofdiscriminator_parsers.ipp"
@@ -105,19 +108,25 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.type && hide_field_name != "type") {
+            emitted_fields.insert("type");
         sw.Key("type");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
             *value.type
         }, sw);
     }
     if (value.a_prop && hide_field_name != "a_prop") {
+            emitted_fields.insert("a_prop");
         sw.Key("a_prop");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<int>{
             *value.a_prop
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
@@ -220,19 +229,25 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+            std::unordered_set<std::string_view> emitted_fields;
     if (value.type && hide_field_name != "type") {
+            emitted_fields.insert("type");
         sw.Key("type");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{
             *value.type
         }, sw);
     }
     if (value.b_prop && hide_field_name != "b_prop") {
+            emitted_fields.insert("b_prop");
         sw.Key("b_prop");
         WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<int>{
             *value.b_prop
         }, sw);
     }
     for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
+        if (emitted_fields.contains(field_key)) {
+            continue;
+        }
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }

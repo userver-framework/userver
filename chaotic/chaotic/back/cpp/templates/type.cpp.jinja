@@ -1,6 +1,11 @@
 {% import 'templates/stream_writer.jinja' as sw %}
 #include "{{ pair_header }}.hpp"
 
+{% if needs_emitted_fields(types.values(), generate_serializer, generate_stream_writer) -%}
+#include <string_view>
+#include <unordered_set>
+
+{% endif -%}
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "{{ pair_header }}_parsers.ipp"

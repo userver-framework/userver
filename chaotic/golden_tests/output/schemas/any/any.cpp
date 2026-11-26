@@ -211,3 +211,4 @@ void WriteToStream(
 }
 
 }  // namespace ns
+

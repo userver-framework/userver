@@ -28,6 +28,15 @@ TEST(Simple, AllOf) {
     EXPECT_EQ(TestDomSerializer(obj), json);
 }
 
+TEST(Simple, AllOfStreamingMatchesDomForConflictingExtras) {
+    ns::AllOf value;
+    value.foo = 1;
+    value.bar = 2;
+    static_cast<ns::Object1&>(value).extra = formats::json::MakeObject("foo", 7, "bar", 8);
+    static_cast<ns::AllOf__P1&>(value).extra = formats::json::MakeObject("foo", 9, "bar", 10);
+    EXPECT_EQ(TestWriteToStream(value), TestDomSerializer(value));
+}
+
 TEST(Simple, AllOfSax) {
     auto json = formats::json::MakeObject("foo", 1, "bar", 2);
     auto obj = CallSaxParser<ns::AllOf>(ToString(json));
