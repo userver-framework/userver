@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <userver/logging/level.hpp>
 #include <userver/utils/assert.hpp>
@@ -208,6 +209,10 @@ public:
 
     /// Get current settings. Note that they might become stale very quickly.
     Settings GetCurrentSettings() const;
+
+    /// @brief Returns the task name, or "<name not set>" before a name is assigned.
+    /// The returned view remains valid until this object is destroyed.
+    std::string_view GetName() const noexcept;
 
 private:
     class Impl;

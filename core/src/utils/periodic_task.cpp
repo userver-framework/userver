@@ -310,6 +310,8 @@ PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
     return *settings_ptr;
 }
 
+std::string_view PeriodicTask::GetName() const noexcept { return impl_->GetName(); }
+
 void StartPeriodicTask(
     PeriodicTask& periodic_task,
     std::string name,

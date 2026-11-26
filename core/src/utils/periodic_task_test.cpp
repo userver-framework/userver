@@ -21,7 +21,11 @@ namespace {
 const auto kSlowRatio = 10;
 }  // namespace
 
-UTEST(PeriodicTask, Noop) { const utils::PeriodicTask task; }
+UTEST(PeriodicTask, Noop) {
+    const utils::PeriodicTask task;
+
+    EXPECT_EQ(task.GetName(), "<name not set>");
+}
 
 UTEST(PeriodicTask, StopWithoutStart) {
     utils::PeriodicTask task;
@@ -32,8 +36,10 @@ UTEST(PeriodicTask, StartStop) {
     utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
 
     EXPECT_TRUE(task.IsRunning());
+    EXPECT_EQ(task.GetName(), "task");
     task.Stop();
     EXPECT_FALSE(task.IsRunning());
+    EXPECT_EQ(task.GetName(), "task");
 }
 
 UTEST(PeriodicTask, StartNoStop) {
