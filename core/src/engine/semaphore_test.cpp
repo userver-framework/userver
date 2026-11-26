@@ -16,6 +16,7 @@ USERVER_NAMESPACE_BEGIN
 UTEST(Semaphore, Ctr) { const engine::Semaphore s{100}; }
 
 UTEST_MT(Semaphore, PublishesProtectedData, 2) {
+    // TODO: Remove fiber_ucontext.hpp from the TSAN ignorelist so TSAN can detect the race on counter.
     engine::Semaphore semaphore{1};
     int counter = 0;
     constexpr int kIncrementsPerTask = 1000;
