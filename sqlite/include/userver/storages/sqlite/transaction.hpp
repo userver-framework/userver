@@ -92,7 +92,8 @@ public:
     /// @return Savepoint object representing the created savepoint
     Savepoint Save(std::string name) const;
 
-    /// @brief Commit the transaction
+    /// @brief Commit the transaction. On failure, attempts a rollback and rethrows the commit error.
+    /// The transaction handle is consumed in either case.
     void Commit();
 
     /// @brief Rollback the transaction
@@ -101,6 +102,8 @@ public:
 private:
     ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
     void AssertValid() const;
+
+    void RollbackNoThrow() noexcept;
 
     void AccountQueryExecute() const noexcept;
     void AccountQueryFailed() const noexcept;

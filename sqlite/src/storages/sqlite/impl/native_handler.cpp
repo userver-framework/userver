@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/cancel.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/storages/sqlite/exceptions.hpp>
@@ -141,7 +142,8 @@ NativeHandler::~NativeHandler() {
         sqlite3_finalize(stmt);
     }
     // Close connection (blocking I/O)
-    engine::AsyncNoTracing(blocking_task_processor_, [this] { sqlite3_close(db_handler_); }).Get();
+    const engine::TaskCancellationBlocker cancel_blocker;
+    engine::CriticalAsyncNoTracing(blocking_task_processor_, [this] { sqlite3_close(db_handler_); }).Get();
 }
 
 struct sqlite3* NativeHandler::GetHandle() const noexcept { return db_handler_; }

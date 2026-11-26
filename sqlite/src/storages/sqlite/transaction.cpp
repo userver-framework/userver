@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
@@ -26,11 +27,7 @@ Transaction::~Transaction() {
         LOG_INFO()
             << "Transaction handle is destroyed without an explicit "
                "commit or rollback, rolling back automatically";
-        try {
-            Rollback();
-        } catch (const std::exception& err) {
-            LOG_ERROR() << "Failed to auto rollback a transaction: " << err;
-        }
+        RollbackNoThrow();
     }
 }
 
@@ -46,19 +43,30 @@ Savepoint Transaction::Save(std::string name) const {
 
 void Transaction::Commit() {
     AssertValid();
-    {
-        auto connection = std::move(connection_);
-        (*connection)->Commit();
-        trx_lock_.Unlock();
-    }
+    utils::FastScopeGuard rollback_on_error([this]() noexcept { RollbackNoThrow(); });
+    (*connection_)->Commit();
+    rollback_on_error.Release();
+    trx_lock_.Unlock();
+    connection_.reset();
 }
 
 void Transaction::Rollback() {
     AssertValid();
-    {
-        auto connection = std::move(connection_);
+    auto connection = std::move(connection_);
+    const utils::FastScopeGuard unlock([this]() noexcept { trx_lock_.Unlock(); });
+    try {
         (*connection)->Rollback();
-        trx_lock_.Unlock();
+    } catch (...) {
+        (*connection)->NotifyBroken();
+        throw;
+    }
+}
+
+void Transaction::RollbackNoThrow() noexcept {
+    try {
+        Rollback();
+    } catch (const std::exception& err) {
+        LOG_ERROR() << "Failed to automatically roll back a transaction: " << err;
     }
 }
 

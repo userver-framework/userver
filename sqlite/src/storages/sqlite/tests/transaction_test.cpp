@@ -4,7 +4,9 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
+#include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 
@@ -74,6 +76,50 @@ UTEST_F(SQLiteTransactionsTest, Rollback) {
         res = client->Execute(OperationType::kReadOnly, "SELECT value FROM test").AsVector<std::string>(kFieldTag)
     );
     EXPECT_TRUE(res.empty());
+}
+
+using SQLiteFileTransactionsTest = SQLiteCompositeFixture<SQLiteCustomConnection>;
+
+UTEST_F(SQLiteFileTransactionsTest, FailedCommitRollsBackBeforeReusingWriter) {
+    settings::SQLiteSettings settings;
+    settings.db_path = GetTestDbPath("test.db");
+    const auto client = CreateClient(settings);
+    client->Execute(
+        OperationType::kReadWrite,
+        "CREATE TEMP TABLE nodes (id INTEGER PRIMARY KEY, "
+        "parent INTEGER REFERENCES nodes(id) DEFERRABLE INITIALLY DEFERRED)"
+    );
+
+    const utils::trx_tracker::impl::GlobalEnabler enable_tracker;
+    utils::trx_tracker::ResetStatistics();
+
+    auto trx = client->Begin(OperationType::kReadWrite, {});
+    trx.Execute("INSERT INTO nodes VALUES (1, 2)");
+    UEXPECT_THROW(trx.Commit(), SQLiteException);
+
+    utils::trx_tracker::CheckNoTransactions();
+    EXPECT_EQ(utils::trx_tracker::GetStatistics().triggers, 0);
+
+    auto next = client->Begin(OperationType::kReadWrite, {});
+    EXPECT_EQ(0, next.Execute("SELECT COUNT(*) FROM nodes").AsSingleField<int>());
+    next.Execute("INSERT INTO nodes VALUES (1, NULL)");
+    next.Commit();
+}
+
+UTEST_F(SQLiteTransactionsTest, FailedRollbackDiscardsWriter) {
+    const auto client = CreateClient();
+    client->Execute(OperationType::kReadWrite, "CREATE TEMP TABLE writer_marker (id INTEGER PRIMARY KEY)");
+
+    auto trx = client->Begin(OperationType::kReadWrite, {});
+    trx.Execute("INSERT INTO writer_marker VALUES (1)");
+    UEXPECT_THROW(trx.Execute("INSERT OR ROLLBACK INTO writer_marker VALUES (1)"), SQLiteException);
+    UEXPECT_THROW(trx.Rollback(), SQLiteException);
+
+    auto next = client->Begin(OperationType::kReadWrite, {});
+    const auto marker_count =
+        next.Execute("SELECT COUNT(*) FROM sqlite_temp_master WHERE name = 'writer_marker'").AsSingleField<int>();
+    EXPECT_EQ(0, marker_count);
+    next.Commit();
 }
 
 class SQLiteTransactionDeathTest : public SQLiteTransactionsTest {};
