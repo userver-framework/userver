@@ -8,6 +8,12 @@ from chaotic.back.cpp import types as cpp_types
 from chaotic_openapi.back.cpp.client import middleware
 
 
+def array_type(schema: cpp_types.CppType) -> cpp_types.CppArray | None:
+    while isinstance(schema, cpp_types.CppRef):
+        schema = schema.orig_cpp_type
+    return schema if isinstance(schema, cpp_types.CppArray) else None
+
+
 @dataclasses.dataclass
 class Security:
     auth_type: str
@@ -104,7 +110,7 @@ class Parameter:
         self._validate_schema(self.cpp_type, is_array_allowed=True)
 
     def is_array(self) -> bool:
-        return isinstance(self.cpp_type, cpp_types.CppArray)
+        return array_type(self.cpp_type) is not None
 
     # TODO: for handler only
     def span_value(self) -> str:

@@ -101,4 +101,23 @@ paths:
                 '200':
                     description: OK
 
-components: {}
+    /array-ref:
+        get:
+            operationId: ArrayRef
+            parameters:
+              - in: query
+                name: ids
+                required: true
+                explode: true
+                schema:
+                    $ref: '#/components/schemas/IntArray'
+            responses:
+                '200':
+                    description: OK
+
+components:
+    schemas:
+        IntArray:
+            type: array
+            items:
+                type: integer

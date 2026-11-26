@@ -169,7 +169,37 @@ paths:
                             schema:
                                 type: string
 
+    /shared-one:
+        post:
+            operationId: sharedOne
+            requestBody:
+                $ref: '#/components/requestBodies/SharedForm'
+            responses:
+                200:
+                    description: OK
+    /shared-two:
+        post:
+            operationId: sharedTwo
+            requestBody:
+                $ref: '#/components/requestBodies/SharedForm'
+            responses:
+                200:
+                    description: OK
+
 components:
+    requestBodies:
+        SharedForm:
+            required: true
+            content:
+                application/x-www-form-urlencoded:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required: [wire_name]
+                        properties:
+                            wire_name:
+                                type: string
+                                x-usrv-cpp-name: renamed
     schemas:
         SerializationResponse:
             type: object

@@ -28,6 +28,14 @@ UTEST(Parameters, Explode) {
     EXPECT_EQ(http_request.GetUrl(), "http://base/test1?multiple=1&multiple=2&multiple=3");
 }
 
+UTEST(Parameters, ReferencedArrayUsesRepeatedQueryArguments) {
+    auto client = utest::CreateHttpClient();
+    auto request = client->CreateRequest();
+    namespace generated = ::clients::parameters::arrayref;
+    generated::SerializeRequest({{1, 2}}, "http://base", request);
+    EXPECT_EQ(request.GetUrl(), "http://base/array-ref?ids=1&ids=2");
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

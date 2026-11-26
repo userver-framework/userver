@@ -1,6 +1,6 @@
 project(userver-chaotic-openapi-integration-tests CXX)
 
-file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*pp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*pp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 add_google_tests(${PROJECT_NAME})
 

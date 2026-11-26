@@ -584,6 +584,7 @@ class Generator:
         cpp_name = schema.get_x_property_str(
             'x-usrv-cpp-name',
         ) or schema.get_x_property_str('x-taxi-cpp-name')
+        schema = schema.model_copy(update={'x_properties': schema.x_properties.copy()})
         schema.delete_x_property('x-usrv-cpp-name')
         schema.delete_x_property('x-taxi-cpp-name')
 

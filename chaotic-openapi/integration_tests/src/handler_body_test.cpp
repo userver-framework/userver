@@ -18,6 +18,8 @@
 #include <handlers/simple/octetget/requests.hpp>
 #include <handlers/simple/octetget/responses.hpp>
 #include <handlers/simple/serializeget/responses.hpp>
+#include <handlers/simple/sharedone/requests.hpp>
+#include <handlers/simple/sharedtwo/requests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -192,6 +194,14 @@ UTEST(HandlerResponseSerializationDom, OptionalFieldIsOmitted) {
     response.X_Serialization_Test = "characterization";
 
     EXPECT_EQ(serializeget::SerializeResponse(response, *request), R"({"required-field":"response"})");
+}
+
+UTEST(HandlerSharedBody, PreservesRenamedFieldAcrossOperations) {
+    auto request = server::http::HttpRequestBuilder{}.AddRequestArg("wire_name", "value").Build();
+    namespace first = ::handlers::simple::sharedone;
+    namespace second = ::handlers::simple::sharedtwo;
+    EXPECT_EQ(first::ParseRequest(*request, chaotic::openapi::To<first::Request>{}).body.renamed, "value");
+    EXPECT_EQ(second::ParseRequest(*request, chaotic::openapi::To<second::Request>{}).body.renamed, "value");
 }
 
 }  // namespace

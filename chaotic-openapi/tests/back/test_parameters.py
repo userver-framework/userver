@@ -345,3 +345,30 @@ def test_regex_in_path(translate_single_schema):
     }
     spec = translate_single_schema(schema)
     assert spec.operations[0].cpp_namespace() == 'foo_a_b_c_bar::get'
+
+
+@pytest.mark.parametrize('explode', [False, True])
+def test_referenced_array_matches_inline_parameter(translate_single_schema, explode):
+    array = {'type': 'array', 'items': {'type': 'integer'}}
+    parsers = []
+    for schema in [array, {'$ref': '#/components/schemas/Array'}]:
+        spec = translate_single_schema({
+            'openapi': '3.0.0',
+            'info': {'title': '', 'version': '1.0'},
+            'paths': {
+                '/': {
+                    'get': {
+                        'parameters': [
+                            {'name': 'ids', 'in': 'query', 'required': True, 'explode': explode, 'schema': schema}
+                        ],
+                        'responses': {},
+                    }
+                }
+            },
+            'components': {'schemas': {'Array': array}},
+        })
+        parameter = spec.operations[0].parameters[0]
+        assert parameter.is_array()
+        assert 'ArrayParameter<' in parameter.parser
+        parsers.append(parameter.parser)
+    assert parsers[0] == parsers[1]

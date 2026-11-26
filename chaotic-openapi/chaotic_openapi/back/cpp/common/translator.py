@@ -2,7 +2,6 @@ import abc
 import re
 import sys
 import traceback
-import typing
 
 from chaotic import cpp_names
 from chaotic import error as chaotic_error
@@ -413,7 +412,10 @@ class BaseTranslator(abc.ABC):
             parameter.x_cpp_name or parameter.name,
         )
 
-        if isinstance(parameter.schema, chaotic_types.Array):
+        cpp_type = self._translate_single_schema(parameter.schema)
+        array_type = common_types.array_type(cpp_type)
+
+        if array_type is not None:
             delimiter = {
                 model.Style.matrix: ',',
                 model.Style.label: '.',
@@ -423,15 +425,11 @@ class BaseTranslator(abc.ABC):
                 model.Style.pipeDelimited: '|',
             }[parameter.style]
 
-            cpp_type = self._translate_single_schema(parameter.schema)
-            cpp_type = typing.cast(cpp_types.CppArray, cpp_type)
-
-            raw_item_type = cpp_type.items.cpp_global_name()
-            user_item_type = cpp_type.items.cpp_user_name()
+            raw_item_type = array_type.items.cpp_global_name()
+            user_item_type = array_type.items.cpp_user_name()
 
             parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
         else:
-            cpp_type = self._translate_single_schema(parameter.schema)
             user_type = cpp_type
 
             parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {user_type.cpp_global_name()}>'

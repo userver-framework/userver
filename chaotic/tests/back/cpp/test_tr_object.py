@@ -381,3 +381,28 @@ def test_extra_member_nonboolean(simple_gen):
         assert False
     except error.BaseError as exc:
         assert exc.msg == ('"x-usrv-extra-member: false" is not allowed for non-boolean "additionalProperties"')
+
+
+@pytest.mark.parametrize('tag', ['x-usrv-cpp-name', 'x-taxi-cpp-name'])
+def test_translation_preserves_shared_field_names(simple_parse, cpp_name_func, tag):
+    schemas = simple_parse(
+        {
+            'type': 'object',
+            'additionalProperties': False,
+            'properties': {'wire_name': {'type': 'string', tag: 'renamed'}},
+        },
+        clear=False,
+    )
+    schema = next(iter(schemas.schemas.values()))
+    field = schema.properties['wire_name']
+    original_tags = field.x_properties.copy()
+    config = translator.GeneratorConfig(
+        namespaces={'vfull': ''},
+        include_dirs=None,
+        infile_to_name_func=cpp_name_func,
+    )
+    first = translator.Generator(config).generate_types(schemas)
+    second = translator.Generator(config).generate_types(schemas)
+    assert field.x_properties == original_tags
+    assert next(iter(first.values())).fields['wire_name'].name == 'renamed'
+    assert first == second
