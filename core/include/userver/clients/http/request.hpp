@@ -361,6 +361,7 @@ public:
     /// in libcurl>=8.15.0 and reproducible for connections
     /// with incomplete TLS close procedure.
     ///
+    /// @note This option does not suppress errors from streamed responses.
     /// @see https://github.com/curl/curl/pull/17531/changes
     Request& SetIncompleteTlsConnectionCloseExpected(bool expect) &;
     /// @overload

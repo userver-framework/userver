@@ -303,6 +303,12 @@ if(USERVER_BUILD_TESTS)
     target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver-utest)
 
     add_google_tests(${PROJECT_NAME}-unittest)
+    add_custom_target(
+        ${PROJECT_NAME}-http-streamed-response-tests
+        COMMAND $<TARGET_FILE:${PROJECT_NAME}-unittest> "--gtest_filter=HttpStreamedResponse.*"
+        DEPENDS ${PROJECT_NAME}-unittest
+        USES_TERMINAL VERBATIM
+    )
 
     add_executable(${PROJECT_NAME}-stresstest ${STRESS_TEST_SOURCES})
     target_include_directories(

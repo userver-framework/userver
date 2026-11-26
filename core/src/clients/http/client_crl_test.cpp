@@ -1,13 +1,22 @@
 #include <userver/clients/http/client.hpp>
 
 #include <array>
+#include <string>
+#include <string_view>
+
+#include <sys/socket.h>
 
 #include <fmt/format.h>
 
+#include <userver/clients/http/error.hpp>
+#include <userver/clients/http/request.hpp>
+#include <userver/clients/http/response.hpp>
+#include <userver/clients/http/streamed_response.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
@@ -17,6 +26,8 @@
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/from_string.hpp>
 
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/native.hpp>
 #include <engine/io/tests/net_listener.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
@@ -552,7 +563,84 @@ auto InterceptCrlDistribution() {
     });
 }
 
+enum class ResponseFraming { kContentLength, kConnectionClose };
+
+void CheckIncompleteTlsShutdown(ResponseFraming framing) {
+    constexpr std::string_view kBody = "complete";
+    const auto content_length =
+        framing == ResponseFraming::kContentLength
+            ? fmt::format("Content-Length: {}\r\n", kBody.size())
+            : std::string{};
+    auto client = utest::CreateHttpClient();
+    const auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    for (const bool incomplete_close_expected : {false, true}) {
+        SCOPED_TRACE(fmt::format("incomplete_close_expected={}", incomplete_close_expected));
+        TlsServer server{[&](const HttpRequest&) {
+            return HttpResponse{
+                fmt::format("HTTP/1.1 200 OK\r\nConnection: close\r\n{}\r\n{}", content_length, kBody),
+                HttpResponse::kWriteAndContinue,
+            };
+        }};
+        auto request =
+            client->CreateRequest()
+                .get(server.GetBaseUrl())
+                .timeout(utest::kMaxTestWaitTime)
+                .ca(ca)
+                .verify(true)
+                .SetIncompleteTlsConnectionCloseExpected(incomplete_close_expected);
+        auto response = request.async_perform_stream_body(concurrent::StringStreamQueue::Create());
+        UASSERT_NO_THROW(server.ReceiveAndShutdown());
+        // Send TCP FIN without close_notify, before TlsWrapper's destructor can send it.
+        ASSERT_EQ(::shutdown(server.tls_server->GetRawFd(), SHUT_WR), 0);
+
+        ASSERT_EQ(response.StatusCode(), clients::http::Status::kOk);
+        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        std::string body;
+        std::string chunk;
+        while (body.size() < kBody.size()) {
+            ASSERT_TRUE(response.ReadChunk(chunk, deadline));
+            ASSERT_FALSE(chunk.empty());
+            body += chunk;
+        }
+        ASSERT_EQ(body, kBody);
+
+        if (framing == ResponseFraming::kContentLength) {
+            EXPECT_FALSE(response.ReadChunk(chunk, deadline));
+        } else {
+            // The buffered-response compatibility option must not hide streaming transfer errors.
+            try {
+                response.ReadChunk(chunk, deadline);
+                FAIL() << "Missing TLS close_notify must not end a close-delimited response successfully";
+            } catch (const clients::http::NetworkProblemException& ex) {
+                EXPECT_EQ(ex.error_code(), curl::errc::make_error_code(curl::errc::EasyErrorCode::kRecvError));
+            }
+        }
+    }
+}
+
 }  // namespace
+
+UTEST(HttpStreamedResponse, HttpsIncompleteTlsShutdownWithContentLength) {
+    CheckIncompleteTlsShutdown(ResponseFraming::kContentLength);
+}
+
+UTEST(HttpStreamedResponse, HttpsIncompleteTlsShutdownWithoutContentLength) {
+    const auto* version = curl::native::curl_version_info(curl::native::CURLVERSION_NOW);
+    ASSERT_NE(version, nullptr);
+    const std::string_view tls_version = version->ssl_version ? version->ssl_version : "";
+    // Older cURL/OpenSSL combinations may accept EOF without close_notify.
+    // Restrict this regression test to versions with strict EOF handling.
+    constexpr unsigned kCurl8141 = 0x080e01;
+    constexpr unsigned kCurl8150 = 0x080f00;
+    const bool strict_openssl = tls_version.starts_with("OpenSSL/") && version->version_num >= kCurl8150;
+    const bool strict_openssl3 = tls_version.starts_with("OpenSSL/3.") && version->version_num >= kCurl8141;
+    if (!strict_openssl && !strict_openssl3) {
+        GTEST_SKIP()
+            << "Requires cURL >= 8.15.0 with OpenSSL, or cURL >= 8.14.1 with OpenSSL 3; got " << version->version
+            << " / " << tls_version;
+    }
+    CheckIncompleteTlsShutdown(ResponseFraming::kConnectionClose);
+}
 
 UTEST(HttpClient, HttpsWithNoCrl) {
     (void)kCrlFile;
