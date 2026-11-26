@@ -571,16 +571,18 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     if (reply->status == ReplyStatus::kTimeoutError) {
         reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
     }
-    switch (ClassifyReplyForRetry(*reply)) {
-        case RetryOutcome::kSuccess:
-            retry_budget_.AccountOk();
-            break;
-        case RetryOutcome::kRetryable:
-            retry_budget_.AccountFail();
-            break;
-        case RetryOutcome::kNonRetryable:
-        case RetryOutcome::kRedirect:
-            break;
+    if (command->account_in_retry_budget) {
+        switch (ClassifyReplyForRetry(*reply)) {
+            case RetryOutcome::kSuccess:
+                retry_budget_.AccountOk();
+                break;
+            case RetryOutcome::kRetryable:
+                retry_budget_.AccountFail();
+                break;
+            case RetryOutcome::kNonRetryable:
+            case RetryOutcome::kRedirect:
+                break;
+        }
     }
 
     reply->server_id = server_id_;

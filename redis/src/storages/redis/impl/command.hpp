@@ -45,6 +45,7 @@ struct Command {
     size_t instance_idx = 0;
     uint32_t invoke_counter = 0;
     int counter = 0;
+    bool account_in_retry_budget = true;
     const bool asking = false;
     const bool redirected = false;
     const bool read_only = false;

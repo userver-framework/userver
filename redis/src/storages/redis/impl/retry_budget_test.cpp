@@ -61,7 +61,8 @@ auto MakeReplyCallback(const std::shared_ptr<ReplyState>& state) {
 storages::redis::ReplyPtr SendToConnection(
     storages::redis::impl::Redis& redis,
     const std::string& key,
-    int counter = 0
+    int counter = 0,
+    bool background_probe = false
 ) {
     const auto state = std::make_shared<ReplyState>();
     const auto command = storages::redis::impl::PrepareCommand(
@@ -70,6 +71,9 @@ storages::redis::ReplyPtr SendToConnection(
         MakeRetryControl(),
         counter
     );
+    if (background_probe) {
+        command->account_in_retry_budget = false;
+    }
     const auto accepted = redis.AsyncCommand(command);
     EXPECT_TRUE(accepted);
     if (!accepted || !state->received.WaitForEventFor(kSuccessTimeout)) {
@@ -159,6 +163,42 @@ UTEST(RedisRetryBudget, AccountsFailuresAndAllowsRecovery) {
     ASSERT_TRUE(SendToConnection(redis, kHealthyKey));
     EXPECT_TRUE(redis.CanRetry());
     ASSERT_TRUE(SendToConnection(redis, kHealthyKey, 1));
+}
+
+UTEST(RedisRetryBudget, BackgroundProbeNeitherSpendsNorReplenishesTokens) {
+    MockRedisServer server{kConnectionName};
+    server.RegisterPingHandler();
+    server.RegisterStatusReplyHandler(kGetCommand, {kHealthyKey}, kOkReply);
+    server.RegisterErrorReplyHandler(kGetCommand, {kTransientKey}, kRetryableError);
+    const auto paused = server.RegisterPausedReplyHandler("INFO", storages::redis::ReplyData{kOkReply});
+
+    const auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::impl::Statistics statistics;
+    storages::redis::impl::Redis redis{pool->GetRedisThreadPool(), {}, kConnectionName, statistics};
+    redis.SetRetryBudgetSettings({.max_tokens = 1, .token_ratio = 1, .enabled = true});
+    pool->SynchronizeEventLoops();
+    redis.Connect({kLocalhost}, server.GetPort(), {}, 0);
+    ASSERT_TRUE(server.WaitForFirstPingReply(kSuccessTimeout));
+    ASSERT_TRUE(SendToConnection(redis, kHealthyKey));
+
+    const auto state = std::make_shared<ReplyState>();
+    auto control = MakeRetryControl();
+    control.timeout_single = std::chrono::milliseconds{100};
+    auto probe = storages::redis::impl::PrepareCommand({"INFO"}, MakeReplyCallback(state), control);
+    probe->account_in_retry_budget = false;
+    const bool accepted = redis.AsyncCommand(probe);
+    const bool timed_out = accepted && state->received.WaitForEventFor(kSuccessTimeout);
+    paused->ReleaseReply();
+    ASSERT_TRUE(timed_out);
+    ASSERT_EQ(state->reply->status, storages::redis::ReplyStatus::kTimeoutError);
+    ASSERT_TRUE(redis.CanRetry());
+
+    ASSERT_TRUE(SendToConnection(redis, kTransientKey));
+    ASSERT_FALSE(redis.CanRetry());
+    ASSERT_TRUE(SendToConnection(redis, kHealthyKey, 0, true));
+    EXPECT_FALSE(redis.CanRetry());
+    ASSERT_TRUE(SendToConnection(redis, kHealthyKey));
+    EXPECT_TRUE(redis.CanRetry());
 }
 
 enum class ClusterOperation { kWrite, kForcedRead };
