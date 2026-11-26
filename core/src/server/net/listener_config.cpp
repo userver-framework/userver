@@ -114,7 +114,7 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Li
     config.backlog = value["backlog"].As<int>(config.backlog);
 
     config.ports = value["ports"].As<std::vector<PortConfig>>({});
-    if (value.HasMember("port") || value.HasMember("unix-socket") || value.HasMember("listen-socket-fd")) {
+    if (!value["port"].IsMissing() || !value["unix-socket"].IsMissing() || !value["listen-socket-fd"].IsMissing()) {
         config.ports.emplace_back(value.As<PortConfig>());
     }
     if (config.ports.empty()) {

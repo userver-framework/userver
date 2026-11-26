@@ -1,5 +1,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 
+#include <cstdlib>
+
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 
@@ -11,11 +13,14 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/exception.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
 #include <userver/logging/component.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 #include <components/component_list_test.hpp>
 #include <engine/io/tests/net_listener.hpp>
@@ -86,6 +91,16 @@ protected:
 
     std::uint16_t GetServerPort() const { return server_port_; }
 
+    std::string GetStaticConfigWithPortEnv(std::uint16_t fallback_port) const {
+        formats::yaml::ValueBuilder config{formats::yaml::FromString(GetStaticConfig())};
+        config.Remove("config_vars");
+        auto listener = config["components_manager"]["components"]["server"]["listener"];
+        listener.Remove("port");
+        listener["port#env"] = "USERVER_TEST_LISTENER_PORT";
+        listener["port#fallback"] = fallback_port;
+        return formats::yaml::ToString(config.ExtractValue());
+    }
+
 private:
     fs::blocking::TempDirectory temp_root_ = fs::blocking::TempDirectory::Create();
     std::uint16_t server_port_ = FindFreePort();
@@ -122,6 +137,30 @@ TEST_F(ServerMinimalComponentList, Basic) {
     fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
     components::RunOnce(components::InMemoryConfig{GetStaticConfig()}, components::MinimalServerComponentList());
+}
+
+TEST_F(ServerMinimalComponentList, ListenerPortFromEnv) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(::setenv("USERVER_TEST_LISTENER_PORT", fmt::format("{}", GetServerPort()).c_str(), 1), 0);
+    const utils::ScopeGuard env_guard{[] {
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        ::unsetenv("USERVER_TEST_LISTENER_PORT");
+    }};
+
+    components::RunOnce(
+        components::InMemoryConfig{GetStaticConfigWithPortEnv(0)},
+        components::MinimalServerComponentList()
+    );
+}
+
+TEST_F(ServerMinimalComponentList, ListenerPortFromEnvFallback) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(::unsetenv("USERVER_TEST_LISTENER_PORT"), 0);
+
+    components::RunOnce(
+        components::InMemoryConfig{GetStaticConfigWithPortEnv(GetServerPort())},
+        components::MinimalServerComponentList()
+    );
 }
 
 TEST_F(ServerMinimalComponentList, TraceSwitching) {
