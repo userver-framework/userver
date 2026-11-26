@@ -1,8 +1,11 @@
 #include <userver/ugrpc/client/channels.hpp>
 
+#include <optional>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <userver/ugrpc/client/client_factory_settings.hpp>
@@ -28,12 +31,6 @@ public:
     }
 };
 
-ugrpc::server::ServerConfig MakeServerConfig(int port) {
-    ugrpc::server::ServerConfig config;
-    config.port = port;
-    return config;
-}
-
 }  // namespace
 
 struct GrpcChannels : public ::testing::TestWithParam<std::size_t> {};
@@ -42,7 +39,10 @@ UTEST_P_MT(GrpcChannels, DISABLED_IN_MAC_OS_TEST_NAME(TryWaitForConnected), 2) {
     constexpr auto kSmallTimeout = 100ms;
     constexpr auto kServerStartDelay = 100ms;
 
-    const auto port = ugrpc::tests::GetFreeIpv6Port();
+    // Keep the Unix socket path short even when TMPDIR is long.
+    const auto socket_directory = fs::blocking::TempDirectory::Create("/tmp", /*name_prefix=*/"");
+    const auto socket_path = socket_directory.GetPath() + "/grpc.sock";
+    const auto endpoint = "unix:" + socket_path;
 
     auto client_task = engine::AsyncNoTracing([&] {
         ugrpc::client::ClientFactorySettings settings;
@@ -51,7 +51,6 @@ UTEST_P_MT(GrpcChannels, DISABLED_IN_MAC_OS_TEST_NAME(TryWaitForConnected), 2) {
 
         ugrpc::tests::StandaloneClientFactory client_factory{std::move(settings)};
 
-        const auto endpoint = ugrpc::tests::MakeIpv6Endpoint(port);
         auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
 
         // TryWaitForConnected should wait for the server to start and return 'true'
@@ -78,7 +77,9 @@ UTEST_P_MT(GrpcChannels, DISABLED_IN_MAC_OS_TEST_NAME(TryWaitForConnected), 2) {
     // Make sure that TryWaitForConnected starts while the server is down
     engine::SleepFor(kServerStartDelay);
 
-    const ugrpc::tests::Service<UnitTestServiceSimple> service{{.server_config = MakeServerConfig(port)}};
+    const ugrpc::tests::Service<UnitTestServiceSimple> service{
+        {.server_config = {.port = std::nullopt, .unix_socket_path = socket_path}}
+    };
 
     UEXPECT_NO_THROW(client_task.Get());
 }

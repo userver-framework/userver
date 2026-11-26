@@ -8,7 +8,6 @@
 #include <userver/components/component_base.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/run.hpp>
-#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -18,21 +17,12 @@
 #include <userver/utils/async.hpp>
 
 #include <components/component_list_test.hpp>
-#include <engine/io/tests/net_listener.hpp>
+#include <userver/utest/port_reservation.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-std::uint16_t FindFreePort() {
-    std::uint16_t result{};
-    engine::RunStandalone([&result] {
-        const engine::io::tests::TcpListener listener{};
-        result = listener.Port();
-    });
-    return result;
-}
 
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
@@ -72,7 +62,7 @@ components_manager:
       defaults#fallback: {}
     server:
       listener:
-          port: $server-port
+          listen-socket-fd: $server-listen-fd
           task_processor: main-task-processor
 config_vars: )";
 
@@ -84,11 +74,11 @@ protected:
 
     const std::string& GetStaticConfig() const { return static_config_; }
 
-    std::uint16_t GetServerPort() const { return server_port_; }
+    int GetServerFd() const { return server_socket_.GetNativeFd(); }
 
 private:
     fs::blocking::TempDirectory temp_root_ = fs::blocking::TempDirectory::Create();
-    std::uint16_t server_port_ = FindFreePort();
+    const utest::PortReservation server_socket_{{.ip_version = utest::PortReservation::IpVersion::kV6}};
     std::string static_config_ = std::string{kStaticConfig} + GetConfigVarsPath();
 };
 
@@ -115,9 +105,9 @@ inline constexpr auto components::kConfigFileMode<TaskTraceProducer> = ConfigFil
 
 TEST_F(ServerMinimalComponentList, Basic) {
     constexpr std::string_view kConfigVarsTemplate = R"(
-    server-port: {0}
+    server-listen-fd: {0}
   )";
-    const auto config_vars = fmt::format(kConfigVarsTemplate, GetServerPort());
+    const auto config_vars = fmt::format(kConfigVarsTemplate, GetServerFd());
 
     fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
@@ -127,10 +117,10 @@ TEST_F(ServerMinimalComponentList, Basic) {
 TEST_F(ServerMinimalComponentList, TraceSwitching) {
     constexpr std::string_view kConfigVarsTemplate = R"(
     tracer_log_path: {0}
-    server-port: {1}
+    server-listen-fd: {1}
   )";
     const std::string logs_path = GetTempRoot() + "/tracing_log.txt";
-    const auto config_vars = fmt::format(kConfigVarsTemplate, logs_path, GetServerPort());
+    const auto config_vars = fmt::format(kConfigVarsTemplate, logs_path, GetServerFd());
 
     fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
@@ -153,14 +143,11 @@ TEST_F(ServerMinimalComponentList, DISABLED_TraceStacktraces) {
     constexpr std::string_view kConfigVarsTemplate = R"(
     tracer_log_path: {0}
     tracer_level: debug
-    server-port: {1}
+    server-listen-fd: {1}
   )";
     const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
-    fs::blocking::RewriteFileContents(
-        GetConfigVarsPath(),
-        fmt::format(kConfigVarsTemplate, logs_path, GetServerPort())
-    );
+    fs::blocking::RewriteFileContents(GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, logs_path, GetServerFd()));
 
     components::RunOnce(
         components::InMemoryConfig{GetStaticConfig()},
@@ -182,15 +169,12 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
       USERVER_LOG_DYNAMIC_DEBUG:
         force-disabled: []
         force-enabled: 42  # <== error
-    server-port: {0}
+    server-listen-fd: {0}
     default-logger-path: {1}
   )";
     const auto logs_path = GetTempRoot() + "/log.txt";
 
-    fs::blocking::RewriteFileContents(
-        GetConfigVarsPath(),
-        fmt::format(kConfigVarsTemplate, GetServerPort(), logs_path)
-    );
+    fs::blocking::RewriteFileContents(GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, GetServerFd(), logs_path));
 
     // This is a golden test that shows how exactly dynamic config parsing failure
     // may look. Feel free to change this test if those messages ever change.

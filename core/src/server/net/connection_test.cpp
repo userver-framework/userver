@@ -30,6 +30,7 @@
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utest/port_reservation.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -124,10 +125,14 @@ net::ListenerConfig CreateConfig(
     config.handler_defaults = server::request::HttpRequestConfig{};
     config.connection_config.http_version = http_ver;
 
-    net::PortConfig port_config;
-    port_config.port = 32000;
-    config.ports.emplace_back(std::move(port_config));
     return config;
+}
+
+engine::io::Socket CreateRequestSocket(const net::ListenerConfig& config) {
+    const utest::PortReservation reservation{{.ip_version = utest::PortReservation::IpVersion::kV6}};
+    net::PortConfig port_config;
+    port_config.listen_socket_fd = reservation.GetNativeFd();
+    return net::CreateSocket(config, port_config);
 }
 
 template <typename ConnectionType>
@@ -234,7 +239,7 @@ TYPED_UTEST(ServerNetConnection, EarlyCancel) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request =
@@ -275,7 +280,7 @@ TYPED_UTEST(ServerNetConnection, EarlyTimeout) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res =
@@ -310,7 +315,7 @@ TYPED_UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res =
@@ -346,7 +351,7 @@ TYPED_UTEST(ServerNetConnection, EarlyTeardown) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res =
@@ -366,7 +371,7 @@ TYPED_UTEST(ServerNetConnection, RemoteClosed) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request =
@@ -402,7 +407,7 @@ TYPED_UTEST(ServerNetConnection, KeepAlive) {
     using ConnectionType = TypeParam;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
@@ -445,7 +450,7 @@ TYPED_UTEST(ServerNetConnection, IdleKeepAliveTimeout) {
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     config.connection_config.keepalive_timeout = std::chrono::seconds{1};
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request =
@@ -484,7 +489,7 @@ TYPED_UTEST(ServerNetConnection, CancelMultipleInFlight) {
     constexpr std::size_t kMaxAttempts = 10;
     const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
@@ -544,7 +549,7 @@ UTEST(HTTP2Connection, ThrowHttp1IsNotSupported) {
     using ConnectionType = server::net::Http2Connection;
     const auto http_ver = USERVER_NAMESPACE::http::HttpVersion::k2;
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config, config.ports[0]);
+    auto request_socket = CreateRequestSocket(config);
 
     auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);

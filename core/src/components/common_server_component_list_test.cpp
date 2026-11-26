@@ -3,16 +3,15 @@
 #include <fmt/format.h>
 
 #include <components/component_list_test.hpp>
-#include <engine/io/tests/net_listener.hpp>
 #include <userver/compiler/impl/tsan.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
-#include <userver/engine/run_standalone.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
 #include <userver/logging/impl/mem_logger.hpp>
 #include <userver/server/handlers/ping.hpp>
+#include <userver/utest/port_reservation.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,8 +24,8 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   log_level: {2}
   file_path: {3}
   overflow_behavior: {4}
-  server-port: {5}
-  server-monitor-port: {6}
+  server-listen-fd: {5}
+  server-monitor-listen-fd: {6}
 )";
 
 // We deliberately have some defaulted options explicitly specified here, for
@@ -64,14 +63,13 @@ components_manager:
       fs-task-processor: main-task-processor
     server:
       listener:
-          port: $server-port
+          listen-socket-fd: $server-listen-fd
           task_processor: main-task-processor
       listener-monitor:
           connection:
               in_buffer_size: 32768
               requests_queue_size_threshold: 100
-          port: $server-monitor-port
-          port#fallback: 1188
+          listen-socket-fd: $server-monitor-listen-fd
           task_processor: monitor-task-processor
     auth-checker-settings:
       # Nothing
@@ -222,21 +220,6 @@ components_manager:
 # /// [dynamic-debug-log config]
 config_vars: )";
 
-struct ServicePorts final {
-    std::uint16_t server_port{0};
-    std::uint16_t monitor_port{0};
-};
-
-ServicePorts FindFreePorts() {
-    ServicePorts ports;
-    engine::RunStandalone([&ports] {
-        const engine::io::tests::TcpListener listener1;
-        const engine::io::tests::TcpListener listener2;
-        ports = {listener1.Port(), listener2.Port()};
-    });
-    return ports;
-}
-
 class CommonServerComponentList : public ComponentList {
 protected:
     CommonServerComponentList() {
@@ -254,11 +237,14 @@ protected:
 
     std::string GetLogsPath() const { return temp_root_.GetPath() + "/logs.txt"; }
 
-    ServicePorts GetPorts() const { return ports_; }
+    int GetServerFd() const { return server_socket_.GetNativeFd(); }
+
+    int GetMonitorFd() const { return monitor_socket_.GetNativeFd(); }
 
 private:
     const fs::blocking::TempDirectory temp_root_{fs::blocking::TempDirectory::Create()};
-    const ServicePorts ports_ = FindFreePorts();
+    const utest::PortReservation server_socket_{{.ip_version = utest::PortReservation::IpVersion::kV6}};
+    const utest::PortReservation monitor_socket_{{.ip_version = utest::PortReservation::IpVersion::kV6}};
 };
 
 }  // namespace
@@ -273,8 +259,8 @@ TEST_F(CommonServerComponentList, Smoke) {
             "warning",
             "'@null'",
             "discard",
-            GetPorts().server_port,
-            GetPorts().monitor_port
+            GetServerFd(),
+            GetMonitorFd()
         )
     );
 
@@ -303,8 +289,8 @@ TEST_F(CommonServerComponentList, Logger) {
             "warning",
             "'@null'",
             "discard",
-            GetPorts().server_port,
-            GetPorts().monitor_port
+            GetServerFd(),
+            GetMonitorFd()
         )
     );
 
@@ -335,8 +321,8 @@ TEST_F(CommonServerComponentList, TraceLogging) {
             "trace",
             GetLogsPath(),
             "discard",
-            GetPorts().server_port,
-            GetPorts().monitor_port
+            GetServerFd(),
+            GetMonitorFd()
         )
     );
 
@@ -358,8 +344,8 @@ TEST_F(CommonServerComponentList, NullLogging) {
             "trace",
             "'@null'",
             "discard",
-            GetPorts().server_port,
-            GetPorts().monitor_port
+            GetServerFd(),
+            GetMonitorFd()
         )
     );
 
@@ -381,8 +367,8 @@ TEST_F(CommonServerComponentList, BlockingDefaultLogger) {
             "warning",
             "'@null'",
             "block",
-            GetPorts().server_port,
-            GetPorts().monitor_port
+            GetServerFd(),
+            GetMonitorFd()
         )
     );
 

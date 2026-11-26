@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,14 +23,6 @@ StandaloneClientFactory::StandaloneClientFactory(client::ClientFactorySettings&&
           config_storage_.GetSource(),
       }
 {}
-
-std::uint16_t GetFreeIpv6Port() {
-    engine::io::Socket socket{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};
-    auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
-    addr.SetPort(0);
-    socket.Bind(addr);
-    return socket.Getsockname().Port();
-}
 
 std::string MakeIpv6Endpoint(std::uint16_t port) { return fmt::format("[::1]:{}", port); }
 

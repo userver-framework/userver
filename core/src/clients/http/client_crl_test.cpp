@@ -1,6 +1,7 @@
 #include <userver/clients/http/client.hpp>
 
 #include <array>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -10,6 +11,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
@@ -19,6 +21,7 @@
 
 #include <engine/io/tests/net_listener.hpp>
 #include <userver/utest/http_client.hpp>
+#include <userver/utest/port_reservation.hpp>
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -538,10 +541,14 @@ struct HttpProxyServer {
 };
 
 auto InterceptCrlDistribution() {
-    engine::io::Socket listener{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};
-    auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
-    addr.SetPort(kCrlDistributionPort);
-    listener.Bind(addr);
+    auto reservation =
+        engine::AsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [] {
+            return utest::PortReservation{
+                {.ip_version = utest::PortReservation::IpVersion::kV6, .fixed_port = kCrlDistributionPort}
+            };
+        }).Get();
+    engine::io::Socket listener{std::move(reservation).ReleaseNativeFd(), engine::io::AddrDomain::kInet6};
+    listener.Listen();
 
     return engine::AsyncNoTracing([listener = std::move(listener)]() mutable {
         while (!engine::current_task::IsCancelRequested()) {

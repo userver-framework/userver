@@ -35,7 +35,6 @@ public:
 
     /// @returns a client for the specified gRPC service, connected
     /// to the specified endpoint.
-    /// @see GetFreeIpv6Port
     /// @see MakeIpv6Endpoint
     template <typename Client>
     Client MakeClient(const std::string& endpoint) {
@@ -56,11 +55,6 @@ private:
     SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
     client::ClientFactory client_factory_;
 };
-
-/// Acquire a free IPv6 port. Note: there is a small chance that a race could
-/// occur, and the port will be taken immediately after this function returns.
-/// Prefer spinning up a server with port auto-detection if possible.
-std::uint16_t GetFreeIpv6Port();
 
 /// Make an IPv6 localhost gRPC endpoint from port.
 std::string MakeIpv6Endpoint(std::uint16_t port);

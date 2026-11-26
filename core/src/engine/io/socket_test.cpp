@@ -689,14 +689,14 @@ UTEST(Socket, MakeIpSocketAddress) {
 UTEST(Socket, UdpIpMreqIPv4) {
     try {
         /// [multicast socket creation sample]
-        static constexpr std::uint16_t kPort = 12345;
         static constexpr const char* kGroup = "224.0.0.42";
 
         auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
 
-        auto any_addr = engine::io::Sockaddr::MakeIPv4InaddrAny();
-        any_addr.SetPort(kPort);
-        receiver.Bind(engine::io::Sockaddr(&any_addr));
+        auto addr = engine::io::Sockaddr::MakeIPv4InaddrAny();
+        // Set a fixed port when senders need a known destination. This test uses an OS-assigned port.
+        // addr.SetPort(12345);
+        receiver.Bind(addr);
 
         engine::io::IpMreq mreq(kGroup, 0);
         engine::io::AddMembership(receiver, mreq);
@@ -713,14 +713,11 @@ UTEST(Socket, UdpIpMreqIPv4) {
 }
 
 UTEST(Socket, UdpIpMreqIPv6) {
-    static constexpr std::uint16_t kPort = 12345;
     static constexpr const char* kGroup = "ff02::41";
 
     auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet6, engine::io::SocketType::kDgram);
 
-    auto any_addr = engine::io::Sockaddr::MakeInaddrAny();
-    any_addr.SetPort(kPort);
-    receiver.Bind(engine::io::Sockaddr(&any_addr));
+    receiver.Bind(engine::io::Sockaddr::MakeInaddrAny());
 
     engine::io::IpMreq mreq(kGroup, 0);
     io::AddMembership(receiver, mreq);
@@ -734,12 +731,10 @@ UTEST(Socket, UdpIpMreqIPv6) {
 UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
     const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-    static constexpr uint16_t kPort = 12345;
     static constexpr const char* kGroup = "ff02::42";
     static constexpr int packets_count = 3;
 
     auto multiaddr = engine::io::Sockaddr::MakeIPSocketAddress(kGroup);
-    multiaddr.SetPort(kPort);
     io::IpMreq mreq(kGroup, 0);
 
     std::vector<engine::TaskWithResult<void>> tasks;
@@ -749,8 +744,10 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
             receivers.emplace_back(std::make_shared<io::Socket>(io::AddrDomain::kInet6, io::SocketType::kDgram));
 
         auto any = engine::io::Sockaddr::MakeInaddrAny();
-        any.SetPort(kPort);
-        receiver->Bind(io::Sockaddr(&any));
+        any.SetPort(multiaddr.Port());
+        receiver->Bind(any);
+        // The first receiver binds port 0 and keeps the assigned port open for the second.
+        multiaddr.SetPort(receiver->Getsockname().Port());
         io::AddMembership(*receiver, mreq);
 
         tasks.push_back(engine::AsyncNoTracing([receiver, deadline] {

@@ -8,6 +8,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utest/port_reservation.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -228,10 +229,11 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
 }
 
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
+    const utest::PortReservation reservation{{.ip_version = utest::PortReservation::IpVersion::kV6}};
     ugrpc::tests::StandaloneClientFactory client_factory;
 
     auto client = client_factory.MakeClient<
-        sample::ugrpc::UnitTestServiceClient>(ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port()));
+        sample::ugrpc::UnitTestServiceClient>(ugrpc::tests::MakeIpv6Endpoint(reservation.GetPort()));
 
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(100ms);

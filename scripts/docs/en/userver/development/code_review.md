@@ -301,8 +301,8 @@ documentation from this check.
 ## 14. Use fmt for formatting
 
 Use the `fmt` library for formatting instead of `std::format` and similar APIs.
-Build strings with `fmt::format` rather than chains of `operator+`, `std::to_string`,
-or `std::ostringstream`.
+Build strings with `fmt::format`. Standalone integer conversions may use
+`std::to_string`. Format floating-point values with `fmt`.
 
 ## 15. Protect component-lifetime tasks from overload cancellation
 
