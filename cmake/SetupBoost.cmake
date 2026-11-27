@@ -24,9 +24,6 @@ set(BOOST_INCLUDE_LIBRARIES
     endian
     assert
     predef
-    algorithm
-    exception
-    smart_ptr
 )
 string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
