@@ -24,6 +24,478 @@ Changelog news also go to the [userver framework news channel](https://t.me/user
 
 ## Changelog
 
+### Release v3.3 (unreleased)
+
+These notes cover changes on `develop` since v3.2 through GitHub commit
+[`64d56404`](https://github.com/userver-framework/userver/commit/64d564046a5eb8d4c443d6777ed1f8ab84dfa0ff) (November 26, 2026).
+
+#### Cool features
+
+* Added @ref engine::PulseEvent for one-shot notifications to current subscribers. A subscription can participate in
+  @ref engine::WaitAny. Sending a pulse before subscribing leaves no pending signal. <!-- ce91b058 -->
+* Added resource-scope overloads for @ref concurrent::AsyncEventSource::AddListener and
+  @ref os_signals::Processor::AddListener.
+  * Migration: Pass `context.Scopes()` or the subscriber's resource scope storage to `AddListener`; remove the stored
+    subscription handle and explicit `Unsubscribe` calls after migrating its ownership. <!-- 74bc661b -->
+* Removed the legacy JSON metrics API, including `utils::statistics::Storage::RegisterExtender`, `PercentileToJson`
+  and the Solomon JSON metadata helpers.
+  * Migration: Export metrics through @ref utils::statistics::Writer. Register the writer callback with
+    @ref utils::statistics::Storage::RegisterWriter and put labels on the metrics as they are written. <!-- fb4f3b5d -->
+
+#### Breaking changes
+
+**Build and testing**
+
+* Migrated built-in testsuite configuration patches to @ref pytest_userver.config.patch, changing their execution
+  order relative to legacy `USERVER_CONFIG_HOOKS`.
+  * Migration:
+    * Moved built-in configuration patches to fixture markers; migrate custom patches that depend on the built-in HTTP
+      client settings, logging, or other patches to @ref pytest_userver.config.patch. Import `pytest_userver.config`,
+      put the decorator below `@pytest.fixture(scope='session')`, and remove the migrated fixture name from
+      `USERVER_CONFIG_HOOKS`.
+    * Replaced list-based ordering with @ref fixture_markers_ordering for migrated patches; define dependent fixtures
+      in their required execution order within a conftest covering the affected tests. Legacy hooks still run before
+      all marked patches, while `uservice_oneshot(config_hooks=...)` hooks run last.
+    * For overrides of built-in patches, remove their names from legacy hook lists without repeating the decorator.
+      Overrides keep the original marked fixture's position. Registering a fixture through
+      both mechanisms applies it twice. <!-- 01c7faff -->
+* Removed `testsuite::RegisterCache`, its `testsuite::CacheResetRegistration` handle, and
+  `testsuite::RegisterCacheScope`. <!-- afd110f4 --> <!-- 4c1ac93e -->
+  * Migration: Use @ref testsuite::RegisterCacheResetter for both APIs. Call
+    `testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache)` at the end of the component constructor,
+    after all `FindComponent` calls. Existing `RegisterCacheScope` calls keep the same arguments. When migrating from
+    `RegisterCache`, remove the stored handle and explicit `Unregister()` calls. The resetter follows the component
+    lifetime.
+
+**Core and utilities**
+
+* Removed the default constructor of @ref utils::ResourceScopeStorage. <!-- c5a67916 -->
+  * Migration: Use @ref utils::WithResourceScopes or @ref utils::MakeWithResourceScopes for application objects.
+    For unique ownership, use the new @ref utils::MakeUniqueWithResourceScopes factory. <!-- 51733895 -->
+* Made Base64URL support unconditional, removed the `USERVER_FEATURE_CRYPTOPP_BASE64_URL` CMake option, and set the
+  minimum Crypto++ version to 5.6.3.
+  * Migration: Remove `USERVER_FEATURE_CRYPTOPP_BASE64_URL` from your CMake configuration. If you use an older version
+    of Crypto++, upgrade to 5.6.3 or later. <!-- f1f9d802 -->
+* Deprecated the constructors of @ref dynamic_config::Key and @ref dynamic_config::ConfigDefault that implicitly omit
+  schema hashes in open-source builds.
+  * Migration: Use a generated @ref dynamic_config::Key or supply the generated schema hash to a handwritten key. For
+    a config source that supports items without schema hashes, append `dynamic_config::NoSchemaHash{}` to the
+    constructor arguments. Make this choice separately for each @ref dynamic_config::ConfigDefault in a composite key. <!-- b3fd3a87 -->
+* Removed the Boost.Filesystem dependency from userver-universal and userver-core. Changed filesystem and dump APIs to
+  use standard permission enums, retaining template adapters for Boost permission arguments.
+* Changed @ref fs::blocking::GetFileType to return `std::filesystem::file_type` and rejected symlink paths in
+  @ref fs::blocking::Chmod and @ref fs::Chmod. <!-- 114d7529 -->
+* Removed deprecated `k`-prefixed concepts from the `meta` namespace.
+  * Migration: Drop the `k` prefix for `kIsInteger`, `kIsRange`, `kIsMap`, `kIsOptional`, `kIsSizable` and
+    `kIsReservable`. Replace `kIsVector` with @ref meta::IsVectorLike. For @ref meta::IsInstantiationOf and
+    @ref meta::IsCvInstantiationOf, pass the type first and the template second. <!-- 8d26d101 -->
+* Removed `meta::IsDetected`, `utils::void_t` and the `<userver/utils/void_t.hpp>` header.
+  * Migration: Replace `IsDetected` with a C++20 `requires` expression. For `void_t`-based constraints, use a
+    `requires` clause or `std::void_t` from `<type_traits>`. <!-- 395905b3 -->
+
+**Databases and messaging**
+
+* Fixed @ref storages::mysql::Component accepting plaintext connections with `use_secure_connection` enabled. The
+  driver now requires TLS by default.
+  * Migration: Enable TLS on the MySQL server. Deployments that intentionally use plaintext must set
+    `use_secure_connection: false`. <!-- 4bafcaf7 -->
+* Added optional queue arguments to @ref urabbitmq::Client::DeclareQueue and exposed the broker’s queue name, message
+  count and consumer count through @ref urabbitmq::QueueDeclareResponse. Many thanks to
+  [Alexander Aparin](https://github.com/alex-aparin) for the PR!
+  * Migration: Custom @ref urabbitmq::IAdminInterface implementations must return @ref urabbitmq::QueueDeclareResponse
+    from each `DeclareQueue` overload and implement the new overload accepting queue arguments. Callers may ignore the
+    returned value. <!-- fef72686 -->
+* Made @ref ydb::TopicProducer move-only and added @ref ydb::TopicProducerSettings::CloseTimeout to control how long
+  destruction waits for pending acknowledgments. The default is zero.
+  * Migration: Create a producer with @ref ydb::TopicClient::CreateProducer. Move it to transfer ownership or pass a
+    reference to share access. <!-- 1ccfdca1 -->
+
+**Formats and code generation**
+
+* Changed @ref utils::encoding::TskvReadRecord to pass string views to callbacks and added
+  @ref utils::encoding::TskvReadRecordSelected for reading selected fields without decoding the rest.
+  * Migration: Accept `std::string_view` in the callback and copy values to `std::string` if they must outlive it.
+    Avoid calling either reader recursively from its callback on the same thread. <!-- fbea3b92 -->
+* Removed generic parsing and JSON serialization support for `boost::variant`.
+  * Migration:
+    * Removed the Boost.Variant adapters; replace `boost::variant` with `std::variant` and `boost::apply_visitor` with
+      `std::visit`. Use `std::get` for reference access and `std::get_if` for pointer access.
+    * Removed the Boost.Variant adapter headers; replace their includes with @ref userver/formats/parse/variant.hpp
+      for parsing and @ref userver/formats/serialize/variant.hpp together with
+      @ref userver/formats/json/value_builder.hpp for JSON serialization. <!-- e14ae9ce -->
+
+**HTTP and gRPC**
+
+* Changed the HTTP client to reject embedded credentials in request and redirect URLs by default.
+  * Migration: Supply credentials with @ref clients::http::Request::http_auth_type. Integrations that require URL
+    credentials can opt in with `allow-url-userinfo: true` or @ref clients::http::Request::SetUrlUserinfoAllowed. <!-- 0be17050 -->
+* Removed `server::request::ResponseBase` and moved HTTP response operations into @ref server::http::HttpResponse.
+  * Migration: Use @ref server::http::HttpResponse in HTTP response helpers and include
+    `<userver/server/http/http_response.hpp>`. Get the response from @ref server::http::HttpRequest::GetHttpResponse. <!-- 1f51148a -->
+* Changed the default value of @ref ugrpc::client::ClientFactorySettings::credentials to `nullptr`.
+  * Migration: Default client credentials became nullable. Code that reads
+    @ref ugrpc::client::ClientFactorySettings::credentials directly should use
+    @ref ugrpc::client::GetClientCredentials to resolve the effective credentials, or explicitly assign
+    `grpc::InsecureChannelCredentials()` when a non-null member value is required. <!-- 86141834 -->
+* Changed unary gRPC clients to report local request serialization failures as
+  @ref ugrpc::client::RpcSerializationError before starting the RPC.
+  * Migration: Catch @ref ugrpc::client::RpcSerializationError or its base @ref ugrpc::client::RpcError when handling
+    these failures. Access the unary client context and metadata only after success or
+    @ref ugrpc::client::ErrorWithStatus. <!-- 5077ba2c -->
+* Removed the legacy gRPC JSON conversion functions and `<userver/ugrpc/proto_json.hpp>`.
+  * Migration: Include @ref userver/protobuf/json/convert.hpp and use @ref protobuf::json::MessageToJson,
+    @ref protobuf::json::JsonToMessage, @ref protobuf::json::MessageToJsonString or
+    @ref protobuf::json::JsonStringToMessage for the corresponding conversion. The same header provides JSON parsing
+    and serialization overloads for protobuf messages. <!-- 56002b0f -->
+* Disabled the `X-YaTaxi-Ratelimited-By` response header by default so rate-limited responses no longer disclose the
+  server hostname.
+  * Migration: Set `allow-set-response-ratelimited-by: true` on the server component if clients rely on this header.
+    Migrate calls to the deprecated `server::http::SetThrottleReason` wrapper to
+    @ref server::http::HttpResponse::SetThrottleReason. <!-- 852313cf -->
+* Changed HTTP server CORS configuration to reject wildcard origins when credentials are enabled.
+  Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the CORS fix!
+  * Migration: List each trusted origin in `allowed-origins` when `allow-credentials` is `true`, or disable
+    credentials to retain a wildcard origin. <!-- f029a75e -->
+
+**Metrics, logging and tracing**
+
+* Removed excess transitive includes from @ref userver/utils/statistics/writer.hpp,
+  @ref userver/utils/statistics/storage.hpp, and @ref userver/utils/statistics/metrics_storage.hpp.
+  * Migration:
+    * Removed incidental dependencies from the statistics headers; add direct includes for the APIs your code uses,
+      such as `<fmt/format.h>`, `<userver/utils/function_ref.hpp>`, `<userver/utils/statistics/request.hpp>`,
+      `<userver/engine/shared_mutex.hpp>`, and standard library headers.
+    * Removed the transitive inclusion of @ref userver/utils/statistics/metric_tag.hpp from
+      @ref userver/utils/statistics/metrics_storage.hpp; include @ref userver/utils/statistics/metric_tag.hpp directly
+      when using @ref utils::statistics::MetricTag. <!-- e4c0e979 -->
+* Removed `utils::statistics::Storage::VisitMetrics` and moved the free @ref utils::statistics::VisitMetrics function
+  and @ref utils::statistics::WriterFuncRef to @ref userver/utils/statistics/visit.hpp. <!-- 087d6d93 --> <!-- 5d156eea -->
+  * Migration: Include `<userver/utils/statistics/visit.hpp>` where you use either symbol. Replace
+    `storage.VisitMetrics(builder, request)` with `utils::statistics::VisitMetrics(storage, builder, request)`.
+* Removed `utils::statistics::Entry`, its header and the overload of @ref utils::statistics::Storage::RegisterWriter
+  that returned an `Entry`. Also removed the `RegisterWriterScope` overload that took both
+  @ref utils::ResourceScopeStorage and @ref utils::statistics::Storage.
+  * Migration: Call @ref utils::statistics::Storage::RegisterWriter with the resource scopes as the first argument.
+    In a component constructor, pass `context.Scopes()` or call @ref utils::statistics::RegisterWriterScope with the
+    component context. Remove registration holder fields, explicit `Unregister()` calls, and includes of
+    `userver/utils/statistics/entry.hpp`. Include `userver/utils/statistics/fwd.hpp` when only forward declarations
+    are needed. For non-component objects, accept scopes in the constructor and use @ref utils::WithResourceScopes or
+    @ref utils::MakeWithResourceScopes to manage their lifetime. <!-- cede17da --> <!-- 50f4fe78 -->
+* Removed `utils::statistics::MetricsStorage::RegisterIn` and made the constructor taking allowed metric paths
+  explicit.
+  * Migration: Pass @ref utils::statistics::MetricsStorage directly to @ref utils::statistics::Snapshot in tests. To
+    register a metrics collection in a running service, use @ref utils::statistics::MakeBoundMetricsStorage or
+    @ref utils::statistics::Storage::RegisterWriter. <!-- f4cc3522 -->
+* Changed @ref utils::statistics::Snapshot to remove required prefixes and labels when collecting metrics by default.
+  Queries now return views tied to the snapshot, and duplicate metric identities or label names are rejected. Added
+  @ref utils::statistics::Snapshot::FromJson and @ref utils::statistics::Snapshot::FromLayeredJson to build snapshots
+  from exported metrics.
+  * Migration: Query using the remaining path and labels, or set `SnapshotBuildOptions::sliced` to `false` and use the
+    original paths and labels. Keep the snapshot alive while using its query results. <!-- 992f104c -->
+* Removed legacy GAUGE duplicates of cache, TaskProcessor, HTTP server, congestion-control, and distributed-lock
+  counters. Existing @ref utils::statistics::Rate metrics with the `.v2` suffix were retained.
+  * Migration:
+    * Replaced the unversioned GAUGE counter names; select the existing RATE names with the `.v2` suffix for:
+      * LRU caches: `cache.hits`, `cache.misses`, `cache.stale`, `cache.background-updates`.
+      * Cache updates: `cache.<scope>.update.attempts_count`, `cache.<scope>.update.no_changes_count`,
+        `cache.<scope>.update.failures_count`, `cache.<scope>.documents.read_count`,
+        `cache.<scope>.documents.parse_failures`, where `<scope>` is `full`, `incremental`, or `any`.
+      * TaskProcessor tasks: `engine.task-processors.tasks.created`, `engine.task-processors.tasks.finished`,
+        `engine.task-processors.tasks.cancelled`, `engine.task-processors.tasks.cancelled_overload`.
+      * TaskProcessor context switches: `engine.task-processors.context_switch.slow`,
+        `engine.task-processors.context_switch.spurious_wakeups`, `engine.task-processors.context_switch.overloaded`,
+        `engine.task-processors.context_switch.no_overloaded`.
+      * HTTP server: `server.connections.opened`, `server.connections.closed`, `server.requests.processed`.
+      * Congestion control: `congestion-control.rps.states.overloaded-no-pressure`,
+        `congestion-control.rps.states.overloaded-under-pressure`, `mongo.congestion-control.enabled-seconds`.
+      * Distributed locks: `distlock.successes`, `distlock.task-failures`.
+    * In Solomon queries, remove `derivative`, `non_negative_derivative`, or `diff` previously applied to these GAUGE
+      counters. Use `rate_to_delta` when an alert needs event counts instead of a per-second rate.
+    * In Prometheus queries, use the normalized names ending in `_v2`; keep `rate()` and `increase()` when computing
+      counter rates and deltas. <!-- d39386e5 -->
+
+#### Features
+
+**Build and testing**
+
+* Added GDB pretty-printers for @ref utils::FastPimpl and @ref formats::yaml::Value. <!-- c6e5d3ee -->
+* Added automatic MySQL endpoint substitution from `mysql_conninfo` for the default local secdist endpoint in
+  @ref pytest_userver.plugins.mysql. <!-- 0127e272 -->
+* Added automatically discovered pytest fixture markers. Use @ref pytest_userver.config.patch for configuration
+  patches and @ref pytest_userver.service.dependency for fixtures that must run before service startup. Use
+  @ref pytest_userver.fixture_markers.mark and @ref pytest_userver.fixture_markers.get_infos to attach and discover
+  your own typed metadata. Fixture overrides inherit markers automatically. <!-- 504c9c8e --> <!-- ee6d6024 -->
+
+**Core and utilities**
+
+* Added `wait-for-dynamic-configs` to @ref cache::LruCacheComponent. Set it to `false` to start the cache with static
+  settings and apply @ref USERVER_LRU_CACHES when the first dynamic config arrives. <!-- dd48c2a9 -->
+* Renamed the resource-scope overloads of @ref concurrent::AsyncEventChannel::DoUpdateAndListenScoped to
+  @ref concurrent::AsyncEventChannel::DoUpdateAndListen; retained deprecated forwarding wrappers for CMake builds. <!-- f2ca2561 -->
+* Added @ref concurrent::CollectInParallel to run asynchronous work with a concurrency limit and collect results in
+  input order. Callers can choose whether to stop on the first error. <!-- 302d71df -->
+* Added @ref engine::io::Socket::SendNoblock and @ref engine::io::Socket::RecvNoblock for immediate socket I/O,
+  including scatter/gather overloads. They return `std::nullopt` when an operation would block. <!-- 5505fe37 -->
+* @ref utils::statistics::RecentPeriod now resets counters via ADL-found `ResetMetric` when available <!-- 8a5427bf -->
+* Added @ref crypto::jwt::MakeToken to sign claims or serialized JSON payloads,
+  @ref crypto::jwt::UnverifiedParseJoseHeader to read the JOSE header for key selection, and
+  @ref crypto::jwt::Verify to verify signatures and validate claims. The serialized-payload overload accepts an
+  optional key ID. Many thanks to [Dmitry Rempel](https://github.com/DimaTomsk) for the original JWT implementation! <!-- edcd196d -->
+* Added `additional-request-params` to @ref components::DynamicConfigClient to send backend-specific JSON fields with
+  dynamic config requests. <!-- c3e1f6d8 -->
+* Added `fallback-config-urls` support to the dynamic config client: on network errors, timeouts, or 5xx responses
+  from `config-url`, the client now tries fallback URLs in order. 4xx responses and cancellations are not retried on
+  fallbacks. <!-- 248c2ab4 -->
+* Added `component_manager.default_task_processor_settings` to share defaults across task processors. Individual task
+  processors can override these settings. <!-- 4bc5f3e7 -->
+* Added an explicit return type template parameter to @ref utils::Visit: `utils::Visit<R>(variant, handlers...)` now
+  converts handler results to `R`, and `utils::Visit<void>(...)` discards them. <!-- 268308fa -->
+* Added `transform`, `and_then` and `or_else` to @ref utils::OptionalRef for chaining operations on optional
+  references. <!-- 95b19d7d -->
+* Fixed @ref crypto::CmsVerifier accepting signatures from certificates other than the pinned signer certificate. Many
+  thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- e9570120 -->
+
+**Databases and messaging**
+
+* Updated the bundled clickhouse-cpp client to 2.6.2; added ZSTD support so connections keep working with recent
+  ClickHouse servers that default `network_compression_method` to ZSTD. <!-- 61101506 -->
+* ClickHouse secdist secrets now support `port_client` as a fallback for `port`, allow omitting `dbname` (defaulting
+  to `default`), and can be overridden with the `dbname` static option of @ref components::ClickHouse. <!-- 6b259777 -->
+* Added fallback execution for PostgreSQL distributed locks. When the preferred hosts in `run_on_hosts` stop acquiring
+  a lock, another host can run the task after repeated checks and a shared idle period.
+  * Migration: Deploy the updated driver on all lock participants before configuring a common nonempty `run_on_hosts`
+    list. Fallback tasks should check @ref storages::postgres::DistLockComponentBase::IsCancelAdvised during long
+    operations. <!-- 1c68852d -->
+* Added @ref storages::mongo::options::BatchSize to MongoDB aggregation operations to control how many documents the
+  server returns per cursor batch. <!-- 445e9eb2 -->
+* Added @ref formats::json::RawString support for PostgreSQL JSON and JSONB parameters and results. Reading a JSONB
+  column without building a DOM improved mean requests per second by 4.4% in the `async-db` benchmark. <!-- 6f09c1cf -->
+* Added `rtt_threshold` for PostgreSQL host selection. Default and round-robin selection prefer hosts within the
+  configured latency window of the fastest eligible host (20 ms by default). Slower hosts remain available as a
+  fallback. <!-- c3ef3006 -->
+* Changed PostgreSQL pipeline handling to recognize statements such as `VACUUM` from the server’s transaction-state
+  error. When no user transaction is active, the driver can retry the statement outside the pipeline. <!-- 5951c952 -->
+* Added an opt-in topology refresh for Redis Sentinel clients when the primary is unavailable. <!-- 43355a5f -->
+* @ref components::Redis supports shared topology for commands and subscriptions via `enable_subscriptions` or
+  compatible `groups` and `subscribe_groups` entries with matching `db` and `config_name`. <!-- 58ebed4d -->
+* Improved Redis driver retries: enforced retry budgets for cluster writes, forced-server reads, and `MOVED`/`ASK`
+  redirects, and introduced shared reply classification so that only transport failures and temporary Redis errors
+  (`LOADING`, `MASTERDOWN`, `READONLY`, `CLUSTERDOWN`, `TRYAGAIN`) are retried; errors like `OOM`, `NOSCRIPT`, and
+  invalid-command errors are now returned immediately. Documented retry behavior in
+  @ref scripts/docs/en/userver/redis.md. <!-- 5c6bb161 -->
+* Added support for Valkey 9.2 optimistic (conditional) transactions: @ref storages::redis::Transaction::Exec now
+  accepts @ref storages::redis::ExecOptions with `IFEQ`, `IFNE`, `NX` and `XX` conditions, and failed conditions throw
+  @ref storages::redis::TransactionAbortedException from the EXEC request and all queued subcommand requests. <!-- a82d0f1f -->
+* Added a standalone `userver-s3-cli` executable to the userver-s3api library, providing AWS-style `get-object` and
+  `put-object` commands (including ETag preconditions via `--if-match` and `--if-none-match '*'`), V2/V4 credential
+  signing, JSON output and HTTP error codes. The target is opt-in via CMake
+  (`cmake --build build --target userver-s3-cli`). <!-- 72ae7554 -->
+* Added @ref s3api::Client::PutObjectConditional to create a JSON object only if it is absent or replace it only if
+  its ETag matches. An overload accepts user metadata. <!-- f1bbff0d -->
+* Added local write statistics export for @ref ydb::TopicProducer. <!-- 5c31496f -->
+* Added named DDL queries to @ref ydb::TableClient::ExecuteSchemeQuery. A @ref ydb::Query can now select per-query
+  command settings and logging. <!-- 20f108ce -->
+* Added @ref ydb::FederatedTopicClient::CreateWriteSession for writing to federated YDB topics. <!-- b1a2f88b -->
+* Added @ref ydb::TableClient::GetSnapshot to keep a sequence of database operations on the same connection when
+  routing changes. <!-- f2a5adf0 -->
+* Fixed the `bit`/`bit varying` binary parser in @ref storages::postgres to reject negative and overflowing bit-length
+  prefixes and avoid signed overflow. Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the
+  PR! <!-- de9273cf -->
+* Fixed a null-pointer dereference in @ref storages::redis by type-checking pub/sub reply elements before typed access
+  in `Sentinel` subscribe handlers. Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- 497f7b15 -->
+* Fixed int64 overflow detection when reading PostgreSQL `numeric` values into `decimal64::Decimal`, throwing
+  `NumericOverflow` instead of wrapping. Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for
+  the PR! <!-- 3e80bc71 -->
+
+**Formats and code generation**
+
+* Added opt-in fallback for string enums in Chaotic and Chaotic OpenAPI via `x-usrv-with-fallback` and its alias
+  `x-taxi-with-fallback`. Unknown strings are parsed as the first enum value. <!-- b4a70eed -->
+* Added gzip and Zstandard compression for outgoing request bodies in generated Chaotic OpenAPI clients. Select an
+  encoding with `CommandControl::ContentEncoding`. <!-- 02791197 -->
+* Added @ref formats::yaml::MakeObject and @ref formats::yaml::MakeArray for building YAML values inline. <!-- b578f827 -->
+* Fixed @ref compression::zstd::Decompress to read all concatenated frames and enforce the output size limit across
+  frames. Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- e72cfdf6 -->
+* Updated @ref formats::json::Value::IsUInt64 to reject negative integral-valued doubles such as `-1.0`.
+  Reading them with `As<std::uint64_t>()` now throws @ref formats::json::TypeMismatchException. Thanks to
+  [Kartik Kenchi](https://github.com/netliomax25-code) for [reporting the issue and proposing a fix](https://github.com/userver-framework/userver/pull/1380). <!-- ff78d233 -->
+
+**HTTP and gRPC**
+
+* Added @ref server::request::RequestContext::GetInitialDynamicConfig() to publicly expose the dynamic config snapshot
+  captured at the start of request processing. <!-- c5984754 -->
+* Added typed data tags to @ref server::request::RequestContext. Use @ref server::request::StorageContext tags with
+  the data accessors to store and retrieve values by type. The previous string-keyed and untyped accessors are
+  deprecated. <!-- aa11e39d -->
+* Added opt-in protobuf arenas for typed gRPC server calls. Set `use-protobuf-arena` on a service or in
+  `grpc-server.service-defaults` to allocate requests and proto-struct responses on the call arena. <!-- ea0f7036 -->
+* Enabled support for zstd-compressed responses by default in @ref ugrpc::client::ClientFactoryComponent when
+  available in gRPC. <!-- 97f1aad1 -->
+* Exposed serialized request and response sizes to gRPC middleware through @ref ugrpc::client::MiddlewareCallContext
+  for unary clients and @ref ugrpc::server::MiddlewareCallContext for unary and streaming servers. <!-- 9126c132 -->
+* Added an optional gRPC callback backend for typed and generic server RPCs. Set `use-callback-api: true` on the gRPC
+  server to enable it. Handlers and middleware continue to run in userver coroutine tasks. In Linux builds that include
+  the experimental EventEngine, also set `event-engine: {enabled: true}` to run socket I/O and timers on a userver
+  task processor. Configure it via @ref ugrpc::server::ServerConfig::event_engine
+  (@ref ugrpc::server::EventEngineConfig). <!-- 726d3cdb -->
+* Added @ref clients::http::Request::SetExpectedStatusCodes to mark HTTP statuses such as `404` as expected. Expected
+  responses no longer set the outgoing span’s error tag or count as failures in @ref clients::http::Response::IsError
+  and retry-budget accounting. Chaotic OpenAPI clients can configure expected statuses with
+  `x-usrv-expected-status-codes`. <!-- 095ef97a -->
+* Added @ref clients::http::MiddlewareBase::HookOnRequestFinished and request method and URL template accessors for
+  HTTP client middleware. <!-- c311b56b -->
+* Added per-handler controls for HTTP request and response body logs in @ref USERVER_HTTP_SERVER_LOGS.
+  * Size limits can be changed at runtime. Bodies are truncated only once. Thanks to
+    [rjazhenka1](https://github.com/rjazhenka1) for proposing the truncation fix. <!-- 5aed0126 -->
+  * Streaming JSON masking supports separate request and response policies with `list_mode` set to `whitelist`
+    or `blacklist`. Handwritten handlers
+    can use @ref server::handlers::MaskJsonRequestBodyForLogging and @ref server::handlers::MaskJsonResponseBodyForLogging.
+    For handlers serving multiple logical routes, @ref server::handlers::JsonBodyLoggingOptions can select a masking
+    policy by name. The underlying @ref formats::json::MaskJson and @ref formats::json::MaskingRules are also available
+    for direct use. <!-- c28bbb26 --> <!-- 978d5d23 -->
+* Added `prepend` to @ref server::middlewares::PipelineBuilder and @ref server::middlewares::HandlerPipelineBuilder so
+  a server or handler can run middleware ahead of the default pipeline. <!-- 4575cfe0 -->
+* Fixed concurrent access to the HTTP congestion-control activation timestamp. <!-- 444c4a30 -->
+* Fixed overflow when @ref ugrpc::ToDuration or @ref ugrpc::ToTimePoint converts very large negative protobuf
+  durations or timestamps. Many thanks to [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- c9ddf563 -->
+* Fixed Digest authentication to check the `uri` directive against the request target. Many thanks to
+  [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- fe838a08 -->
+* Fixed @ref ugrpc::IsValid accepting out-of-range days in `google::type::Date`. Many thanks to
+  [Kartik Kenchi](https://github.com/netliomax25-code) for the PR! <!-- ac488e28 -->
+
+**Metrics, logging and tracing**
+
+* Added @ref server::request::SetClientMetricsShard and @ref server::request::ClientMetricsShardScope to record
+  additional HTTP client timing, error and status metrics under an application-defined path and labels. Child tasks
+  inherit the setting. <!-- 14833441 -->
+* Added @ref USERVER_TELEMETRY_SETTINGS to configure minimum log levels and sampling rates per logger, with a separate
+  process-wide trace sampling rate. <!-- 988b5f78 -->
+* Made standalone metrics such as @ref utils::statistics::RelaxedCounter, @ref utils::statistics::Percentile and
+  @ref utils::statistics::RecentPeriod available from `userver::universal`, together with metric writers for JSON,
+  Prometheus, Graphite and Solomon output. <!-- 174d1968 -->
+* Added `always-log-request-span` for HTTP handlers and `always-log-call-spans` for gRPC services to record root spans
+  even when their log level is filtered. Trace sampling and @ref USERVER_NO_LOG_SPANS still apply. <!-- 7271c4ff -->
+* Preserved trace context in logs and outgoing headers when a span is filtered by its log level. <!-- 51ba0541 -->
+* Added `span-log-level` to @ref components::Logging so spans can be recorded at a different minimum level from
+  ordinary log messages. <!-- b525d995 -->
+* Added `trace_sampled` to logs written in an active @ref tracing::Span and to span completion records. Logs outside a
+  span omit the field. <!-- 2748af49 -->
+
+#### Optimizations
+
+**Build and testing**
+
+* Changed Chaotic to generate a single C++ translation unit for each dynamic config variable. <!-- a4a7f7f5 -->
+* Changed `userver_testsuite_add` to share a Python virtual environment among test suites with the same requirements.
+  A project with 13 services had previously created 17 copies consuming 1.8 GB per build directory. Many thanks to
+  [Sergei Fedorov](https://github.com/zmij) for the PR! <!-- d500732e -->
+* Removed redundant includes from public headers. Preprocessed output for 516 translation units fell by 38.7 MB
+  (2.45%), and a cold release build of the test service took 872 s instead of 888 s. <!-- 285119a4 -->
+* Improved performance of @ref pytest_userver.fixture_markers.get_infos by avoiding repeated signature inspection. <!-- c9113799 -->
+* Removed the direct Boost.Random dependency and reduced preprocessing time for `USERVER_DEFINE_STRUCT_SUBSET` macros
+  by 15–104× in the measured cases. <!-- cc1d5139 -->
+
+**Core and utilities**
+
+* Accelerated Base64 encoding and decoding with SIMD. On an Apple M4 Pro (NEON64), encoding a 512-byte payload
+  took 33 ns instead of 3,976 ns (about 120× faster), and decoding its padded representation took 114 ns instead of
+  2,744 ns (about 24× faster). Both figures are median CPU times per call over five runs of a release build.
+  @ref crypto::base64::Base64Decode and @ref crypto::base64::Base64UrlDecode now reject malformed input.
+  * Migration: Handle @ref crypto::CryptoException at the decode call when accepting untrusted input. Use the matching
+    Base64 alphabet and correct malformed stored encodings. Optional padding and embedded line breaks remain
+    supported. <!-- 8ff918b4 -->
+* Improved concurrent updates of @ref rcu::Variable by coalescing contended heavy memory barriers on an event thread
+  and suspending waiting coroutines instead of blocking task processor threads. <!-- 350bb183 -->
+* Reduced the overhead of creating optional timers with @ref tracing::ScopeTime by reusing the current span. <!-- 73500bb1 -->
+* Reduced the cost of recording @ref tracing::ScopeTime laps. Spans with up to six laps now store them without
+  allocating memory for the lap entries. <!-- 58bf0aff -->
+* Reduced memory retained by @ref concurrent::BackgroundTaskStorage after bursts of detached tasks. <!-- 34dab0d9 -->
+* Removed unused locking from event-loop processing. <!-- 66adc349 -->
+* Optimized @ref engine::Yield() to suspend through an immediately notified awaitable with an unreachable deadline;
+  tasks that only yield no longer start a ContextTimer or schedule its EV-loop finalizer. <!-- b8b5eabc -->
+* Made @ref engine::TaskBase::BlockingWait non-allocating and `noexcept`. <!-- 22477beb -->
+* Sped up @ref utils::text::utf8::GetCodePointsCount. The UTF-8 counter used 17% less CPU on a benchmark of 1,000
+  short ASCII request values. <!-- d4efc416 -->
+* Improved @ref utils::encoding::EncodeTskv performance by avoiding redundant zero-initialization of output buffers. <!-- b642faca -->
+* Inlined the iteration check in @ref utils::CpuRelax::Relax so CPU-intensive loops avoid a function call between
+  yields. <!-- 7f5e2e53 -->
+
+**Databases and messaging**
+
+* Reduced CPU usage while a Kafka consumer waits for the broker to finish shutdown by replacing a busy poll with an
+  event wait. <!-- 8aa068ac -->
+* Improved incremental updates in @ref components::PostgreCache by skipping the cache copy when a query returns no
+  rows. In a local benchmark with one million cached rows and 1,000-row portal fetches, an empty update fell from 230
+  ms to 0.55 ms. <!-- ad5152fe -->
+* Reduced PostgreSQL statement preparation from up to three network round trips to one in pipeline mode by batching
+  statement eviction, preparation and description. <!-- c347e1a2 -->
+* Improved connection pool replenishment in @ref storages::postgres::Cluster after connection rotation. <!-- bf974a96 -->
+* Improved Redis client command construction performance: multi-key commands (MGET, HMSET, DEL with multiple keys)
+  with rvalue vectors of four or more elements are approximately twice as fast, lvalue-based commands are 20-70%
+  faster due to an accurate `reserve`, and ZADD is 6-17% faster. <!-- 26a94261 -->
+* Reduced round trips in @ref ydb::TableClient::RetryTx by starting a transaction with the first query. Callbacks that
+  execute no queries no longer open a transaction. <!-- 6a997c01 -->
+
+**Formats and code generation**
+
+* Optimized generated chaotic JSON parsers: structures containing only an untyped extra object now parse the whole
+  object at once instead of rebuilding temporary JSON values per property, measurably reducing parse CPU time for
+  opaque payloads. <!-- c9296f50 -->
+* Improved container serialization, parsing and cross-format conversion through @ref formats::json::ValueBuilder,
+  @ref formats::json::Value::As and @ref formats::json::Value::ConvertTo. Added direct insertion of `std::optional`
+  and `std::variant` values while preserving custom serializers. <!-- 8c4c39ef -->
+* Sped up parsing of `std::variant` and Chaotic `oneOf` without a discriminator by skipping alternatives that
+  @ref formats::parse::MayParseAs rules out. <!-- d6ad36ab -->
+* Improved performance of @ref formats::json::Value iterators: the cached element's Value and its document owner are
+  now reused instead of incrementing/decrementing the internal reference counter on every iterator increment. <!-- bb056c4f -->
+* Avoided repeated key lookups when converting wide BSON or YAML objects to JSON by appending members directly to
+  @ref formats::json::ValueBuilder. The same optimization made the `Parse` and `Convert` overloads from
+  @ref formats::json::Value to @ref formats::bson::Value run in linear time. <!-- e02ca683 --> <!-- 6146d5c7 -->
+* Added direct @ref formats::json::ValueBuilder::PushBack overloads for strings, numbers, null and JSON values.
+  Appending 1,024 integers avoided 1,024 allocations and took 45 μs in the benchmark, down from 94 μs. <!-- 557c4447 -->
+* Reduced temporary allocations in @ref formats::json::ValueBuilder. Across 18 direct-insertion benchmarks,
+  @ref formats::json::ValueBuilder::EmplaceNocheck used 25.8%–53.0% less CPU time. Character overloads are deprecated;
+  cast a character to an integer when storing its numeric value. <!-- 853fadc7 -->
+
+**HTTP and gRPC**
+
+* Optimized gRPC unary client calls: typed unary RPCs now serialize the protobuf request once into a `ByteBuffer`
+  after the cancellation check and reuse it across retries, and typed and generic unary calls now share a single
+  `GenericStub`; valid empty messages are also correctly distinguished from trailers-only responses. <!-- f5922ac2 -->
+* Reduced the cost of gRPC server response logging. The server computes protobuf sizes and error details only for
+  entries it writes. For unary RPCs, it sends the response before formatting it for the log. <!-- e9b12d0f --> <!-- b75f0aa3 -->
+* Improved @ref grpc_protovalidate::ValidateMessage performance by caching validation rules and skipping message
+  subtrees without constraints. <!-- 88cd836c -->
+
+**Metrics, logging and tracing**
+
+* Skipped building OTLP protobuf records for log lines and spans whose configured sink excludes OTLP. <!-- 2e8f2a33 -->
+* Skipped formatting HTTP response bodies, headers and URLs when the trace span is unsampled or the log entry is
+  filtered out. The gRPC client also skips formatting warnings for failed or interrupted calls when the warning is
+  filtered out. <!-- c4c62f57 -->
+
+#### Build
+
+* Updated the service template so installing a service built with a local userver checkout no longer installs userver
+  alongside it. <!-- 0e87ffce -->
+* Fixed `NEED_CPM` flag leaking to following packages, which forced the CPM-provided versions of c-ares and nghttp2
+  over system ones. Many thanks to [Petri Koivulahti](https://github.com/licensedslacker) for the PR! <!-- fb13c635 -->
+* Fixed CMake component exports and Debian development packages so services can build against an installed userver. <!-- 8c3ef97a -->
+* Removed direct dependencies on Boost.Multiprecision, Boost.Regex and Boost.Thread from `userver-core`, and on
+  Boost.Algorithm, Boost.LexicalCast, Boost.NumericConversion and Boost.Regex from `userver-universal`. <!-- 38e9716d --> <!-- ddb5f777 -->
+  * Migration: Removed incidental Boost.Multiprecision and Boost.Math dependencies from `userver-core`; declare
+    explicit dependencies in projects that use these libraries. <!-- 88618d1a -->
+* Updated the default YDB C++ SDK version to 3.25.0. <!-- ca365db5 -->
+
+#### Documentation
+
+* Added a @ref scripts/docs/en/userver/resource_scopes.md "guide to resource scopes" for callbacks and background tasks.
+  It explains when a listener registered with @ref utils::ResourceScopeStorage may borrow dependencies from its owner.
+  The dependencies must outlive the listener, and its subscription must end before the owner is destroyed. <!-- add95a85 --> <!-- 64fa4874 -->
+* Consolidated guidance and examples for writing and testing userver metrics. <!-- 783f5476 -->
+* Document custom metrics formats with @ref utils::statistics::VisitMetrics and clarify the GAUGE semantics of
+  @ref utils::statistics::RelaxedCounter. <!-- f53f7680 -->
+
 ### Release v3.2
 
 Cool features:
