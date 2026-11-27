@@ -266,7 +266,7 @@ public:
     /// Cookies for request as map
     Request cookies(const std::unordered_map<std::string, std::string>& cookies) &&;
 
-    /// Follow redirects or not. Default: follow
+    /// Follow redirects or not. Default: follow. Only redirects to `http://` and `https://` URLs are followed.
     Request& follow_redirects(bool follow = true) &;
     /// @overload
     Request follow_redirects(bool follow = true) &&;
