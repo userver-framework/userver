@@ -84,6 +84,8 @@ jobs:
                 brew install clickhouse redis kafka mongodb-community rabbitmq
                 # mongodb-community pulls brew abseil, its headers in $(brew --prefix)/include shadow the CPM one
                 brew unlink abseil 2>/dev/null || true  # may be absent
+                # openssl@4 headers in $(brew --prefix)/include shadow the openssl@3 ones
+                brew unlink openssl@4 2>/dev/null || true
                 mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
                 echo 'deprecated_features.permit.transient_nonexcl_queues = true' > "$(brew --prefix)/etc/rabbitmq/conf.d/10-userver-ci.conf"
 
