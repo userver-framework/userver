@@ -141,7 +141,7 @@ class UserverConan(ConanFile):
         self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
         self.requires('yaml-cpp/[>=0.8.0 <=0.9.0]')
         self.requires('zlib/[^1.3]')
-        self.requires('zstd/[^1.5]')
+        self.requires('zstd/[~1.5]')
         self.requires('icu/[>=74.1 <77]', force=True)
         self.requires('re2/[>=20251105]')
 
