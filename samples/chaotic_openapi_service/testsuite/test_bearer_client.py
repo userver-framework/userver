@@ -35,4 +35,3 @@ async def test_client_authenticates_with_bearer(service_client, bearer_server):
 
     # The credentials came from secdist, not from the handler code.
     assert bearer_server.authenticated_requests == [f'Bearer {MOCK_TOKEN}']
-

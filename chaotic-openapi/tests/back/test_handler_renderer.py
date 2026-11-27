@@ -98,3 +98,38 @@ def test_schema_files_none_preserves_old_behavior():
 
     assert 'include/handlers/test/typeless.hpp' not in rel_paths
     assert 'src/handlers/test/typeless.cpp' not in rel_paths
+
+
+def test_bearer_handler_preserves_hidden_query_arguments():
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': 'bearer', 'version': '1.0'},
+        'components': {
+            'securitySchemes': {
+                'myBearer': {'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT'},
+            },
+        },
+        'paths': {
+            '/test': {
+                'get': {
+                    'operationId': 'testGet',
+                    'security': [{'myBearer': []}],
+                    'parameters': [
+                        {
+                            'in': 'query',
+                            'name': 'token',
+                            'required': True,
+                            'x-usrv-query-log-mode': 'hide',
+                            'schema': {'type': 'string'},
+                        },
+                    ],
+                    'responses': {'200': {'description': 'OK'}},
+                },
+            },
+        },
+    }
+    spec = _make_spec(schema)
+    outputs = renderer.render(spec, _make_context(), 'userver')
+
+    handler = next(output for output in outputs if output.rel_path.endswith('/handler.hpp'))
+    assert 'HiddenQueryArguments, true' in handler.content

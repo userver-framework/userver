@@ -200,6 +200,9 @@ public:
 type: object
 description: chaotic-openapi generated handler
 additionalProperties: false
+)";
+        if constexpr (BearerEnabled) {
+            base_schema += R"(
 properties:
     bearer_auth:
         type: object
@@ -212,9 +215,6 @@ properties:
             bearer_format:
                 type: string
                 description: Value of the OpenAPI bearerFormat field (e.g. JWT)
-)";
-        if constexpr (BearerEnabled) {
-            base_schema += R"(
         required:
             - checker_component
 )";

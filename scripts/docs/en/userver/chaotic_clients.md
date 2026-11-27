@@ -186,7 +186,7 @@ No credentials are passed at the call site—the generated client performs the c
 
 ## HTTP Bearer Authentication
 
-If an operation is annotated with a `securityScheme` of type `http` and scheme `bearer`,
+If an operation uses a security scheme of type `http` and scheme `bearer`,
 the generated client sends an `Authorization: Bearer <token>` header with every request of that operation.
 The optional `bearerFormat` field is documentation only; the client never inspects the token.
 
