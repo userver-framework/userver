@@ -9,6 +9,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -49,7 +50,7 @@ bool ShouldWaitForDynamicConfigs(const ComponentConfig& component_config, const 
         .As<bool>(context.GetComponentName() != HttpClient::kDynamicConfigClientName);
 }
 
-clients::http::ClientWithMiddlewares MakeHttpClient(
+std::unique_ptr<clients::http::Client> MakeHttpClient(
     const ComponentConfig& component_config,
     const ComponentContext& context
 ) {
@@ -59,14 +60,14 @@ clients::http::ClientWithMiddlewares MakeHttpClient(
     if (ShouldWaitForDynamicConfigs(component_config, context)) {
         core_component.WaitUntilConfigSet();
     }
-    return {
+    return std::make_unique<clients::http::ClientWithMiddlewares>(
         utils::impl::InternalTag{},
         core_component.GetHttpClientCore(utils::impl::InternalTag{}),
         FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context),
         component_config["allow-url-userinfo"].As<bool>(false)
             ? clients::http::ClientOptions::kAllowUserInfo
             : clients::http::ClientOptions::kNone
-    };
+    );
 }
 
 }  // namespace
@@ -76,7 +77,18 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
       http_client_(MakeHttpClient(component_config, context))
 {}
 
-clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
+HttpClient::HttpClient(
+    const ComponentConfig& config,
+    const ComponentContext& context,
+    std::unique_ptr<clients::http::Client> client
+)
+    : ComponentBase(config, context),
+      http_client_(std::move(client))
+{
+    UINVARIANT(http_client_, "HTTP client implementation is required");
+}
+
+clients::http::Client& HttpClient::GetHttpClient() { return *http_client_; }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
     return yaml_config::MergeSchemasFromResource<ComponentBase>("src/clients/http/component.yaml");

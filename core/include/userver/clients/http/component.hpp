@@ -7,6 +7,8 @@
 /// @file userver/clients/http/component.hpp
 /// @brief @copybrief components::HttpClient
 
+#include <memory>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/client_with_middlewares.hpp>
 #include <userver/clients/http/component_core.hpp>
@@ -17,10 +19,11 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that manages @ref clients::http::ClientWithMiddlewares.
+/// @brief Component exposing the configured @ref clients::http::Client.
 ///
-/// Reuses @ref clients::http::ClientCore from @ref components::HttpClientCore and applies
-/// sequence of @ref clients::http::MiddlewareBase to the request.
+/// The default implementation builds a @ref clients::http::ClientWithMiddlewares
+/// using @ref components::HttpClientCore. A derived component can supply its own
+/// client and static configuration schema while retaining the same lookup type.
 ///
 /// Returned references to @ref clients::http::Client live for a lifetime of the
 /// component and are safe for concurrent use.
@@ -41,7 +44,7 @@ namespace components {
 /// ## Static configuration example:
 ///
 /// @snippet core/src/components/common_component_list_test.cpp  Sample http client component config
-class HttpClient final : public ComponentBase {
+class HttpClient : public ComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of components::HttpClient component
@@ -57,8 +60,12 @@ public:
 
     static yaml_config::Schema GetStaticConfigSchema();
 
+protected:
+    /// Construct the component with an alternative client implementation.
+    HttpClient(const ComponentConfig&, const ComponentContext&, std::unique_ptr<clients::http::Client>);
+
 private:
-    clients::http::ClientWithMiddlewares http_client_;
+    std::unique_ptr<clients::http::Client> http_client_;
 };
 
 template <>
