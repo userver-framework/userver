@@ -756,6 +756,7 @@
   "cmake/UserverVenv.cmake":"taxi/uservices/userver/cmake/UserverVenv.cmake",
   "cmake/abseil_pr_1707.patch":"taxi/uservices/userver/cmake/abseil_pr_1707.patch",
   "cmake/abseil_pr_1739.patch":"taxi/uservices/userver/cmake/abseil_pr_1739.patch",
+  "cmake/boost_locale_pr_273.patch":"taxi/uservices/userver/cmake/boost_locale_pr_273.patch",
   "cmake/embedded_config.cmake":"taxi/uservices/userver/cmake/embedded_config.cmake",
   "cmake/get_cpm.cmake":"taxi/uservices/userver/cmake/get_cpm.cmake",
   "cmake/grpc_pr_36805.patch":"taxi/uservices/userver/cmake/grpc_pr_36805.patch",
