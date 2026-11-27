@@ -32,7 +32,11 @@
         {%- set ns = namespace(requires_newlines=false) %}
         {% for field in type.fields.values() if field.get_default() != '' %}
             {% set ns.requires_newlines = true %}
+            {% if field.has_array_default() %}
+            static const {{ field.schema.cpp_user_name() }}& {{ field.array_default_getter() }}();
+            {% else %}
             static constexpr auto kFieldDefault{{ field.cpp_field_name() }} = {{ field.get_default_raw() }};
+            {% endif %}
         {% endfor %}
         {% if ns.requires_newlines %}
 

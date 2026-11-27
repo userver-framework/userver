@@ -51,7 +51,7 @@
     {% for property_name, field in type.fields.items() %}
         .{{ field.cpp_field_name() }} = value["{{ property_name }}"].template As<
             {{ field.cpp_field_parse_type() }}
-        >({{ field.get_default() }}),
+        >({{ field.get_default(type.cpp_global_name()) }}),
     {% endfor %}
     {% if type.extra_type %}
         .extra={{ extra_variable }},
