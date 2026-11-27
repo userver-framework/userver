@@ -15,19 +15,15 @@ Changelog news also go to the [userver framework news channel](https://t.me/user
 
 ## Roadmap
 
-* 👨‍💻 gRPC simplification and functionality improvement.
-* gRPC: @ref scripts/docs/en/userver/deadline_propagation.md "Deadline propagation" support for absolute
-  deadline metadata (`x-request-deadline`) in addition to duration deadlines (`grpc-timeout`); see
-  @ref scripts/docs/en/userver/grpc/grpc.md.
-* Keep improving the @ref scripts/docs/en/userver/chaotic.md
+* 👨‍💻 Optimize compile times and reduce build dependencies.
+* 👨‍💻 Optimize CPU usage.
+* 👨‍💻 Improve safety.
+* 👨‍💻 WASM support.
 
 
 ## Changelog
 
-### Release v3.3 (unreleased)
-
-These notes cover changes on `develop` since v3.2 through GitHub commit
-[`64d56404`](https://github.com/userver-framework/userver/commit/64d564046a5eb8d4c443d6777ed1f8ab84dfa0ff) (November 26, 2026).
+### Release v3.3
 
 #### Cool features
 
@@ -92,6 +88,7 @@ These notes cover changes on `develop` since v3.2 through GitHub commit
 * Removed `meta::IsDetected`, `utils::void_t` and the `<userver/utils/void_t.hpp>` header.
   * Migration: Replace `IsDetected` with a C++20 `requires` expression. For `void_t`-based constraints, use a
     `requires` clause or `std::void_t` from `<type_traits>`. <!-- 395905b3 -->
+* @ref utils::OptionalRef does not support constructiion from `boost::optional` any more. <!-- f98ff9c9 -->
 
 **Databases and messaging**
 
