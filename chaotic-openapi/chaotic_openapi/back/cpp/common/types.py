@@ -176,6 +176,7 @@ class Operation:
 
     client_generate: bool = True
     handler_generate: bool = True
+    expected_status_codes: list[int] | None = None
 
     middlewares: list[middleware.Middleware] = dataclasses.field(default_factory=list)
 

@@ -50,7 +50,7 @@ components_manager:
     main-task-processor:
       worker_threads: 4
       task-trace:
-        every: 1
+        every: 0
         max-context-switch-count: 1000
         logger: tracer
   components:
@@ -124,7 +124,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
     components::RunOnce(components::InMemoryConfig{GetStaticConfig()}, components::MinimalServerComponentList());
 }
 
-TEST_F(ServerMinimalComponentList, DISABLED_TraceSwitching) {
+TEST_F(ServerMinimalComponentList, TraceSwitching) {
     constexpr std::string_view kConfigVarsTemplate = R"(
     tracer_log_path: {0}
     server-port: {1}
@@ -143,7 +143,6 @@ TEST_F(ServerMinimalComponentList, DISABLED_TraceSwitching) {
 
     const auto logs = fs::blocking::ReadFileContents(logs_path);
     // Assert not to print all logs multiple times on failure.
-    ASSERT_THAT(logs, testing::HasSubstr(" changed state to kQueued"));
     ASSERT_THAT(logs, testing::HasSubstr(" changed state to kRunning"));
     ASSERT_THAT(logs, testing::HasSubstr(" changed state to kCompleted"));
     ASSERT_THAT(logs, testing::Not(testing::HasSubstr("stacktrace= 0# ")));

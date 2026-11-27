@@ -12,5 +12,10 @@ properties:
         default: 10
     use_secure_connection:
         type: boolean
-        description: whether to use TLS for connections
+        description: |
+            whether to require TLS for connections; connections to servers
+            without TLS support fail. Server certificate verification follows
+            libmariadb defaults. Set to false to allow unencrypted connections.
+            Ignored in testsuite runs, where TLS is disabled via
+            testsuite-support's testsuite-mysql-is-tls-enabled option
         defaultDescription: true

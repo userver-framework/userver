@@ -2,6 +2,7 @@
 
 #include <iterator>
 #include <limits>
+#include <type_traits>
 
 #include <rapidjson/document.h>
 
@@ -55,7 +56,11 @@ Iterator<Traits, Direction>::Iterator(const Iterator<Traits, Direction>& other)
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::Iterator(Iterator<Traits, Direction>&& other) noexcept
-    : container_(std::move(other.container_)), type_(other.type_), pos_(other.pos_) {}
+    : container_(std::move(other.container_)), type_(other.type_), pos_(other.pos_) {
+    if constexpr (std::is_same_v<typename Traits::ValueType, Value>) {
+        current_ = std::move(other.current_);
+    }
+}
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator=(const Iterator<Traits, Direction>& other) {
@@ -75,7 +80,11 @@ Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator=(Iterator<Tra
     container_ = std::move(other.container_);
     type_ = other.type_;
     pos_ = other.pos_;
-    current_.reset();
+    if constexpr (std::is_same_v<typename Traits::ValueType, Value>) {
+        current_ = std::move(other.current_);
+    } else {
+        current_.reset();
+    }
     return *this;
 }
 
@@ -89,18 +98,23 @@ bool Iterator<Traits, Direction>::IsValid() const {
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction> Iterator<Traits, Direction>::operator++(int) {
-    UASSERT(IsValid());
-    current_.reset();
     const auto prev_pos = pos_;
-    pos_ += static_cast<int>(Direction);
+    ++*this;
     return Iterator<Traits, Direction>(ContainerType{container_}, type_, prev_pos);
 }
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator++() {
     UASSERT(IsValid());
-    current_.reset();
     pos_ += static_cast<int>(Direction);
+    // Only immutable Value iterators use this cache; ValueBuilder iterators must reset it.
+    if constexpr (std::is_same_v<typename Traits::ValueType, Value>) {
+        if (current_) {
+            current_->value_ptr_ = nullptr;
+        }
+    } else {
+        current_.reset();
+    }
     return *this;
 }
 
@@ -149,6 +163,12 @@ template <>
 void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue() const {
     UASSERT(IsValid());
     if (current_) {
+        if (!current_->value_ptr_) {
+            current_->value_ptr_ =
+                type_ == impl::Type::kArrayValue
+                    ? &container_.value_ptr_->Begin()[pos_]
+                    : &container_.value_ptr_->MemberBegin()[pos_].value;
+        }
         return;
     }
 
@@ -175,6 +195,9 @@ template <>
 void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue() const {
     UASSERT(IsValid());
     if (current_) {
+        if (!current_->value_ptr_) {
+            current_->value_ptr_ = &container_.value_ptr_->Begin()[pos_];
+        }
         return;
     }
 

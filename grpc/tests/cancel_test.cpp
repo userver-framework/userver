@@ -223,7 +223,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
         UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
     });
 
-    GetServer().StopServing(engine::Deadline::FromDuration(std::chrono::seconds(1)));
+    GetServer().StopServing(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
     complete_rpc.Get();
 }
 
@@ -352,7 +352,7 @@ UTEST_F(GrpcCancelError, CancelByError) {
 
     const auto get_metric = [this](std::string_view name, std::vector<utils::statistics::Label> labels = {}) {
         const auto stats = GetStatistics("grpc.client.total", labels);
-        return stats.SingleMetric(std::string{name}, labels).AsRate();
+        return stats.SingleMetric(std::string{name}).AsRate();
     };
 
     {

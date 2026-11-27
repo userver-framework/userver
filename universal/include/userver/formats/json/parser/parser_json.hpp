@@ -21,6 +21,8 @@ public:
     JsonValueParser(const JsonValueParser&) = delete;
     JsonValueParser(JsonValueParser&&) = delete;
 
+    void Reset() override;
+
     void Null() override;
     void Bool(bool) override;
     void Int64(int64_t) override;

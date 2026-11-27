@@ -1,6 +1,8 @@
 #pragma once
 
+#include <exception>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <userver/engine/future.hpp>
@@ -20,9 +22,13 @@ class ClientImpl;
 
 class TransactionImpl final : public Transaction {
 public:
+    using Transaction::Exec;
+
     explicit TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards = CheckShards::kSame);
 
     RequestExec Exec(const CommandControl& command_control) override;
+
+    RequestExec Exec(const CommandControl& command_control, ExecOptions options) override;
 
     class ResultPromise {
     public:
@@ -36,12 +42,15 @@ public:
             impl_->ProcessReply(std::move(reply_data), request_description);
         }
 
+        void SetException(std::exception_ptr exception) { impl_->SetException(std::move(exception)); }
+
     private:
         class ResultPromiseImplBase {
         public:
             virtual ~ResultPromiseImplBase() = default;
 
             virtual void ProcessReply(ReplyData&& reply_data, const std::string& request_description) = 0;
+            virtual void SetException(std::exception_ptr exception) = 0;
         };
 
         template <typename Result, typename ReplyType>
@@ -63,6 +72,8 @@ public:
                     promise_.set_exception(std::current_exception());
                 }
             }
+
+            void SetException(std::exception_ptr exception) override { promise_.set_exception(std::move(exception)); }
 
         private:
             engine::Promise<ReplyType> promise_;

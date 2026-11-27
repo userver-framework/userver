@@ -9,9 +9,6 @@
 #include <span>
 #include <type_traits>
 
-// TODO remove extra include
-#include <userver/utils/assert.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {

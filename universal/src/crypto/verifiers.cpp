@@ -47,7 +47,7 @@ std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature) {
 }
 
 int ToNativeCmsFlags(utils::Flags<CmsVerifier::Flags> flags) {
-    int native = 0;
+    int native = CMS_NOINTERN;
 
     using VerifyFlags = CmsVerifier::Flags;
     if (flags & VerifyFlags::kNoSignerCertVerify) {

@@ -112,6 +112,8 @@ public:
         parser_->Subscribe(*this);
     }
 
+    ~RefParser() noexcept;
+
     void Reset() { parser_->Reset(); }
 
     void Subscribe(formats::json::parser::Subscriber<utils::Box<ResultType>>& subscriber) { subscriber_ = &subscriber; }
@@ -124,6 +126,9 @@ private:
     std::unique_ptr<Subparser> parser_;
     formats::json::parser::Subscriber<utils::Box<ResultType>>* subscriber_{nullptr};
 };
+
+template <typename T, typename ResultType>
+RefParser<T, ResultType>::~RefParser() noexcept = default;
 
 template <typename T>
 class JsonDomParser final : private formats::json::parser::Subscriber<formats::json::Value> {

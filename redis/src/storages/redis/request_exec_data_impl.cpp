@@ -1,5 +1,10 @@
 #include "request_exec_data_impl.hpp"
 
+#include <exception>
+#include <utility>
+
+#include <userver/storages/redis/exception.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
@@ -18,6 +23,13 @@ void RequestExecDataImpl::Get(const std::string& request_description) {
     auto reply = GetReply();
     const auto& description = reply->GetRequestDescription(request_description);
     auto result = impl::ParseReply<ReplyData>(reply, description);
+    if (result.IsNil()) {
+        auto exception = std::make_exception_ptr(TransactionAbortedException("Transaction conditions did not match"));
+        for (auto& promise : result_promises_) {
+            promise.SetException(exception);
+        }
+        std::rethrow_exception(std::move(exception));
+    }
     result.ExpectArray(description);
     auto& array = result.GetArray();
     if (array.size() != result_promises_.size()) {

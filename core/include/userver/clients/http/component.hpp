@@ -25,6 +25,13 @@ namespace components {
 /// Returned references to @ref clients::http::Client live for a lifetime of the
 /// component and are safe for concurrent use.
 ///
+/// Embedded username/password in request and redirect URLs are rejected by
+/// default. Use clients::http::Request::http_auth_type for HTTP authentication.
+/// For integrations that require credentials in URLs, set
+/// `allow-url-userinfo: true` or enable
+/// clients::http::Request::SetUrlUserinfoAllowed on the request.
+/// Credentials in proxy URLs remain supported.
+///
 /// ## Static options of components::HttpClient :
 /// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/component.md
 ///

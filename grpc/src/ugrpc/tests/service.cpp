@@ -16,8 +16,7 @@ ServiceBase::ServiceBase()
 {}
 
 ServiceBase::ServiceBase(server::ServerConfig&& server_config)
-    : metrics_storage_(),
-      metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
+    : metrics_storage_(utils::statistics::MakeBoundMetricsStorage(statistics_storage_, std::nullopt)),
       config_storage_(dynamic_config::MakeDefaultStorage({})),
       unix_socket_path_(server_config.unix_socket_path),
       server_(std::in_place, std::move(server_config), statistics_storage_),
@@ -62,7 +61,7 @@ void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_set
         simple_client_middleware_pipeline_,
         *completion_queues,
         *client_statistics_storage_,
-        metrics_storage_,
+        *metrics_storage_,
         testsuite_,
         config_storage_.GetSource()
     );

@@ -42,8 +42,13 @@ SubscriptionToken SubscribeClientImpl::Subscribe(
     SubscriptionToken::OnMessageCb on_message_cb,
     const CommandControl& command_control
 ) {
-    return {std::make_unique<
-        SubscriptionTokenImpl>(*redis_client_, std::move(channels), std::move(on_message_cb), command_control)};
+    return {std::make_unique<SubscriptionTokenImpl>(
+        *redis_client_,
+        std::move(channels),
+        std::move(on_message_cb),
+        command_control,
+        ChannelSubscriptionMode::kSubscribe
+    )};
 }
 
 SubscriptionToken SubscribeClientImpl::Psubscribe(
@@ -60,8 +65,13 @@ SubscriptionToken SubscribeClientImpl::Ssubscribe(
     SubscriptionToken::OnMessageCb on_message_cb,
     const CommandControl& command_control
 ) {
-    return {std::make_unique<
-        SsubscriptionTokenImpl>(*redis_client_, std::move(channels), std::move(on_message_cb), command_control)};
+    return {std::make_unique<SubscriptionTokenImpl>(
+        *redis_client_,
+        std::move(channels),
+        std::move(on_message_cb),
+        command_control,
+        ChannelSubscriptionMode::kSsubscribe
+    )};
 }
 
 void SubscribeClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {

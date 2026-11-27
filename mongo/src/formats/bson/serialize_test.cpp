@@ -12,7 +12,11 @@
 #include <userver/formats/json.hpp>
 #include <userver/utest/utest.hpp>
 
+#include <formats/common/roundtrip_test.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, Roundtrip, formats::bson::ValueBuilder);
 
 namespace {
 

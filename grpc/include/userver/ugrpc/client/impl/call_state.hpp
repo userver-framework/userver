@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -18,7 +19,6 @@
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
-#include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/rpc_type.hpp>
 
@@ -49,6 +49,8 @@ public:
 
     ugrpc::impl::StubAny& GetStub() const noexcept;
 
+    grpc::GenericStub& GetGenericStub() const noexcept;
+
     void SetClientContext(std::unique_ptr<grpc::ClientContext> client_context) noexcept;
 
     const grpc::ClientContext& GetClientContext() const noexcept;
@@ -64,6 +66,8 @@ public:
     AuthType GetAuthType() const noexcept;
 
     RpcType GetRpcType() const noexcept;
+
+    const grpc::string& GetMethodPath() const noexcept;
 
     tracing::Span& GetSpan() noexcept;
 
@@ -84,6 +88,14 @@ public:
 
     void SetDeadlinePropagated() noexcept;
 
+    void SetRequestSizeBytes(std::optional<std::size_t> size) noexcept;
+
+    std::optional<std::size_t> GetRequestSizeBytes() const noexcept;
+
+    void SetResponseSizeBytes(std::optional<std::size_t> size) noexcept;
+
+    std::optional<std::size_t> GetResponseSizeBytes() const noexcept;
+
     void Commit() noexcept;
 
     grpc::ClientContext& GetClientContextCommitted();
@@ -93,15 +105,19 @@ public:
 private:
     MethodStubs method_stubs_;
 
-    std::unique_ptr<grpc::ClientContext> client_context_;
-
     std::string client_name_;
-
-    ugrpc::impl::MaybeOwnedString call_name_;
 
     RpcType rpc_type_{};
 
+    grpc::string method_path_;
+
+    std::unique_ptr<grpc::ClientContext> client_context_;
+
     bool is_deadline_propagated_{false};
+
+    std::optional<std::size_t> request_size_bytes_;
+
+    std::optional<std::size_t> response_size_bytes_;
 
     std::optional<tracing::InPlaceSpan> span_;
 
@@ -137,12 +153,8 @@ public:
 
     bool IsFinished() const noexcept;
 
-    // please read comments for 'invocation_' private member on why
-    // we use different invocation types
     void EmplaceAsyncMethodInvocation();
 
-    // please read comments for 'invocation_' private member on why
-    // we use different invocation types
     ugrpc::impl::AsyncMethodInvocation& GetAsyncMethodInvocation() noexcept;
 
     [[nodiscard]] std::unique_lock<engine::SingleWaitingTaskMutex> TakeMutexIfBidirectional() noexcept;
@@ -170,12 +182,6 @@ private:
 
     engine::SingleWaitingTaskMutex bidirectional_mutex_;
 
-    // We use FinishAsyncMethodInvocation that will correctly close all our
-    // tracing::Span objects and account everything in statistics.
-    // and AsyncMethodInvocation for every intermediate
-    // Read* call, because we don't need to close span and/or account stats
-    // when finishing Read* call.
-    //
     // This field must go after other fields to be destroyed first!
     std::optional<ugrpc::impl::AsyncMethodInvocation> invocation_;
 };

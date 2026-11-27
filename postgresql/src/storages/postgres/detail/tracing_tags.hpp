@@ -34,6 +34,8 @@ const std::string kLibpqSendQueryParams = "libpq_send_query_params";
 const std::string kLibpqSendPrepare = "libpq_send_prepare";
 /// libpq send describe prepared stage
 const std::string kLibpqSendDescribePrepared = "libpq_send_describe_prepared";
+/// libpq send deallocate stage
+const std::string kLibpqSendDeallocate = "libpq_send_deallocate";
 /// libpq send query prepared stage
 const std::string kLibpqSendQueryPrepared = "libpq_send_query_prepared";
 /// libpq-missing send bind portal

@@ -25,6 +25,8 @@ struct ClientConfig {
     std::chrono::milliseconds timeout{0};
     int retries{1};
     std::string config_url;
+    /// Requested in order if `config_url` fails with a network error, timeout or 5xx.
+    std::vector<std::string> fallback_config_urls;
     bool append_path_to_url{true};
     std::string stage_name;
     bool is_prestable{false};
@@ -77,7 +79,10 @@ private:
 
     std::string FetchConfigsValues(std::string_view body);
 
+    std::string FetchConfigsValuesFrom(const std::string& url, std::string_view body);
+
     const ClientConfig config_;
+    const std::vector<std::string> urls_;
     clients::http::Client& http_client_;
 };
 

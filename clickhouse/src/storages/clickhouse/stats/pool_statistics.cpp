@@ -1,9 +1,5 @@
 #include "pool_statistics.hpp"
 
-#include <userver/formats/json/value_builder.hpp>
-
-#include <userver/utils/statistics/percentile_format_json.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::stats {

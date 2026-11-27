@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 #include <rapidjson/allocators.h>
@@ -62,7 +63,9 @@ constexpr int64_t kMaxIntDouble{int64_t{1} << std::numeric_limits<double>::digit
 
 template <typename Int>
 bool IsNonOverflowingIntegral(const double val) {
-    if constexpr (sizeof(Int) >= sizeof(double)) {
+    if constexpr (std::is_unsigned_v<Int> && sizeof(Int) >= sizeof(double)) {
+        return val >= 0 && val < kMaxIntDouble && IsIntegral(val);
+    } else if constexpr (sizeof(Int) >= sizeof(double)) {
         return val > -kMaxIntDouble && val < kMaxIntDouble && IsIntegral(val);
     } else {
         return val >= std::numeric_limits<Int>::min() && val <= std::numeric_limits<Int>::max() && IsIntegral(val);
@@ -83,7 +86,7 @@ impl::Value MakeJsonStringViewValue(std::string_view view) { return impl::Value(
 }  // namespace impl
 
 Value::Value()
-    : holder_{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)},
+    : holder_{impl::VersionedValuePtr::SharedNull()},
       root_ptr_for_path_{holder_.Get()},
       value_ptr_{holder_.Get()}
 {}
@@ -503,7 +506,17 @@ const impl::Value& Value::GetNative() const {
 
 impl::Value& Value::GetNative() {
     EnsureNotMissing();
+    if (value_ptr_->IsNull() && holder_.IsSharedNull()) {
+        *this = Value{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)};
+    }
     return *value_ptr_;
+}
+
+impl::Value Value::MoveNativeOrCopy(::rapidjson::CrtAllocator& allocator) && {
+    if (IsUniqueReference()) {
+        return impl::Value{std::move(GetNative())};
+    }
+    return impl::Value{std::as_const(*this).GetNative(), allocator};
 }
 
 void Value::SetNative(impl::Value& value) {

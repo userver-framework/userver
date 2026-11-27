@@ -657,7 +657,7 @@ UTEST_P(PostgrePool, QueryCancel) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::milliseconds{10}},
+            pg::CommandControl{utest::kMaxTestWaitTime, std::chrono::milliseconds{10}},
             {},
             {}
         ),
@@ -670,7 +670,7 @@ UTEST_P(PostgrePool, QueryCancel) {
     WaitForPoolSize(pool, 1);
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
-        UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+        UASSERT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
         UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled) << "Fail statement on timeout";
         UEXPECT_THROW(trx.Commit(), pg::RuntimeError) << "Connection is left in a usable state";

@@ -80,6 +80,15 @@ On errors, exceptions from @ref userver/ugrpc/client/exceptions.hpp are thrown. 
 the entire stream interaction. You can catch exceptions for
 [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+If a unary request cannot be serialized, the call throws @ref ugrpc::client::RpcSerializationError before sending
+the request. Userver does not retry this local failure. Previously, the serializer's failure status was reported as
+@ref ugrpc::client::ErrorWithStatus, typically @ref ugrpc::client::InternalError. Code that handles serialization
+failures must catch @ref ugrpc::client::RpcSerializationError explicitly or use the common
+@ref ugrpc::client::RpcError base class.
+
+For unary RPCs, access @ref ugrpc::client::CallContext::GetClientContext and response metadata only after the call
+completes successfully or with @ref ugrpc::client::ErrorWithStatus.
+
 ### Working with metadata
 
 gRPC metadata allows you to send additional information along with requests and responses. Metadata consists of

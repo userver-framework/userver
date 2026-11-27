@@ -70,6 +70,30 @@ storages::redis::Client:
 Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete example.
 
 
+### Optimistic transactions
+
+Valkey 9.2 and newer support optimistic transactions with conditional `EXEC`.
+Pass @ref storages::redis::ExecOptions to @ref storages::redis::Transaction::Exec:
+
+@snippet redis/src/storages/redis/optimistic_transaction_test.cpp optimistic transaction sample
+
+See the [Valkey EXEC documentation](https://valkey.io/commands/exec/) for the supported conditions
+and the [Valkey transaction documentation](https://valkey.io/topics/transactions/) for their semantics.
+
+If a condition fails, `Exec().Get()` and the subcommand requests throw
+@ref storages::redis::TransactionAbortedException. Read the current values again before
+constructing a new transaction to retry. Server and transport errors retain their usual exception types.
+
+Conditional transactions run on the master. Keys in commands and conditions
+must belong to the same shard, and to the same hash slot in cluster mode.
+An empty @ref storages::redis::ExecOptions is equivalent to ordinary `Exec` and works with older
+servers. The conditions are consumed during `Exec`, so an initializer list can be passed directly.
+
+To mock conditional transactions, override @ref storages::redis::MockTransactionImplBase::Exec:
+return @ref storages::redis::MockTransactionImplBase::ExecResult::kExecuted to execute the mocked
+subrequests, or @ref storages::redis::MockTransactionImplBase::ExecResult::kAborted to report a
+transaction abort. The default mock rejects non-empty conditions so that they cannot be silently ignored.
+
 ### Timeouts
 
 Request timeout can be set for a single request via storages::redis::CommandControl
@@ -85,6 +109,27 @@ that executes the Redis request:
 @snippet redis/src/storages/redis/client_redistest.cpp Sample Redis Cancel request
 
 Valkey/Redis driver does not guarantee that the cancelled request was not executed by the server.
+
+### Retries and retry budgets
+
+The driver retries timeouts, I/O errors, closed connections, and the server errors
+`LOADING`, `MASTERDOWN`, `READONLY`, `CLUSTERDOWN`, and `TRYAGAIN` within the command's
+attempt limit and overall timeout. Other errors, including server `OOM`, local
+out-of-memory errors, protocol errors, invalid commands, and unknown server errors,
+are returned without retrying. `NOSCRIPT` is returned to the caller so that it can
+load the script before issuing another request.
+
+The dynamic option @ref REDIS_RETRY_BUDGET_SETTINGS controls a separate retry budget
+for each connection. It applies to reads, writes, requests with an explicit server
+ID, and `MOVED`/`ASK` redirects. The first attempt is allowed regardless of the
+remaining budget; further attempts require an available budget on the target
+connection. When a redirected request cannot be admitted, the original redirect
+error is returned to the caller.
+
+Successful replies replenish the budget, and retryable errors decrease it.
+Nonretryable errors and redirects leave the budget unchanged. Disabling the budget
+does not enable retries for nonretryable errors. Applications issuing manual
+retries must set @ref storages::redis::CommandControl::retry_counter.
 
 
 ### Valkey/Redis Cluster Autotopology

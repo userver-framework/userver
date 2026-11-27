@@ -85,6 +85,13 @@ $ curl 'http://127.0.0.1:1188/service/log-level/reset?logger=access' -X PUT
 {"init-log-level":"info","current-log-level":"info"}
 ```
 
+## Telemetry limits and sampling
+
+@ref USERVER_TELEMETRY_SETTINGS "USERVER_TELEMETRY_SETTINGS" configures logging and tracing together
+through @ref components::LoggingConfigurator.
+
+@snippet{trimleft} core/src/components/logging_configurator_test.cpp telemetry-settings
+
 ## Logging specific locations
 
 For a more granular logging userver provides ways

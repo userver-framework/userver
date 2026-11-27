@@ -10,16 +10,19 @@ namespace clients::http {
 ClientWithMiddlewares::ClientWithMiddlewares(
     utils::impl::InternalTag,
     std::shared_ptr<ClientCore> client_core,
-    std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares
+    std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares,
+    utils::Flags<ClientOptions> options
 )
     : client_core_(std::move(client_core)),
-      middlewares_(std::move(middlewares))
+      middlewares_(std::move(middlewares)),
+      options_(options)
 {}
 
 ClientWithMiddlewares::~ClientWithMiddlewares() { wts_.WaitForAllTokens(); }
 
 Request ClientWithMiddlewares::CreateRequest() {
     auto request = client_core_->CreateRequest();
+    request.SetUrlUserinfoAllowed(static_cast<bool>(options_ & ClientOptions::kAllowUserInfo));
     request.SetMiddlewaresList(middlewares_);
     request.SetWaitToken(utils::impl::InternalTag{}, wts_.GetToken());
     return request;

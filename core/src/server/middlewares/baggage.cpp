@@ -1,7 +1,5 @@
 #include <server/middlewares/baggage.hpp>
 
-#include <server/request/internal_request_context.hpp>
-
 #include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
 #include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
 
@@ -32,7 +30,7 @@ void SetUpBaggage(const http::HttpRequest& http_request, const dynamic_config::S
 Baggage::Baggage(const handlers::HttpHandlerBase&) {}
 
 void Baggage::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    SetUpBaggage(request, context.GetInternalContext().GetConfigSnapshot());
+    SetUpBaggage(request, context.GetInitialDynamicConfig());
 
     Next(request, context);
 }

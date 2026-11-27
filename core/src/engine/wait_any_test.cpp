@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <memory>
 
 #include <gtest/gtest.h>
 
@@ -48,9 +49,15 @@ public:
         }
     }
 
-    bool IsReady() const noexcept override { return ready_; }
+    void Poison() noexcept { poisoned_ = true; }
+
+    bool IsReady() const noexcept override {
+        EXPECT_FALSE(poisoned_) << "The removed awaitable must not be accessed";
+        return ready_;
+    }
 
     void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
+        EXPECT_FALSE(poisoned_) << "The removed awaitable must not be accessed";
         if (ready_) {
             return;
         }
@@ -60,6 +67,7 @@ public:
     }
 
     engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
+        EXPECT_FALSE(poisoned_) << "The removed awaitable must not be accessed";
         UINVARIANT(context_ == context, "Context does not match");
 
         if (awaiter_ == nullptr) {
@@ -71,6 +79,7 @@ public:
 
 private:
     bool ready_{false};
+    bool poisoned_{false};
     engine::impl::AwaiterPtr awaiter_;
     std::uintptr_t context_{0};
 };
@@ -755,6 +764,256 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexSlotMap) {
 
     EXPECT_EQ(sum, 1 + 2 + 3 + 4);
     /// [sample WaitAnyContext SlotMap]
+}
+
+UTEST(WaitAnyContext, RemovePendingSubscription) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle0 = wait_any.Append(std::uint64_t{0}, awaitable0);
+    wait_any.Append(std::uint64_t{1}, awaitable1);
+
+    wait_any.Remove(handle0);
+    EXPECT_EQ(wait_any.GetSize(), 1);
+
+    awaitable0.SetReady();
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable1.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 1);
+
+    EXPECT_EQ(wait_any.GetSize(), 0);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
+}
+
+UTEST(WaitAnyContext, RemoveSubscribed) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle0 = wait_any.Append(std::uint64_t{0}, awaitable0);
+    wait_any.Append(std::uint64_t{1}, awaitable1);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    wait_any.Remove(handle0);
+    EXPECT_EQ(wait_any.GetSize(), 1);
+    awaitable0.Poison();
+
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable1.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 1);
+
+    EXPECT_EQ(wait_any.GetSize(), 0);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
+}
+
+UTEST(WaitAnyContext, RemoveNotified) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle0 = wait_any.Append(std::uint64_t{0}, awaitable0);
+    wait_any.Append(std::uint64_t{1}, awaitable1);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    // The notification is delivered to the context, but is not reported yet.
+    awaitable0.SetReady();
+    wait_any.Remove(handle0);
+    EXPECT_EQ(wait_any.GetSize(), 1);
+    awaitable0.Poison();
+
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable1.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 1);
+
+    EXPECT_EQ(wait_any.GetSize(), 0);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
+}
+
+UTEST(WaitAnyContext, RemoveNotifiedThenDestroyContext) {
+    TestAwaitable awaitable;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle = wait_any.Append(std::uint64_t{0}, awaitable);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable.SetReady();
+    wait_any.Remove(handle);
+    awaitable.Poison();
+
+    EXPECT_EQ(wait_any.GetSize(), 0);
+}
+
+UTEST(WaitAnyContext, WaitAfterRemoveNotified) {
+    TestAwaitable awaitable;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle = wait_any.Append(std::uint64_t{0}, awaitable);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable.SetReady();
+    wait_any.Remove(handle);
+    awaitable.Poison();
+
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
+}
+
+UTEST(WaitAnyContext, RemoveEmpty) {
+    TestAwaitable awaitable;
+
+    engine::WaitAnyContext wait_any;
+    wait_any.Append(std::uint64_t{0}, awaitable);
+    wait_any.Remove(engine::WaitAnyContext::Handle{});
+    EXPECT_EQ(wait_any.GetSize(), 1);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+    wait_any.Remove(engine::WaitAnyContext::Handle{});
+    EXPECT_EQ(wait_any.GetSize(), 1);
+
+    awaitable.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 0);
+    EXPECT_EQ(wait_any.GetSize(), 0);
+}
+
+UTEST(WaitAnyContext, RemoveOneOfDuplicateIds) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    wait_any.Append(std::uint64_t{7}, awaitable0);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    const auto handle1 = wait_any.Append(std::uint64_t{7}, awaitable1);
+    wait_any.Remove(handle1);
+    EXPECT_EQ(wait_any.GetSize(), 1);
+
+    awaitable1.SetReady();
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable0.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 7);
+    EXPECT_EQ(wait_any.GetSize(), 0);
+}
+
+UTEST(WaitAnyContext, RemoveAfterMove) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle0 = wait_any.Append(std::uint64_t{0}, awaitable0);
+    wait_any.Append(std::uint64_t{1}, awaitable1);
+
+    engine::WaitAnyContext moved_wait_any{std::move(wait_any)};
+    moved_wait_any.Remove(handle0);
+    EXPECT_EQ(moved_wait_any.GetSize(), 1);
+
+    awaitable0.SetReady();
+    awaitable1.SetReady();
+    auto index = moved_wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 1);
+}
+
+UTEST_MT(WaitAnyContext, RemoveConcurrentWithNotification, 4) {
+    constexpr std::size_t kIterations = 2000;
+    using WaitResult = utils::expected<std::uint64_t, engine::WaitAnyError>;
+
+    engine::WaitAnyContext wait_any;
+    for (std::size_t i = 0; i < kIterations; ++i) {
+        const std::uint64_t removed_id = 2 * i;
+        const std::uint64_t waited_id = 2 * i + 1;
+        auto removed_task = engine::AsyncNoTracing([] { engine::Yield(); });
+        auto waited_task = engine::AsyncNoTracing([] { engine::Yield(); });
+        const auto removed_handle = wait_any.Append(removed_id, removed_task);
+        wait_any.Append(waited_id, waited_task);
+
+        // Force subscriptions; some task may be already finished.
+        const auto first = wait_any.WaitUntil(engine::Deadline::Passed());
+        ASSERT_TRUE(
+            first == utils::unexpected(engine::WaitAnyError::kTimeout) || first == WaitResult{removed_id} ||
+            first == WaitResult{waited_id}
+        );
+
+        if (first != WaitResult{removed_id}) {
+            wait_any.Remove(removed_handle);
+        }
+        // Destroy the removed task while the context is alive.
+        removed_task = {};
+
+        if (first != WaitResult{waited_id}) {
+            // The waited task has not been reported yet and was not removed, so it must be reported now.
+            const auto index = wait_any.Wait();
+            ASSERT_EQ(index, WaitResult{waited_id});
+        }
+        ASSERT_EQ(wait_any.GetSize(), 0);
+    }
+}
+
+UTEST_DEATH(WaitAnyContextDeathTest, RemoveRemoved) {
+    TestAwaitable awaitable;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle = wait_any.Append(std::uint64_t{0}, awaitable);
+    wait_any.Remove(handle);
+
+    UEXPECT_DEATH(wait_any.Remove(handle), "");
+}
+
+UTEST_DEATH(WaitAnyContextDeathTest, RemoveRemovedWhileNotified) {
+    TestAwaitable awaitable;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle = wait_any.Append(std::uint64_t{0}, awaitable);
+
+    // Force subscriptions.
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
+
+    awaitable.SetReady();
+    wait_any.Remove(handle);
+    awaitable.Poison();
+
+    UEXPECT_DEATH(wait_any.Remove(handle), "");
+}
+
+UTEST_DEATH(WaitAnyContextDeathTest, RemoveReported) {
+    TestAwaitable awaitable0;
+    TestAwaitable awaitable1;
+
+    engine::WaitAnyContext wait_any;
+    const auto handle0 = wait_any.Append(std::uint64_t{0}, awaitable0);
+    awaitable0.SetReady();
+    auto index = wait_any.Wait();
+    ASSERT_TRUE(index.has_value());
+    EXPECT_EQ(*index, 0);
+
+    // The storage of the reported awaitable is reused by the new one.
+    wait_any.Append(std::uint64_t{1}, awaitable1);
+
+    UEXPECT_DEATH(wait_any.Remove(handle0), "");
 }
 
 USERVER_NAMESPACE_END

@@ -170,7 +170,7 @@ void ClusterSubscriptionStorage::SubscribeImpl(
     SubscriptionId id
 ) {
     storage_impl_.AssertInEvThread();
-    const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/false);
+    const ChannelName channel_name{.channel = channel, .pattern = false, .sharded = false};
     SubscribeImplImpl<ChannelInfo>(storage_impl_, storage_impl_.callback_map, channel_name, std::move(cb), control, id);
 }
 
@@ -181,7 +181,7 @@ void ClusterSubscriptionStorage::SsubscribeImpl(
     SubscriptionId id
 ) {
     storage_impl_.AssertInEvThread();
-    const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/true);
+    const ChannelName channel_name{.channel = channel, .pattern = false, .sharded = true};
     SubscribeImplImpl<
         ChannelInfo>(storage_impl_, storage_impl_.sharded_callback_map, channel_name, std::move(cb), control, id);
 }
@@ -193,7 +193,7 @@ void ClusterSubscriptionStorage::PsubscribeImpl(
     SubscriptionId id
 ) {
     storage_impl_.AssertInEvThread();
-    const ChannelName channel_name(pattern, /*pattern=*/true, /*sharded=*/false);
+    const ChannelName channel_name{.channel = pattern, .pattern = true, .sharded = false};
     SubscribeImplImpl<
         PChannelInfo>(storage_impl_, storage_impl_.pattern_callback_map, channel_name, std::move(cb), control, id);
 }

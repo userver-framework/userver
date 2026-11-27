@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <climits>
 #include <cstddef>
 #include <cstdlib>
@@ -24,6 +25,7 @@
 #include <userver/compiler/thread_local.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
+#include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/multicast_membership.hpp>
 #include <userver/engine/io/sockaddr.hpp>
@@ -32,6 +34,9 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
+
+#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,6 +46,23 @@ namespace io = engine::io;
 using Deadline = engine::Deadline;
 using TcpListener = engine::io::tests::TcpListener;
 using UdpListener = engine::io::tests::UdpListener;
+
+std::pair<io::Socket, io::Socket> MakeUnixSocketPair() {
+    // TCP ACKs can free send-buffer space even when the peer application does not read.
+    // Unix sockets keep backpressure stable until the peer reads.
+    std::array<int, 2> socket_fds{io::kInvalidFd, io::kInvalidFd};
+    utils::CheckSyscallCustomException<
+        io::IoSystemError>(::socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds.data()), "creating a Unix socket pair");
+
+    utils::FastScopeGuard first_guard([fd = socket_fds[0]]() noexcept { ::close(fd); });
+    utils::FastScopeGuard second_guard([fd = socket_fds[1]]() noexcept { ::close(fd); });
+
+    io::Socket first{socket_fds[0]};
+    first_guard.Release();
+    io::Socket second{socket_fds[1]};
+    second_guard.Release();
+    return {std::move(first), std::move(second)};
+}
 
 }  // namespace
 
@@ -345,29 +367,28 @@ UTEST(Socket, WaitAnyRead) {
 }
 
 UTEST(Socket, WaitAnyWrite) {
+    constexpr auto kNotWritableWait = std::chrono::milliseconds{100};
+    constexpr char kByte = 'x';
     const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
-    TcpListener listener;
-    auto sockets = listener.MakeSocketPair(deadline);
+    auto [sender, receiver] = MakeUnixSocketPair();
 
-    // May write
-    auto num = engine::WaitAnyFor(std::chrono::seconds(1), sockets.second.GetWritableBase());
-    EXPECT_EQ(num, 0);
+    EXPECT_EQ(engine::WaitAnyUntil(deadline, sender.GetWritableBase()), 0);
 
-    char buf[] = {1};
-    try {
-        while (true) {
-            auto ret = sockets.first.WriteAll(buf, sizeof(buf), engine::Deadline::Passed());
-            EXPECT_EQ(ret, 1);
-        }
-    } catch (const engine::io::IoTimeout&) {
+    std::size_t bytes_sent = 0;
+    while (const auto sent = sender.SendNoblock(&kByte, sizeof(kByte))) {
+        ASSERT_EQ(*sent, sizeof(kByte));
+        bytes_sent += *sent;
+        ASSERT_FALSE(deadline.IsReached());
     }
+    ASSERT_GT(bytes_sent, 0);
 
-    // May not write
-    num = engine::WaitAnyFor(std::chrono::milliseconds(100), sockets.first.GetWritableBase());
-    EXPECT_EQ(num, std::nullopt);
+    EXPECT_EQ(engine::WaitAnyFor(kNotWritableWait, sender.GetWritableBase()), std::nullopt);
+    EXPECT_EQ(engine::WaitAnyFor(kNotWritableWait, sender.GetWritableBase()), std::nullopt);
 
-    num = engine::WaitAnyFor(std::chrono::milliseconds(100), sockets.first.GetWritableBase());
-    EXPECT_EQ(num, std::nullopt);
+    std::string received(bytes_sent, '\0');
+    ASSERT_EQ(receiver.ReadAll(received.data(), received.size(), deadline), bytes_sent);
+    EXPECT_EQ(received, std::string(bytes_sent, kByte));
+    EXPECT_EQ(engine::WaitAnyUntil(deadline, sender.GetWritableBase()), 0);
 }
 
 UTEST(Socket, SendAllVectorHeap) {
@@ -445,10 +466,9 @@ UTEST(Socket, SendAllLargeIoVec) {
 }
 
 UTEST(Socket, Cancel) {
+    constexpr std::size_t kWriteBufferSizeMultiplier = 16;
     const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-    TcpListener listener;
-    auto socket_pair = listener.MakeSocketPair(test_deadline);
+    auto socket_pair = MakeUnixSocketPair();
 
     engine::SingleConsumerEvent has_started_event;
     auto check_is_cancelling = [&](const char* io_op_text, auto io_op) {
@@ -471,7 +491,7 @@ UTEST(Socket, Cancel) {
         return ::testing::AssertionFailure() << "io operation " << io_op_text << " did not throw IoCancelled";
     };
 
-    std::vector<char> buf(socket_pair.first.GetOption(SOL_SOCKET, SO_SNDBUF) * 16);
+    std::vector<char> buf(socket_pair.first.GetOption(SOL_SOCKET, SO_SNDBUF) * kWriteBufferSizeMultiplier);
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
         [[maybe_unused]] auto received = socket_pair.first.RecvSome(buf.data(), 1, test_deadline);
     });
@@ -481,6 +501,7 @@ UTEST(Socket, Cancel) {
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
         [[maybe_unused]] auto sent = socket_pair.first.SendAll(buf.data(), buf.size(), test_deadline);
     });
+    TcpListener listener;
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
         [[maybe_unused]] auto socket = listener.socket.Accept(test_deadline);
     });

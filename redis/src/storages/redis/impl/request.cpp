@@ -92,7 +92,7 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
 
     auto command = PrepareCommand(
         std::move(args),
-        [state_ptr = std::move(state_ptr)](const CommandPtr&, ReplyPtr reply) mutable {
+        [state_ptr = std::move(state_ptr)](const CommandPtr& command, ReplyPtr reply) mutable {
             if (!state_ptr) {
                 LOG_LIMITED_WARNING()
                     << "redis::Command keeps running after "
@@ -102,11 +102,10 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
 
             state_ptr->SetExecuted();
 
-            if (state_ptr->GetRepliesToSkip() != 0) {
-                state_ptr->SetRepliesToSkip(state_ptr->GetRepliesToSkip() - 1);
-                if (reply->data.IsStatus()) {
-                    return;
-                }
+            if (state_ptr->GetRepliesToSkip() != 0 && command->invoke_counter <= state_ptr->GetRepliesToSkip() &&
+                reply->data.IsStatus())
+            {
+                return;
             }
 
             reply->FillSpanTags(state_ptr->Span());

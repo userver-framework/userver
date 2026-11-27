@@ -139,11 +139,11 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config, std::shared_ptr<impl::T
       trace_plugin_(config.worker_threads)
 {
     utils::impl::FinishStaticRegistration();
+    std::latch workers_left{static_cast<std::ptrdiff_t>(config_.worker_threads)};
     try {
         LOG_INFO()
             << "creating task_processor " << Name() << " "
             << "worker_threads=" << config_.worker_threads << " thread_name=" << config_.thread_name;
-        std::latch workers_left{static_cast<std::ptrdiff_t>(config_.worker_threads)};
         workers_.reserve(config_.worker_threads);
         for (std::size_t i = 0; i < config_.worker_threads; ++i) {
             workers_.emplace_back([this, i, &workers_left] {

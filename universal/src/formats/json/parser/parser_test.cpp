@@ -1,6 +1,11 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <initializer_list>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/json/parser/parser.hpp>
@@ -279,6 +284,20 @@ TEST(JsonStringParser, ArrayInt) {
     EXPECT_EQ(result, (std::vector<int64_t>{1, 2, 3}));
 }
 
+TEST(JsonStringParser, ArrayNullableItems) {
+    using Item = std::optional<std::string>;
+    using ItemParser = fjp::NullableItemParser<Item, fjp::StringParser>;
+
+    fjp::StringParser string_parser;
+    ItemParser item_parser(string_parser);
+    fjp::ArrayParser<Item, ItemParser> parser(item_parser);
+
+    EXPECT_EQ(
+        fjp::impl::ParseSingle(parser, R"(["id", null, null, "next"])"),
+        (std::vector<Item>{"id", std::nullopt, std::nullopt, "next"})
+    );
+}
+
 TEST(JsonStringParser, ArrayArrayInt) {
     const std::string input("[[1],[],[2,3,4]]");
     std::vector<std::vector<int64_t>> result{};
@@ -405,6 +424,15 @@ TEST(JsonStringParser, JsonValue) {
         auto value_sax = fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input);
         EXPECT_EQ(value_str, value_sax)
             << "input: " + input + ", str='" + ToString(value_str) + "', sax='" + ToString(value_sax) + "'";
+    }
+}
+
+TEST(JsonStringParser, JsonValueInvalid) {
+    fjp::JsonValueParser parser;
+
+    for (const std::string_view input : {"{", "[", R"({"key":})", R"({"key":[1,})"}) {
+        EXPECT_THROW((fjp::impl::ParseSingle(parser, input)), fjp::ParseError);
+        EXPECT_EQ(fjp::impl::ParseSingle(parser, R"({"key":1})"), formats::json::FromString(R"({"key":1})"));
     }
 }
 

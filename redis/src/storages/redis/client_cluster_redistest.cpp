@@ -319,6 +319,62 @@ UTEST_F(RedisClusterClientTest, TransactionMsetexCrossSlot) {
     EXPECT_FALSE(client->Get(MakeKey(idx[1]), kMasterCC).Get().has_value());
 }
 
+UTEST_F(RedisClusterClientTest, ConditionalTransactionExecAndCrossSlot) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    constexpr Version kMinimumVersion{9, 2, 0};
+    if (!IsValkey() || !CheckValkeyVersion(kMinimumVersion)) {
+        GTEST_SKIP() << "Conditional EXEC requires Valkey 9.2 or newer";
+    }
+    auto client = GetClient();
+    const std::string version_key = "{transaction}version";
+    const std::string result_key = "{transaction}result";
+    client->Set(version_key, "old", kDefaultCc).Get();
+    auto transaction = client->Multi();
+    auto set = transaction->Set(result_key, "written");
+    transaction->Exec(kDefaultCc, ExecOptions{ExecCondition::IfEq(version_key, "old")}).Get();
+    set.Get();
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+
+    auto rejected = client->Multi();
+    auto rejected_set = rejected->Set(result_key, "unexpected");
+    UEXPECT_THROW(
+        rejected->Exec(kDefaultCc, ExecOptions{ExecCondition::IfEq(version_key, "new")}).Get(),
+        storages::redis::TransactionAbortedException
+    );
+    UEXPECT_THROW(rejected_set.Get(), storages::redis::TransactionAbortedException);
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+
+    auto condition_index = 0;
+    while (client->ShardByKey(MakeKey(condition_index)) != client->ShardByKey(result_key)) {
+        ++condition_index;
+    }
+    auto cross_slot = client->Multi();
+    auto cross_slot_set = cross_slot->Set(result_key, "unexpected");
+    UEXPECT_THROW(
+        cross_slot->Exec(kDefaultCc, ExecOptions{ExecCondition::Nx(MakeKey(condition_index))}).Get(),
+        storages::redis::RequestFailedException
+    );
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+}
+
+UTEST_F(RedisClusterClientTest, ConditionalTransactionRejectsDifferentShard) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    auto client = GetClient();
+    const auto key = MakeKey(0);
+    auto condition_index = 1;
+    while (client->ShardByKey(MakeKey(condition_index)) == client->ShardByKey(key)) {
+        ++condition_index;
+    }
+    auto transaction = client->Multi();
+    auto get = transaction->Get(key);
+    UEXPECT_THROW(
+        (void)transaction->Exec(kDefaultCc, ExecOptions{ExecCondition::Xx(MakeKey(condition_index))}),
+        storages::redis::InvalidArgumentException
+    );
+}
+
 UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
     auto client = GetClient();
     auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
@@ -560,19 +616,37 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
     const std::string channel2 = "channel02";
     const std::string msg1 = "test message1";
     const std::string msg2 = "test message2";
+    const std::string readiness_probe = "subscription readiness probe";
 
+    engine::SingleConsumerEvent subscribed1;
+    engine::SingleConsumerEvent subscribed2;
     engine::SingleConsumerEvent event1;
     engine::SingleConsumerEvent event2;
     size_t msg_counter = 0;
     const auto waiting_time = std::chrono::milliseconds(50);
 
+    const auto wait_for_subscription = [&](const std::string& channel, engine::SingleConsumerEvent& subscribed) {
+        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        while (!deadline.IsReached()) {
+            client->Publish(channel, readiness_probe, kDefaultCc);
+            if (subscribed.WaitForEventFor(waiting_time)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     auto token1 = subscribe_client->Subscribe(channel1, [&](const std::string& channel, const std::string& message) {
         EXPECT_EQ(channel, channel1);
+        if (message == readiness_probe) {
+            subscribed1.Send();
+            return;
+        }
         EXPECT_EQ(message, msg1);
         ++msg_counter;
         event1.Send();
     });
-    engine::SleepFor(waiting_time);
+    ASSERT_TRUE(wait_for_subscription(channel1, subscribed1));
 
     client->Publish(channel1, msg1, kDefaultCc);
     ASSERT_TRUE(event1.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -580,11 +654,15 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
 
     auto token2 = subscribe_client->Subscribe(channel2, [&](const std::string& channel, const std::string& message) {
         EXPECT_EQ(channel, channel2);
+        if (message == readiness_probe) {
+            subscribed2.Send();
+            return;
+        }
         EXPECT_EQ(message, msg2);
         ++msg_counter;
         event2.Send();
     });
-    engine::SleepFor(waiting_time);
+    ASSERT_TRUE(wait_for_subscription(channel2, subscribed2));
 
     client->Publish(channel2, msg2, kDefaultCc);
     ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));

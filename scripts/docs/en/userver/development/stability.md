@@ -69,5 +69,5 @@ There are tiers to differentiate technologies:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/libraries/multi_index_lru.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/multi_index_lru.md | @ref scripts/docs/en/userver/development/code_review.md ⇨
 @htmlonly </div> @endhtmlonly

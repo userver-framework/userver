@@ -39,6 +39,10 @@ OneOf Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<OneOf>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<OneOf>);
+
 OneOf FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<OneOf>);

@@ -220,6 +220,40 @@ TEST(SaxParser, ObjectUnknownIgnore)
     UEXPECT_THROW((formats::json::parser::ParseToType<X, Parser>(input)), formats::json::parser::ParseError);
 }
 
+using DefaultedDataObject = chaotic::Object<
+    X,
+    chaotic::UnknownFields::Ignore,
+    chaotic::Field<X, chaotic::Required<int>, &X::field, kField>,
+    chaotic::Field<X, chaotic::Defaulted<std::string, std::string_view, kDataDefault>, &X::data, kData>,
+    chaotic::Field<X, chaotic::Optional<bool>, &X::ok, kOk>>;
+
+TEST(SaxParser, ObjectDefaultedPresent)
+{
+    using Parser = sax::Parser<DefaultedDataObject>;
+
+    auto input = R"({"field": 12, "data": "bar"})";
+    auto result = formats::json::parser::ParseToType<X, Parser>(input);
+    EXPECT_EQ(result, (X{12, {}, "bar", {}}));
+
+    input = R"({"data": "", "field": 13})";
+    result = formats::json::parser::ParseToType<X, Parser>(input);
+    EXPECT_EQ(result, (X{13, {}, "", {}}));
+}
+
+TEST(SaxParser, ArrayOfObjectsDefaultedPresentAndAbsent)
+{
+    using Parser = sax::Parser<chaotic::Array<DefaultedDataObject, std::vector<X>>>;
+
+    auto input = R"([{"field": 1, "data": "bar"}, {"field": 2}, {"field": 3, "data": "baz"}])";
+    auto result = formats::json::parser::ParseToType<std::vector<X>, Parser>(input);
+    const std::vector<X> expected{
+        X{1, {}, "bar", {}},
+        X{2, {}, "foo", {}},
+        X{3, {}, "baz", {}},
+    };
+    EXPECT_EQ(result, expected);
+}
+
 TEST(SaxParser, ObjectUnknownStore)
 {
     using Parser = sax::Parser<chaotic::Object<

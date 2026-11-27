@@ -21,7 +21,7 @@ import pytest
 import yaml
 
 import pytest_userver.config
-import testsuite.fixture_markers
+from pytest_userver import fixture_markers
 
 # flake8: noqa E266
 ## Prefer @ref pytest_userver.config.patch "pytest_userver.config.patch" to
@@ -415,7 +415,7 @@ def _service_config_hooked(
     config_vars = copy.deepcopy(_original_service_config.config_vars)
 
     plugin_hooks = pytestconfig.pluginmanager.get_plugin('userver_config').userver_config_hooks
-    mark_hooks = testsuite.fixture_markers.get_infos(request, pytest_userver.config._ConfigPatchInfo).keys()
+    mark_hooks = fixture_markers.get_infos(request, pytest_userver.config._ConfigPatchInfo).keys()
     local_hooks = (daemon_scoped_mark or {}).get('config_hooks', ())
 
     for hook in itertools.chain(plugin_hooks, mark_hooks, local_hooks):
@@ -487,7 +487,7 @@ def userver_config_substitutions(_service_config_substitution_vars) -> ServiceCo
 
 
 @pytest.fixture(scope='session')
-def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch:
+def userver_config_http_server(service_port, monitor_port, choose_free_port) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `server.listener.port` to listen on
@@ -507,6 +507,12 @@ def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch
                     ports = listener.get('ports')
                     if ports and 'port' in ports[0]:
                         ports[0]['port'] = new_port
+                        for entry in ports[1:]:
+                            if 'port' in entry and 'unix-socket' not in entry and 'listen-socket-fd' not in entry:
+                                port_hint = entry['port']
+                                if isinstance(port_hint, str) and port_hint.startswith('$'):
+                                    port_hint = config_vars.get(port_hint[1:]) or entry.get('port#fallback')
+                                entry['port'] = choose_free_port(port_hint)
                     else:
                         listener['port'] = new_port
 
@@ -700,6 +706,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatc
         testsuite_support = components['testsuite-support']
         testsuite_support['testsuite-increased-timeout'] = '30s'
         testsuite_support['testsuite-grpc-is-tls-enabled'] = False
+        testsuite_support['testsuite-mysql-is-tls-enabled'] = False
         _set_postgresql_options(testsuite_support)
         _set_redis_timeout(testsuite_support)
         service_runner = pytestconfig.option.service_runner_mode

@@ -4,7 +4,6 @@
 /// @brief @copybrief engine::subprocess::ChildProcess
 
 #include <chrono>
-#include <memory>
 
 #include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>

@@ -39,3 +39,15 @@ def service_env(redis_cluster_proxy_ports, redis_cluster_topology_session):
     }
 
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
+
+
+@pytest.fixture(scope='session')
+def redis_failover_timeouts():
+    def patch_config(config, _config_vars):
+        testsuite_support = config['components_manager']['components']['testsuite-support']
+        # Use driver timeouts so one command cannot exhaust the failover polling deadline.
+        disabled_timeout_override = '0s'
+        testsuite_support['testsuite-redis-timeout-single'] = disabled_timeout_override
+        testsuite_support['testsuite-redis-timeout-all'] = disabled_timeout_override
+
+    return patch_config

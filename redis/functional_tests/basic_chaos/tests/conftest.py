@@ -23,9 +23,15 @@ def _master_gate_settings(get_free_port) -> tuple[str, int]:
     return ('localhost', get_free_port())
 
 
+@pytest.fixture(name='pubsub_gate_settings', scope='session')
+def _pubsub_gate_settings(get_free_port) -> tuple[str, int]:
+    return ('localhost', get_free_port())
+
+
 @pytest.fixture(scope='session')
 def service_env(
     sentinel_gate_settings,
+    pubsub_gate_settings,
     _redis_service_settings: service.ServiceSettings,
 ):
     secdist_config = {
@@ -40,9 +46,48 @@ def service_env(
                 ],
                 'shards': [{'name': 'test_master0'}],
             },
+            'pubsub': {
+                'password': '',
+                'sentinels': [
+                    {
+                        'host': pubsub_gate_settings[0],
+                        'port': pubsub_gate_settings[1],
+                    },
+                ],
+                'shards': [{'name': 'test_master0'}],
+            },
         },
     }
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
+
+
+@pytest.fixture(scope='session')
+async def _pubsub_gate(
+    pubsub_gate_settings,
+    _redis_service_settings: service.ServiceSettings,
+):
+    gate_config = chaos.GateRoute(
+        name='pubsub proxy',
+        host_for_client=pubsub_gate_settings[0],
+        port_for_client=pubsub_gate_settings[1],
+        host_to_server=_redis_service_settings.host,
+        port_to_server=_redis_service_settings.master_ports[0],
+    )
+    async with chaos.TcpGate(gate_config) as proxy:
+        await proxy.to_client_pass()
+        await proxy.to_server_pass()
+        yield proxy
+
+
+@pytest.fixture
+def extra_client_deps(_pubsub_gate):
+    pass
+
+
+@pytest.fixture(name='pubsub_gate')
+async def _pubsub_gate_ready(service_client, _pubsub_gate):
+    await _pubsub_gate.wait_for_connections(timeout=5.0)
+    return _pubsub_gate
 
 
 @pytest.fixture(scope='session')

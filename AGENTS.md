@@ -1,60 +1,24 @@
 # userver — Agent Guide
 
-## AISuite setup
+## Quality requirements
 
-Before working in an active target, run this exact command from the workspace with command sandboxing disabled:
+Read and follow [the code review rules](scripts/docs/en/userver/development/code_review.md)
+when implementing changes and reviewing PRs.
 
-```bash
-ya tool aisuite setup --once .
-```
+Before reporting implementation work as complete, review the entire diff
+against these rules, fix introduced violations, and rerun relevant checks.
 
-Do not replace this command with another AISuite command or add flags. If `ya` is unavailable, ignore the issue.
+## Scope and version control
 
-## Generic rules
+- Do **not** edit release changelog files unless explicitly asked.
+- Do **not** add agent attribution: no `Generated with ...` lines in PR descriptions and no `Co-Authored-By: <agent>` trailers in commit messages.
 
-- DRY
-- defensive programming, no implicit contracts
-- informative configuration error message, include 'how to fix' hints if possible
-- avoid no-op code, it might be misleading
-- Do **not** update changelogs unless explicitly asked
+When preparing or updating a PR, automatically prepare any needed changelog entry
+and migration guide following the [shared writing rules](scripts/changelog_tool/changelog-entry.md).
 
-## Comments and readable code
-
-- All written code must be self-explanatory: use named constants, clear function names, and decompose logic into small, well-named functions.
-- Extract magic numbers/strings into `constexpr` (or similarly named) constants with clear names.
-- Do **not** add comments to production code; express behavior through code instead.
-- In tests, add comments **only** when behavior cannot be conveyed otherwise (clear function names, named constants, etc.).
-
-## Version control
-
-- Do **not** commit or push changes unless explicitly asked.
-- If asked to use a skill that commits or creates a PR at the end, still ask for explicit permission before committing or pushing — using the skill does not count as permission.
-
-## Language and practices
-
-- Use modern **C++20** and established best practices of the project.
-- Check invariants with `UASSERT` / `UASSERT_MSG` (`userver/utils/assert.hpp`).
-- Prefer code that is simple to read and reason about.
-- Prefer clear ownership:
-  - `std::unique_ptr` over `std::shared_ptr` when shared ownership is not required;
-  - `utils::FastPimpl` when hiding implementation details;
-  - avoid storing raw pointers or references as class members when values, `unique_ptr`, or indices/handles suffice.
-- Do not rely on transitive includes; include what you use.
-- Public API lives under `*/include/userver/...` and is included as `#include <userver/...>`. Treat `impl` / `detail` as implementation details.
-
-## Synchronization and blocking
-
-Do not use C++ standard library / libc synchronization or blocking IO on the main task processor. Use userver primitives instead (see `scripts/docs/en/userver/intro.md` and `scripts/docs/en/userver/synchronization.md`):
-
-## Tests and documentation
-
-Any new functionality or bug fix **must** be covered by tests. Add or update documentation when it makes sense.
-
-If asked to fix a flaky failure and the root cause is in production code (not in the test itself), **first** add a new test that reliably reproduces the bug without flakiness, then fix the code.
+## Project layout
 
 Usage and testing examples: `samples/`. Documentation pages: `scripts/docs/en/`.
-
-In Doxygen class docs, do **not** use `@ref` in `/// ## Static options of ...` (and similar self-referential headings like `/// ## Static config of ...`): write the fully qualified type name as plain text. Self-`@ref` causes "Potential recursion while resolving @ref" warnings.
 
 ## Build systems
 
@@ -64,4 +28,4 @@ The project is built with both **CMake** and the internal **ya.make** build syst
 
 ## CMake
 
-`ai/rules/cmake-guide.md` - guide for cmake. Read it before any cmake changes.
+Read [the CMake guide](ai/rules/cmake-guide.md) before any CMake changes.

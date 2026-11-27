@@ -106,6 +106,8 @@ public:
     Box(Box&& other) noexcept = default;
     Box& operator=(Box&& other) noexcept = default;
 
+    ~Box() noexcept;
+
     Box(const Box& other)
         : data_(std::make_unique<T>(*other))
     {}
@@ -168,6 +170,9 @@ private:
 
     std::unique_ptr<T> data_;
 };
+
+template <typename T>
+Box<T>::~Box() noexcept = default;
 
 template <typename Value, typename T>
 Box<T> Parse(const Value& value, formats::parse::To<Box<T>>) {

@@ -42,7 +42,7 @@ constexpr utils::StringLiteral GetMethodFullNameWithoutSlash(
     const StaticServiceMetadata& metadata,
     std::size_t method_id
 ) {
-    auto result = metadata.methods[method_id].method_full_name;
+    auto result = GetMethodFullName(metadata, method_id);
     result.remove_prefix(1);
     return result;
 }
@@ -67,6 +67,15 @@ std::optional<std::size_t> FindMethod(
     std::string_view service_name,
     std::string_view method_name
 );
+
+struct MethodNameParts {
+    std::string_view call_name;
+    std::string_view service_name;
+    std::string_view method_name;
+};
+MethodNameParts ParseMethodName(std::string_view method_full_name);
+
+constexpr std::string_view GetCallName(std::string_view method_full_name) { return method_full_name.substr(1); }
 
 }  // namespace ugrpc::impl
 

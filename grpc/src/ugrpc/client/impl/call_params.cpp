@@ -116,9 +116,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         client_data.GetConfigSnapshot(),
         client_data.GetEndpoint(),
         GetMethodType(metadata, method_id),
-        {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
-        metadata.service_full_name,
-        GetMethodName(metadata, method_id),
+        grpc::string{GetMethodFullName(metadata, method_id)},
         std::move(call_options),
         MethodStubs{std::move(stub_state), stubs},
         client_data.GetMiddlewares(),
@@ -145,19 +143,6 @@ CallParams CreateGenericCallParams(
 
     UINVARIANT(!client_data.GetClientQos(), "Client QOS configs are unsupported for generic services");
 
-    // Для общего случая разбираем call_name вручную
-    auto slash_pos = call_name.find('/');
-    std::string_view service_name;
-    std::string_view method_name;
-
-    if (slash_pos != std::string_view::npos) {
-        service_name = call_name.substr(0, slash_pos);
-        method_name = call_name.substr(slash_pos + 1);
-    } else {
-        service_name = std::string_view{client_data.GetMetadata().service_full_name};
-        method_name = call_name;
-    }
-
     auto stub_state = client_data.GetStubState();
     const auto& stubs = impl::GetGenericMethodStubs(*stub_state);
 
@@ -167,9 +152,7 @@ CallParams CreateGenericCallParams(
         client_data.GetConfigSnapshot(),
         client_data.GetEndpoint(),
         RpcType::kUnary,
-        ugrpc::impl::MaybeOwnedString{std::string{call_name}},
-        service_name,
-        method_name,
+        utils::StrCat<grpc::string>("/", call_name),
         std::move(call_options),
         MethodStubs{std::move(stub_state), stubs},
         client_data.GetMiddlewares(),

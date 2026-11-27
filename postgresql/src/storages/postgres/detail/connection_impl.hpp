@@ -186,8 +186,8 @@ private:
         tracing::Span& span,
         tracing::ScopeTime& scope
     );
+    void EvictPreparedStatementIfNeeded(engine::Deadline deadline, tracing::ScopeTime& scope);
     void DiscardOldPreparedStatements(engine::Deadline deadline);
-    void DiscardPreparedStatement(std::string_view meta_statement_name, engine::Deadline deadline);
 
     ResultSet ExecuteCommand(
         const Query& query,

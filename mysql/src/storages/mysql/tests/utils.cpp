@@ -120,6 +120,7 @@ std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
         formats::yaml::FromString(R"(
     initial_pool_size: 1
     max_pool_size: 5
+    use_secure_connection: false
   )"),
         {}
     }};

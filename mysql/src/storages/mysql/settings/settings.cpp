@@ -62,7 +62,8 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& doc, formats::parse::To<
 PoolSettings PoolSettings::Create(
     const components::ComponentConfig& config,
     const EndpointInfo& endpoint_info,
-    const AuthSettings& auth_settings
+    const AuthSettings& auth_settings,
+    utils::OptionalRef<const testsuite::MysqlControl> testsuite_mysql_control
 ) {
     PoolSettings settings{};
     settings.initial_pool_size = config["initial_pool_size"].As<std::size_t>(settings.initial_pool_size);
@@ -70,6 +71,9 @@ PoolSettings PoolSettings::Create(
     settings.endpoint_info = endpoint_info;
     settings.auth_settings = auth_settings;
     settings.connection_settings = config.As<ConnectionSettings>();
+    if (testsuite_mysql_control && !testsuite_mysql_control->is_tls_enabled) {
+        settings.connection_settings.use_secure_connection = false;
+    }
 
     UINVARIANT(
         settings.max_pool_size >= settings.initial_pool_size,

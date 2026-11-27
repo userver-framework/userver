@@ -1,6 +1,8 @@
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 
 #include <chrono>
+#include <cstddef>
+#include <optional>
 #include <utility>
 
 #include <fmt/format.h>
@@ -11,6 +13,7 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/not_null.hpp>
 
 #include <ugrpc/impl/logging.hpp>
@@ -73,12 +76,17 @@ void AppendDelay(MiddlewareCallContext& context, logging::LogExtra& extra) {
     extra.Extend("delay", fmt::format("{}.{:06}", delay_s.count(), delay_us.count()));
 }
 
-void AppendResponse(const google::protobuf::Message& response, const Settings& settings, logging::LogExtra& extra) {
+void AppendResponseMetadata(
+    const google::protobuf::Message& response,
+    std::size_t response_size,
+    const Settings& settings,
+    logging::LogExtra& extra
+) {
     extra.Extend({
         {ugrpc::impl::kTypeTag, "response"},
         {"grpc_code", "OK"},  // TODO: revert
         {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings)},
-        {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
+        {ugrpc::impl::kMessageMarshalledLenTag, response_size},
     });
 }
 
@@ -108,10 +116,12 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
 void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const {
     const Logger logger{settings_.log_level};
     logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+        const auto request_size = context.GetLatestRequestSizeBytes();
+        UASSERT(request_size.has_value());
         logging::LogExtra extra{
             {ugrpc::impl::kTypeTag, "request"},
             {ugrpc::impl::kBodyTag, GetMessageForLogging(request, settings_)},
-            {ugrpc::impl::kMessageMarshalledLenTag, request.ByteSizeLong()},
+            {ugrpc::impl::kMessageMarshalledLenTag, *request_size},
         };
         if (IsSingleRequestMethod(context.GetRpcType())) {
             extra.Extend("type", "request");
@@ -130,7 +140,7 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf
         const Logger logger{settings_.log_level};
         logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
             logging::LogExtra extra;
-            AppendResponse(response, settings_, extra);
+            AppendResponseMetadata(response, response.ByteSizeLong(), settings_, extra);
             log_helper << "gRPC response stream message" << std::move(extra);
         });
     }
@@ -144,7 +154,11 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optiona
                 logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
                     logging::LogExtra extra{{"type", "response"}};
                     const auto& response = *context.GetStorageContext().Get(kUnaryResponseTag);
-                    AppendResponse(response, settings_, extra);
+                    // Empty if serializing the response failed: `status` still reports OK then.
+                    const auto stored_response_size = context.GetLatestResponseSizeBytes();
+                    const auto response_size =
+                        stored_response_size.has_value() ? *stored_response_size : response.ByteSizeLong();
+                    AppendResponseMetadata(response, response_size, settings_, extra);
                     AppendDelay(context, extra);
                     log_helper << "gRPC response" << std::move(extra);
                 });

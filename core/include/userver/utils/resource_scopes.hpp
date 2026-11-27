@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -90,6 +91,7 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 /// and destructor, so @ref AfterConstruction cannot run after the object is complete
 /// and @ref BeforeDestruction cannot run before its members are destroyed. Wrap the
 /// object in @ref WithResourceScopes instead.
+/// Use @ref utils::MakeUniqueWithResourceScopes for unique ownership through a polymorphic interface.
 ///
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
@@ -222,6 +224,61 @@ std::shared_ptr<Wrapped> MakeWithResourceScopes(Args&&... args) {
     auto holder = std::make_shared<WithResourceScopes<Wrapped>>(std::in_place, std::forward<Args>(args)...);
     auto* const wrapped = std::addressof(**holder);
     return std::shared_ptr<Wrapped>(std::move(holder), wrapped);
+}
+
+namespace impl {
+
+struct ResourceScopeStorageHolder {
+    ResourceScopeStorage scopes;
+};
+
+template <typename Wrapped>
+class UniqueWithResourceScopes final : private ResourceScopeStorageHolder, public Wrapped {
+public:
+    template <typename... Args>
+    explicit UniqueWithResourceScopes(Args&&... args)
+        : Wrapped(ResourceScopeStorageHolder::scopes, std::forward<Args>(args)...)
+    {
+        ResourceScopeStorageHolder::scopes.AfterConstruction();
+    }
+
+    UniqueWithResourceScopes(UniqueWithResourceScopes&&) = delete;
+    UniqueWithResourceScopes& operator=(UniqueWithResourceScopes&&) = delete;
+
+    ~UniqueWithResourceScopes() override { ResourceScopeStorageHolder::scopes.BeforeDestruction(); }
+};
+
+}  // namespace impl
+
+/// @brief Constructs an object with resource scopes and returns an owning `std::unique_ptr` to it.
+///
+/// The constructor of `Wrapped` receives @ref utils::ResourceScopeStorage as its first argument,
+/// followed by the forwarded arguments. `Wrapped` must not be `final` and must have a public virtual destructor:
+/// an internal derived wrapper closes the scopes before the destructor of `Wrapped` runs, including when
+/// deleted through a pointer to a base class of `Wrapped`.
+///
+/// Scopes open after the constructor of `Wrapped` completes. If that constructor throws, queued scopes are not
+/// opened. If opening a scope throws, already opened scopes close before `Wrapped` is destroyed.
+/// Use @ref utils::WithResourceScopes or @ref utils::MakeWithResourceScopes for final types.
+///
+/// @snippet core/src/components/resource_scopes_test.cpp MakeUniqueWithResourceScopesSnippet
+template <typename Wrapped, typename... Args>
+std::unique_ptr<Wrapped> MakeUniqueWithResourceScopes(Args&&... args) {
+    static_assert(
+        !std::is_final_v<Wrapped>,
+        "utils::MakeUniqueWithResourceScopes<T> requires a non-final T; use utils::WithResourceScopes or "
+        "utils::MakeWithResourceScopes for final types"
+    );
+    static_assert(
+        std::has_virtual_destructor_v<Wrapped>,
+        "utils::MakeUniqueWithResourceScopes<T> requires T to have a virtual destructor for deletion through "
+        "std::unique_ptr<T>"
+    );
+    if constexpr (!std::is_final_v<Wrapped> && std::has_virtual_destructor_v<Wrapped>) {
+        return std::make_unique<impl::UniqueWithResourceScopes<Wrapped>>(std::forward<Args>(args)...);
+    } else {
+        return nullptr;
+    }
 }
 
 ResourceScopeStorage&

@@ -326,7 +326,7 @@ class MetricsSnapshot:
     def value_at(
         self,
         path: str,
-        labels: dict[str, str] | None,
+        labels: dict[str, str] | None = None,
         *,
         default: T,
     ) -> MetricValue | T: ...

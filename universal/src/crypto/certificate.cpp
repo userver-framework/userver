@@ -95,7 +95,7 @@ std::string Certificate::GetSubject() const {
         throw KeyParseError("Invalid certificate");
     }
 
-    X509_NAME* subject_name = X509_get_subject_name(x509);
+    const X509_NAME* subject_name = X509_get_subject_name(x509);
     if (!subject_name) {
         throw KeyParseError(FormatSslError("Failed to get subject name from certificate"));
     }

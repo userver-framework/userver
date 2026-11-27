@@ -44,6 +44,13 @@ public:
     using Exception::Exception;
 };
 
+/// The server aborted the transaction because an execution condition did not match.
+/// Thrown by both the EXEC request and the queued subcommand requests.
+class TransactionAbortedException : public Exception {
+public:
+    using Exception::Exception;
+};
+
 /// Invalid reply data format
 class ParseReplyException : public Exception {
 public:

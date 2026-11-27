@@ -1,7 +1,9 @@
 #include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 
+#include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -9,13 +11,18 @@
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -178,6 +185,52 @@ std::string MakeManyRequests::HandleRequestThrow(
     return "ok";
 }
 
+class PubsubRecovery final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-chaos-pubsub";
+    static constexpr std::string_view kChannel = "chaos_pubsub_recovery";
+
+    PubsubRecovery(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase(config, context),
+          redis_client_{context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("pubsub")},
+          token_{redis_client_->Subscribe(
+              std::string{kChannel},
+              [this](const auto&, const auto& data) {
+                  auto messages = messages_.Lock();
+                  messages->push_back(data);
+              }
+          )}
+    {}
+
+    ~PubsubRecovery() final { token_.Unsubscribe(); }
+
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        switch (request.GetMethod()) {
+            case server::http::HttpMethod::kGet: {
+                formats::json::ValueBuilder response{formats::common::Type::kObject};
+                const auto messages = messages_.Lock();
+                response["data"] = *messages;
+                return formats::json::ToString(response.ExtractValue());
+            }
+            case server::http::HttpMethod::kDelete: {
+                auto messages = messages_.Lock();
+                messages->clear();
+                return {};
+            }
+            default:
+                throw server::handlers::ClientError(server::handlers::ExternalBody{
+                    fmt::format("Unsupported method {}", request.GetMethod())
+                });
+        }
+    }
+
+private:
+    const std::shared_ptr<storages::redis::SubscribeClient> redis_client_;
+    mutable concurrent::Variable<std::vector<std::string>> messages_;
+    storages::redis::SubscriptionToken token_;
+};
+
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
@@ -186,6 +239,7 @@ int main(int argc, char* argv[]) {
             .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
             .Append<chaos::KeyValue>()
             .Append<chaos::MakeManyRequests>()
+            .Append<chaos::PubsubRecovery>()
             .Append<server::handlers::ServerMonitor>()
             .Append<components::Secdist>()
             .Append<components::DefaultSecdistProvider>()

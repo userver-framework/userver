@@ -1,6 +1,7 @@
 #include <s3api/clients/client.hpp>
 
 #include <sstream>
+#include <stdexcept>
 
 #include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
@@ -80,6 +81,24 @@ void AddQueryParamsToPresignedUrl(
     }
 }
 
+std::string_view GetEndpointPath(std::string_view endpoint) {
+    const auto scheme_pos = endpoint.find("://");
+    if (scheme_pos != std::string_view::npos) {
+        endpoint.remove_prefix(scheme_pos + 3);
+    }
+
+    const auto path_pos = endpoint.find('/');
+    if (path_pos == std::string_view::npos) {
+        return {};
+    }
+
+    auto path = endpoint.substr(path_pos);
+    if (path.ends_with('/')) {
+        path.remove_suffix(1);
+    }
+    return path;
+}
+
 std::string GeneratePresignedUrl(
     Request& request,
     std::string_view host,
@@ -90,8 +109,9 @@ std::string GeneratePresignedUrl(
     std::ostringstream generated_url;
     // both internal (s3.mds(t)) and private (s3-private)
     // balancers support virtual host addressing and https
-    request.headers[USERVER_NAMESPACE::http::headers::kHost] = fmt::format("{}.{}", request.bucket, host);
-    generated_url << protocol << request.headers[USERVER_NAMESPACE::http::headers::kHost];
+    auto& host_header = request.headers[USERVER_NAMESPACE::http::headers::kHost];
+    host_header = S3Connection::MakeHostHeader(host, request.bucket);
+    generated_url << protocol << host_header << GetEndpointPath(host);
 
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
     AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
@@ -220,6 +240,51 @@ std::string ClientImpl::PutObject(
 void ClientImpl::DeleteObject(std::string_view path) const {
     auto req = api_methods::DeleteObject(bucket_, path);
     RequestApi(req, "delete_object");
+}
+
+void Client::PutObjectConditional(std::string_view, std::string, const std::optional<std::string>&) const {
+    throw std::logic_error("This S3 client does not implement conditional writes");
+}
+
+void Client::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag,
+    const std::optional<Meta>& meta
+) const {
+    if (meta && !meta->empty()) {
+        throw std::logic_error("This S3 client does not implement conditional writes with metadata");
+    }
+    PutObjectConditional(path, std::move(data), expected_etag);
+}
+
+void ClientImpl::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag
+) const {
+    PutObjectConditional(path, std::move(data), expected_etag, std::nullopt);
+}
+
+void ClientImpl::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag,
+    const std::optional<Meta>& meta
+) const {
+    auto request = api_methods::PutObject(bucket_, path, std::move(data), "application/json", std::nullopt);
+    if (expected_etag) {
+        if (expected_etag.value().empty()) {
+            throw std::invalid_argument("An S3 conditional-write ETag must not be empty");
+        }
+        request.headers[http::headers::kIfMatch] = expected_etag.value();
+    } else {
+        request.headers[http::headers::kIfNoneMatch] = "*";
+    }
+    if (meta) {
+        SaveMeta(request.headers, *meta);
+    }
+    RequestApi(request, "put_object_conditional");
 }
 
 std::optional<std::string> ClientImpl::GetObject(

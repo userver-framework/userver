@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
+#include <cstddef>
 #include <optional>
 #include <string>
 
@@ -97,6 +98,35 @@ public:
     /// @brief Get values extracted from dynamic_config. Snapshot will be
     /// deleted when the last middleware completes.
     const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
+
+    /// @brief Serialized size of the request message most recently received on this call.
+    ///
+    /// This is the size of the wire buffer, which is cheaper than calling
+    /// `google::protobuf::Message::ByteSizeLong` on the parsed request.
+    /// For a streaming RPC it is the latest message read so far, not a distinguished final request of the RPC:
+    /// another request message may still arrive.
+    ///
+    /// While the call is running, only the read side may call this. On a bidirectional stream `PostRecvMessage`
+    /// runs concurrently with the write side, and calling this from `PreSendMessage` or `PreSendStatus` is a data
+    /// race. `OnCallFinish` runs after both sides have completed.
+    std::optional<std::size_t> GetLatestRequestSizeBytes() const noexcept;
+
+    /// @brief Serialized size of the response message most recently sent on this call.
+    ///
+    /// This is the size of the wire buffer, which is cheaper than calling
+    /// `google::protobuf::Message::ByteSizeLong` on the response.
+    /// For a streaming RPC it is the latest message sent so far, not a distinguished final response of the RPC:
+    /// another response message may still be sent.
+    ///
+    /// The response is serialized after `PreSendMessage` and `PreSendStatus`, because those hooks may modify it or
+    /// replace it with an error. In those hooks the size is empty for unary and client-streaming RPCs, and it is the
+    /// previous message for a response stream. `OnCallFinish` runs after serialization; there it is empty if
+    /// serializing the final response failed.
+    ///
+    /// While the call is running, only the write side may call this. On a bidirectional stream `PreSendMessage` runs
+    /// concurrently with the read side, and calling this from `PostRecvMessage` is a data race. `OnCallFinish` runs
+    /// after both sides have completed.
+    std::optional<std::size_t> GetLatestResponseSizeBytes() const noexcept;
 
     /// @cond
     // For internal use only.

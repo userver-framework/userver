@@ -1,5 +1,8 @@
 #include <userver/utest/utest.hpp>
 
+#include <atomic>
+#include <cstddef>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -69,6 +72,21 @@ public:
     }
 };
 
+class CountingUnitTestService final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
+        ++say_hello_calls_;
+        return sample::ugrpc::GreetingResponse{};
+    }
+
+    int GetSayHelloCalls() const { return say_hello_calls_; }
+
+private:
+    std::atomic<int> say_hello_calls_{0};
+};
+
+constexpr std::size_t kLargeNameSize = 1'000'000;
+
 ugrpc::client::CallOptions PrepareCallOptions() {
     ugrpc::client::CallOptions call_options;
     return call_options;
@@ -88,6 +106,20 @@ void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
 }  // namespace
 
 using GrpcClientCancel = ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>;
+
+using GrpcClientCancelBeforeStart =
+    ugrpc::tests::ServiceWithClientFixture<CountingUnitTestService, sample::ugrpc::UnitTestServiceClient>;
+
+UTEST_F(GrpcClientCancelBeforeStart, AsyncUnaryCancelledBeforeWorkerStart) {
+    sample::ugrpc::GreetingRequest request;
+    request.set_name(std::string(kLargeNameSize, 'q'));
+
+    auto future = GetClient().AsyncSayHello(request);
+    future.Cancel();
+
+    UEXPECT_THROW((void)future.Get(), ugrpc::client::RpcCancelledError);
+    EXPECT_EQ(GetService().GetSayHelloCalls(), 0);
+}
 
 UTEST_F(GrpcClientCancel, UnaryCall) {
     {

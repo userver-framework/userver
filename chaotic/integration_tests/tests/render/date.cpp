@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include <userver/formats/json/inline.hpp>
 #include <userver/utest/assert_macros.hpp>
 
@@ -93,6 +95,30 @@ TEST(Simple, DateTimeFraction) {
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["modified_at"].As<std::string>();
     EXPECT_EQ(str, date) << str;
 
+    EXPECT_EQ(TestDomSerializer(obj), json);
+}
+
+TEST(Simple, DateTimeFractionWithTimezone) {
+    const auto json = formats::json::MakeObject(
+        "updated_at",
+        "2020-10-01T12:34:56.789+12:34",
+        "deleted_at",
+        "2020-10-01T12:34:56.789+1234",
+        "modified_at",
+        "2020-10-01T12:34:56.789+1234"
+    );
+    const auto obj = json.As<ns::ObjectDate>();
+    const auto offset = std::chrono::hours{12} + std::chrono::minutes{34};
+    const auto time_point = utils::datetime::UtcStringtime("2020-10-01T00:00:56Z") + std::chrono::milliseconds{789};
+
+    EXPECT_EQ(obj.updated_at.value().GetTzOffset(), offset);
+    EXPECT_EQ(obj.deleted_at.value().GetTzOffset(), offset);
+    EXPECT_EQ(obj.modified_at.value().GetTzOffset(), offset);
+    EXPECT_EQ(obj.updated_at.value().GetTimePoint(), time_point);
+    EXPECT_EQ(obj.deleted_at.value().GetTimePoint(), time_point);
+    EXPECT_EQ(obj.modified_at.value().GetTimePoint(), time_point);
+    EXPECT_EQ(TestToJsonString(obj), json);
+    EXPECT_EQ(TestWriteToStream(obj), json);
     EXPECT_EQ(TestDomSerializer(obj), json);
 }
 

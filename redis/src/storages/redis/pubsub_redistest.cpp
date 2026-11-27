@@ -1,6 +1,8 @@
 #include <storages/redis/pubsub_redistest.hpp>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -155,6 +157,85 @@ UTEST_P_MT(RedisPubsubTestBasic, MultiPatternPsubscribe, 2) {
         sender.RequestCancel();
     }
     token.Unsubscribe();
+}
+
+// With real Redis Cluster, SUBSCRIBE and SSUBSCRIBE on the same channel name must receive only
+// their respective PUBLISH and SPUBLISH messages. Check both unsubscription orders: removing
+// either token stops its delivery while the other keeps receiving messages. This protects the
+// common token and queue implementation from mixing the two subscription modes. Runs only in Arcadia.
+UTEST_F_MT(RedisClusterPubsubTest, RegularAndShardedSubscriptionsAreIndependent, 2) {
+#ifdef ARCADIA_ROOT
+    const std::string channel = "shared-pubsub-channel";
+    const std::string regular_message = "regular-message";
+    const std::string sharded_message = "sharded-message";
+    const std::string regular_after_unsubscribe = "regular-after-unsubscribe";
+    const std::string sharded_after_unsubscribe = "sharded-after-unsubscribe";
+    constexpr auto kPublishInterval = std::chrono::milliseconds{100};
+
+    for (const bool unsubscribe_regular : {true, false}) {
+        engine::SingleConsumerEvent regular_received;
+        engine::SingleConsumerEvent sharded_received;
+        engine::SingleConsumerEvent after_unsubscribe_received;
+        std::atomic<size_t> regular_count{0};
+        std::atomic<size_t> sharded_count{0};
+        auto regular = GetSubscribeClient()->Subscribe(channel, [&](const auto& name, const auto& message) {
+            EXPECT_EQ(name, channel);
+            EXPECT_TRUE(message == regular_message || message == regular_after_unsubscribe);
+            ++regular_count;
+            regular_received.Send();
+            if (message == regular_after_unsubscribe) {
+                after_unsubscribe_received.Send();
+            }
+        });
+        auto sharded = GetSubscribeClient()->Ssubscribe(channel, [&](const auto& name, const auto& message) {
+            EXPECT_EQ(name, channel);
+            EXPECT_TRUE(message == sharded_message || message == sharded_after_unsubscribe);
+            ++sharded_count;
+            sharded_received.Send();
+            if (message == sharded_after_unsubscribe) {
+                after_unsubscribe_received.Send();
+            }
+        });
+        auto sender = utils::CriticalAsync("publisher", [&] {
+            while (!engine::current_task::ShouldCancel()) {
+                GetClient()->Publish(channel, regular_message, {});
+                GetClient()->Spublish(channel, sharded_message, {});
+                engine::InterruptibleSleepFor(kPublishInterval);
+            }
+        });
+
+        ASSERT_TRUE(regular_received.WaitForEventFor(utest::kMaxTestWaitTime));
+        ASSERT_TRUE(sharded_received.WaitForEventFor(utest::kMaxTestWaitTime));
+        sender.SyncCancel();
+
+        if (unsubscribe_regular) {
+            regular.Unsubscribe();
+        } else {
+            sharded.Unsubscribe();
+        }
+        const auto regular_before = regular_count.load();
+        const auto sharded_before = sharded_count.load();
+        auto after_unsubscribe = utils::CriticalAsync("publisher-after-unsubscribe", [&] {
+            while (!engine::current_task::ShouldCancel()) {
+                GetClient()->Publish(channel, regular_after_unsubscribe, {});
+                GetClient()->Spublish(channel, sharded_after_unsubscribe, {});
+                engine::InterruptibleSleepFor(kPublishInterval);
+            }
+        });
+        ASSERT_TRUE(after_unsubscribe_received.WaitForEventFor(utest::kMaxTestWaitTime));
+        after_unsubscribe.SyncCancel();
+        regular.Unsubscribe();
+        sharded.Unsubscribe();
+
+        if (unsubscribe_regular) {
+            EXPECT_EQ(regular_count.load(), regular_before);
+            EXPECT_GT(sharded_count.load(), sharded_before);
+        } else {
+            EXPECT_EQ(sharded_count.load(), sharded_before);
+            EXPECT_GT(regular_count.load(), regular_before);
+        }
+    }
+#endif
 }
 
 UTEST_P_MT(RedisClusterPubsubTestBasic, SimpleSsubscribe, 2) {

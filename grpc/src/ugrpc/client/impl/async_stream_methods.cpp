@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <grpc/support/time.h>
+#include <grpcpp/client_context.h>
 
 #include <userver/utils/expected.hpp>
 

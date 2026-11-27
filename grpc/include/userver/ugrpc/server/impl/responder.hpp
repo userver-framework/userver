@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <type_traits>
 
 #include <google/protobuf/message.h>
@@ -9,6 +10,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <userver/ugrpc/impl/message_serialization.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
@@ -22,22 +24,6 @@ grpc::Status MakeUninitializedResponseStatus(const google::protobuf::Message& re
 
 void ValidateResponseIsInitialized(const google::protobuf::Message& response);
 
-template <typename Message>
-grpc::Status DeserializeMessage(grpc::ByteBuffer&& buffer, Message& message) {
-    const auto status = grpc::SerializationTraits<Message>::Deserialize(&buffer, &message);
-    buffer.Release();
-    if (!status.ok()) {
-        return {grpc::StatusCode::INTERNAL, "Unable to parse request"};
-    }
-    return grpc::Status::OK;
-}
-
-template <typename Message>
-grpc::Status SerializeMessage(const Message& message, grpc::ByteBuffer& buffer) {
-    bool own_buffer = false;
-    return grpc::SerializationTraits<Message>::Serialize(message, &buffer, &own_buffer);
-}
-
 /// @brief A non-typed base class for any gRPC call.
 class ResponderBase {
 protected:
@@ -47,6 +33,10 @@ protected:
 
     // Prevent ownership via pointer to base.
     ~ResponderBase() = default;
+
+    void SetRequestSizeBytes(std::size_t size) noexcept;
+
+    void SetResponseSizeBytes(std::size_t size) noexcept;
 
     void ApplyRequestHook(google::protobuf::Message& request);
 
@@ -167,13 +157,16 @@ bool Responder<CallTraits>::DoRead(Request& request) {
         return false;
     }
 
-    const auto parse_status = impl::DeserializeMessage(std::move(buffer), request);
-    if (!parse_status.ok()) {
+    const auto request_size_bytes = buffer.Length();
+    const auto deserialization_status = ugrpc::impl::DeserializeMessage(std::move(buffer), request);
+    if (!deserialization_status.ok()) {
         are_reads_done_ = true;
         return false;
     }
 
     if constexpr (std::is_base_of_v<google::protobuf::Message, Request>) {
+        // The read side publishes the size before the hook. Bidirectional writes must not read it.
+        SetRequestSizeBytes(request_size_bytes);
         ApplyRequestHook(request);
     }
     return true;
@@ -204,11 +197,12 @@ void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions
     }
 
     grpc::ByteBuffer buffer;
-    auto serialization_status = impl::SerializeMessage(response, buffer);
+    auto serialization_status = ugrpc::impl::SerializeMessage(response, buffer);
     if (!serialization_status.ok()) {
         is_interrupted_ = true;
         throw ErrorWithStatus{std::move(serialization_status)};
     }
+    SetResponseSizeBytes(buffer.Length());
 
     if (!impl::Write(raw_responder_, buffer, options)) {
         is_interrupted_ = true;
@@ -246,10 +240,11 @@ template <typename CallTraits>
     }
 
     grpc::ByteBuffer buffer;
-    auto serialization_status = impl::SerializeMessage(response, buffer);
+    auto serialization_status = ugrpc::impl::SerializeMessage(response, buffer);
     if (!serialization_status.ok()) {
         return FinishWithError(serialization_status);
     }
+    SetResponseSizeBytes(buffer.Length());
 
     is_finished_ = true;
 

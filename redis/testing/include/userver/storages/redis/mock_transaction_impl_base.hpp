@@ -10,9 +10,20 @@ namespace storages::redis {
 
 class MockTransactionImplBase {
 public:
+    /// The result to report when the mock EXEC request is retrieved.
+    enum class ExecResult { kExecuted, kAborted };
+
     virtual ~MockTransactionImplBase() = default;
 
     // redis commands:
+
+    /// Selects the result reported when the mock EXEC request is retrieved.
+    /// @returns @ref ExecResult::kExecuted to execute mocked subcommands, or @ref ExecResult::kAborted to make the EXEC
+    /// request and subcommand requests throw @ref TransactionAbortedException.
+    /// The default implementation returns @ref ExecResult::kExecuted for empty options and terminates the process
+    /// otherwise.
+    /// Override this method to mock conditional transactions.
+    virtual ExecResult Exec(ExecOptions options);
 
     virtual RequestAppend Append(std::string key, std::string value);
 

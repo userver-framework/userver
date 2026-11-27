@@ -1,0 +1,4 @@
+[flake8]
+inherit-default-arcadia-config = true
+extend-select = IMT001
+require-plugins = flake8-import-type

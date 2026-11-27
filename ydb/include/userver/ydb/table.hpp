@@ -84,6 +84,12 @@ public:
     ~TableClient();
     /// @endcond
 
+    /// @brief Capture the current database connection for a sequence of operations.
+    /// The returned client ignores subsequent routing updates and shares query
+    /// settings and statistics with this client. In-flight operations can finish
+    /// on the captured database while new snapshots follow the updated route.
+    std::shared_ptr<TableClient> GetSnapshot() const;
+
     /// Query for creating/deleting tables
     void ExecuteSchemeQuery(const std::string& query);
 
@@ -140,6 +146,9 @@ public:
     /// The user-provided function receives a TxActor for executing queries
     /// and returns TxAction::kCommit or TxAction::kRollback. On transient
     /// errors the whole function is retried automatically.
+    /// An exception from the function is preserved even if rollback also fails.
+    /// A failed rollback discards the session before the next attempt.
+    /// Rollback errors propagate when the function returns @ref ydb::TxAction::kRollback.
     ///
     /// @code
     /// client.RetryTx("my_tx", {.retries = 3},
@@ -294,6 +303,8 @@ private:
     template <typename Settings>
     friend class impl::RequestContext;
 
+    TableClient(const TableClient& source, utils::SharedRef<impl::Connection> connection);
+
     // Currently active connection (never null after construction).
     impl::Connection& CurrentConnection() const noexcept;
 
@@ -321,7 +332,7 @@ private:
 
     dynamic_config::Source config_source_;
     const OperationSettings default_settings_;
-    std::unique_ptr<impl::Stats> stats_;
+    std::shared_ptr<impl::Stats> stats_;
 
     // Connections are permanent: none is destroyed while the component lives
     // (each is held by its home `own_connection_`), so the raw selector below is

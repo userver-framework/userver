@@ -19,7 +19,10 @@ userver_module(
     DBTEST_DATABASES mongo
     # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
     DBTEST_ENV TESTSUITE_MONGO_RS_INSTANCE_COUNT=5 TESTSUITE_MONGO_SERVER_START_TIMEOUT=30
-    UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
+    UBENCH_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/formats/bson/json_conversion_benchmark.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/formats/bson/member_access_benchmark.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/formats/bson/member_parse_benchmark.cpp"
     COMPONENT_DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
     EMBED_FILES src/cache/base_mongo_cache.yaml src/storages/mongo/component.yaml

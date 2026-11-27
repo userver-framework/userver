@@ -40,20 +40,25 @@ public:
 
     void OnMembersChange();
 
+    bool IsRoot() const;
+    bool IsUniqueRoot() const;
+
 private:
     struct JsonPath;
     struct Impl;
 
-    MutableValueWrapper(std::shared_ptr<JsonPath> path, VersionedValuePtr root, const Value& member, int depth);
+    MutableValueWrapper(JsonPath path, VersionedValuePtr root, const Value& member, int depth);
+
+    std::shared_ptr<const JsonPath> SharePath() const;
 
     void EnsureCurrent() const;
 
     static constexpr std::size_t kSize =
         compiler::SelectSize()  //
-            .ForLibCpp32(52)
-            .ForLibCpp64(112)
-            .ForLibStdCpp64(112)
-            .ForLibStdCpp32(64);
+            .ForLibCpp32(80)
+            .ForLibCpp64(160)
+            .ForLibStdCpp64(176)
+            .ForLibStdCpp32(104);
     static constexpr std::size_t kAlignment = alignof(void*);
     utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

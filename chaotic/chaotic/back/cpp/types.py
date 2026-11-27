@@ -755,6 +755,29 @@ class CppStructField:
         optional = not self.required or self.schema.nullable
         return optional and self._default() is None
 
+    def _resolved_schema(self) -> CppType:
+        schema = self.schema
+        while isinstance(schema, CppRef):
+            schema = schema.orig_cpp_type
+        return schema
+
+    def is_required_to_parse(self) -> bool:
+        """True if parsing the object throws whenever this property is missing."""
+        if not self.required or self.schema.nullable or self._default() is not None:
+            return False
+
+        return isinstance(
+            self._resolved_schema(),
+            (CppPrimitiveType, CppStringWithFormat, CppIntEnum, CppStringEnum, CppStruct, CppArray),
+        )
+
+    def enum_type(self) -> CppType | None:
+        """The enum type of this property, or None if the property is not an enum."""
+        schema = self._resolved_schema()
+        if isinstance(schema, (CppIntEnum, CppStringEnum)):
+            return schema
+        return None
+
     def cpp_field_name(self) -> str:
         return self.name
 

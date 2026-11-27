@@ -331,7 +331,9 @@ void Consumer::Stop() noexcept {
         utils::Async(consumer_task_processor_, "consumer_stopping", [this] {
             // 1. This is blocking.
             // 2. This calls testpoints
-            consumer_->StopConsuming();
+            if (consumer_) {
+                consumer_->StopConsuming();
+            }
         }).Get();
         TESTPOINT(fmt::format("tp_{}_stopped", name_), {});
         LOG_INFO("Consumer stopped");

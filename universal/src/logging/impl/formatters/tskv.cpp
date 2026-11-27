@@ -96,7 +96,7 @@ void Tskv::AddTag(std::string_view key, std::string_view value) { DoAddTag(key, 
 void Tskv::DoAddTag(std::string_view key, std::string_view value, bool value_is_escaped) {
     // TODO: repeated tags
     item_.log_line += utils::encoding::kTskvPairsSeparator;
-    if (!utils::encoding::ShouldKeyBeEscaped(key)) {
+    if (!utils::encoding::ShouldKeyBeEscaped(key, utils::encoding::EncodeTskvMode::kKey)) {
         item_.log_line += key;
     } else {
         utils::encoding::EncodeTskv(item_.log_line, key, utils::encoding::EncodeTskvMode::kKey);

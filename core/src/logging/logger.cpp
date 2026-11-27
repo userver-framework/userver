@@ -43,6 +43,10 @@ impl::SinkPtr MakeStdoutSink() { return std::make_unique<impl::UnownedFdSink>(ST
 namespace impl {
 
 void LogRaw(TextLogger& logger, Level level, std::string_view message) {
+    if (logger.ShouldDropBySampling(level)) {
+        return;
+    }
+
     std::string message_with_newline;
     message_with_newline.reserve(message.size() + 1);
     message_with_newline.append(message);

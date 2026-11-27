@@ -8,4 +8,5 @@ import requests_client
     requests_client.ALL_CASES + ['request_without_case'],
 )
 async def test_basic(grpc_ch, service_client, gate, case):
+    await requests_client.ensure_grpc_ready_after_gate_reset(grpc_ch, service_client)
     await requests_client.check_200_for(case)(grpc_ch, service_client, gate)

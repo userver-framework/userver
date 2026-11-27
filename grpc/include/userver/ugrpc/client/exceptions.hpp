@@ -50,6 +50,16 @@ public:
     RpcCancelledError(std::string_view call_name, std::string_view stage);
 };
 
+/// @brief Request serialization failed before the RPC was started.
+///
+/// The request is not sent and userver does not retry the call.
+/// After this exception, do not access @ref ugrpc::client::CallContext::GetClientContext or its metadata.
+class RpcSerializationError final : public RpcError {
+public:
+    /// @brief Constructs an error for @p call_name with the given @p reason.
+    RpcSerializationError(std::string_view call_name, std::string_view reason);
+};
+
 /// @brief Error with grpc::Status details
 /// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {

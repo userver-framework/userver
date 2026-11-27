@@ -148,7 +148,10 @@ bool StaticLogEntry::ShouldNotLog(logging::LoggerRef logger, logging::Level leve
     const auto state = content.state.load();
     const bool force_disabled = level < state.force_disabled_level_plus_one;
     const bool force_enabled = level >= state.force_enabled_level && level != logging::Level::kNone;
-    return (!LoggerShouldLog(logger, level) || force_disabled) && !force_enabled;
+    if (force_enabled) {
+        return false;
+    }
+    return !LoggerShouldLog(logger, level) || force_disabled || logger.ShouldDropBySampling(level);
 }
 
 bool StaticLogEntry::ShouldNotLog(const logging::LoggerPtr& logger, logging::Level level) const noexcept {

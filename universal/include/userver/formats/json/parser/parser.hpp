@@ -8,6 +8,7 @@
 #include <userver/formats/json/parser/bool_parser.hpp>
 #include <userver/formats/json/parser/int_parser.hpp>
 #include <userver/formats/json/parser/map_parser.hpp>
+#include <userver/formats/json/parser/nullable_item_parser.hpp>
 #include <userver/formats/json/parser/number_parser.hpp>
 #include <userver/formats/json/parser/parser_json.hpp>
 #include <userver/formats/json/parser/parser_raw_json.hpp>

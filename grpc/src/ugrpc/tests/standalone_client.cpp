@@ -12,15 +12,14 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::tests {
 
 StandaloneClientFactory::StandaloneClientFactory(client::ClientFactorySettings&& client_factory_settings)
-    : metrics_storage_{},
-      metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
+    : metrics_storage_(utils::statistics::MakeBoundMetricsStorage(statistics_storage_, std::nullopt)),
       client_factory_{
           std::move(client_factory_settings),
           engine::current_task::GetTaskProcessor(),
           simple_client_middleware_pipeline_,
           completion_queues_,
           *client_statistics_storage_,
-          metrics_storage_,
+          *metrics_storage_,
           testsuite_control_,
           config_storage_.GetSource(),
       }

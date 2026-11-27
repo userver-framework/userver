@@ -54,7 +54,7 @@
 #endif
 
 #ifndef BOOST_PFR_USE_CPP26
-#if __cpp_structured_bindings >= 202411L && __cpp_lib_forward_like >= 202207L
+#if __cplusplus > 202302L && __cpp_structured_bindings >= 202411L && __cpp_lib_forward_like >= 202207L
 #define BOOST_PFR_USE_CPP26 1
 #else
 #define BOOST_PFR_USE_CPP26 0

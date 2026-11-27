@@ -103,6 +103,8 @@ public:
 
     void SetIsFinal(bool is_final) noexcept { is_final_ = is_final; }
 
+    void AllowSetResponseRatelimitedBy(bool allow) noexcept { allow_set_response_ratelimited_by_ = allow; }
+
     void SetHttpMajor(std::uint8_t http_major) noexcept { http_major_ = http_major; }
 
     void SetHttpMinor(std::uint8_t http_minor) noexcept { http_minor_ = http_minor; }

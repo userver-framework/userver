@@ -120,6 +120,8 @@ function(add_gdb_test_suite GROUP)
         "TEST_SOURCES=${TEST_SOURCES}"
         "BUILD_TYPE=$<CONFIG>"
         "GDB_BIN=${GDB_EXECUTABLE}"
+        "OBJDUMP_BIN=${CMAKE_OBJDUMP}"
+        "OBJCOPY_BIN=${CMAKE_OBJCOPY}"
         "TESTS_IN_RELEASE=${TESTS_IN_RELEASE}"
         "USERVER_NAMESPACE=${USERVER_GDB_NAMESPACE}"
     )

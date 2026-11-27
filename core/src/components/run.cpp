@@ -59,6 +59,7 @@ public:
     }
 
     ~LogScope() {
+        logging::impl::MemLogger::GetMemLogger().ForwardTo(nullptr);
         logger_prev_.ForwardTo(nullptr);
         logging::impl::SetDefaultLoggerRef(logger_prev_);
     }
@@ -69,6 +70,7 @@ public:
         // Destroys the old logger_new_
         logger_new_ = std::move(logger);
         logger_prev_.ForwardTo(&*logger_new_);
+        logging::impl::MemLogger::GetMemLogger().ForwardTo(&*logger_new_);
     }
 
     logging::LoggerRef GetPrevLogger() { return logger_prev_; }

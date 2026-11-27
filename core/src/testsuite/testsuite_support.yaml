@@ -32,6 +32,10 @@ properties:
     testsuite-grpc-is-tls-enabled:
         type: boolean
         description: whether TLS should be enabled
+    testsuite-mysql-is-tls-enabled:
+        type: boolean
+        description: whether MySQL components may require TLS; if false, their use_secure_connection option is ignored
+        default: true
     testsuite-grpc-client-timeout-ms:
         type: integer
         description: forced timeout on client requests

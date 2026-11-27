@@ -1,5 +1,10 @@
 #include <userver/utils/encoding/tskv_parser.hpp>
 
+#include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -28,7 +33,9 @@ struct Incomplete {
 using SingleParsedRecord = std::variant<Record, Junk, Incomplete>;
 using ParsedRecords = std::vector<SingleParsedRecord>;
 
-ParsedRecords ParseTskv(std::string_view in) {
+enum class RecordMode { kAll, kSelected };
+
+ParsedRecords ParseTskv(std::string_view in, RecordMode mode = RecordMode::kAll) {
     ParsedRecords result;
     utils::encoding::TskvParser parser{in};
 
@@ -57,11 +64,14 @@ ParsedRecords ParseTskv(std::string_view in) {
 
         std::vector<std::pair<std::string, std::string>> tags;
 
-        const auto
-            status = utils::encoding::TskvReadRecord(parser, [&](const std::string& key, const std::string& value) {
-                tags.emplace_back(key, value);
-                return true;
-            });
+        const auto consume = [&](std::string_view key, std::string_view value) {
+            tags.emplace_back(key, value);
+            return true;
+        };
+        const auto status =
+            mode == RecordMode::kAll
+                ? utils::encoding::TskvReadRecord(parser, consume)
+                : utils::encoding::TskvReadRecordSelected(parser, [](std::string_view) { return true; }, consume);
 
         if (status == utils::encoding::TskvParser::RecordStatus::kIncomplete) {
             // Note: production code should stop and wait for more data here.
@@ -113,6 +123,282 @@ bool operator==(const Incomplete& lhs, const Incomplete& rhs) { return lhs.data 
 class TskvParseTest : public ::testing::TestWithParam<TestCase> {};
 
 TEST_P(TskvParseTest, Parsing) { EXPECT_EQ(ParseTskv(GetParam().tskv), GetParam().result); }
+
+TEST_P(TskvParseTest, ParsingSelected) {
+    EXPECT_EQ(ParseTskv(GetParam().tskv, RecordMode::kSelected), GetParam().result);
+}
+
+TEST_P(TskvParseTest, SkipValues) {
+    utils::encoding::TskvParser reader{GetParam().tskv};
+    utils::encoding::TskvParser skipper{GetParam().tskv};
+    std::string key;
+    std::string skipped_key;
+    std::string value;
+    while (const auto* begin = reader.SkipToRecordBegin()) {
+        ASSERT_EQ(skipper.SkipToRecordBegin(), begin);
+        while (true) {
+            const auto key_status = reader.ReadKey(key);
+            ASSERT_EQ(skipper.ReadKey(skipped_key), key_status);
+            ASSERT_EQ(skipped_key, key);
+            if (key_status) {
+                break;
+            }
+            const auto value_status = reader.ReadValue(value);
+            EXPECT_EQ(skipper.SkipValue(), value_status);
+            EXPECT_EQ(skipper.GetStreamPosition(), reader.GetStreamPosition());
+            if (value_status) {
+                break;
+            }
+        }
+    }
+    EXPECT_EQ(skipper.SkipToRecordBegin(), nullptr);
+}
+
+TEST(TskvParser, ValueViewBorrowsInputOrScratch) {
+    const std::string input = "value\twith\\tescape\tother\\nvalue\n";
+    utils::encoding::TskvParser parser{input};
+    std::string storage = "untouched";
+    std::string_view value;
+    EXPECT_EQ(parser.ReadValueView(value, storage), std::nullopt);
+    EXPECT_EQ(value, "value");
+    EXPECT_EQ(value.data(), input.data());
+    EXPECT_EQ(storage, "untouched");
+    const auto borrowed_value = value;
+    EXPECT_EQ(parser.ReadValueView(value, storage), std::nullopt);
+    EXPECT_EQ(value, "with\tescape");
+    EXPECT_EQ(value.data(), storage.data());
+    const std::string retained_value{value};
+    EXPECT_EQ(parser.ReadValueView(value, storage), utils::encoding::TskvParser::RecordStatus::kReachedEnd);
+    EXPECT_EQ(value, "other\nvalue");
+    EXPECT_EQ(value.data(), storage.data());
+    EXPECT_EQ(borrowed_value, "value");
+    EXPECT_EQ(retained_value, "with\tescape");
+}
+
+TEST(TskvParser, ReadRecordBorrowsUnescapedValues) {
+    const std::string input = "tskv\tkey=plain\tkey=with\\tescape\tkey=last\n";
+    utils::encoding::TskvParser parser{input};
+    ASSERT_NE(parser.SkipToRecordBegin(), nullptr);
+    std::vector<std::pair<std::string, std::string>> tags;
+    EXPECT_EQ(
+        utils::encoding::TskvReadRecord(
+            parser,
+            [&](std::string_view key, std::string_view value) {
+                if (value == "plain" || value == "last") {
+                    EXPECT_EQ(value.data(), input.data() + input.find(value));
+                }
+                tags.emplace_back(key, value);
+                return true;
+            }
+        ),
+        utils::encoding::TskvParser::RecordStatus::kReachedEnd
+    );
+    EXPECT_EQ(
+        tags,
+        (std::vector<std::pair<std::string, std::string>>{{"key", "plain"}, {"key", "with\tescape"}, {"key", "last"}})
+    );
+}
+
+TEST(TskvParser, SelectedValuesAndEarlyStop) {
+    /// [sample_selected]
+    const std::string
+        input = "tskv\tother=ignored\\tvalue\tpayload=first\tpayload=second\ttail=ignored\ntskv\tnext=value\n";
+    utils::encoding::TskvParser parser{input};
+    ASSERT_NE(parser.SkipToRecordBegin(), nullptr);
+    std::vector<std::string> values;
+    const auto status = utils::encoding::TskvReadRecordSelected(
+        parser,
+        [](std::string_view key) { return key == "payload"; },
+        [&](std::string_view, std::string_view value) {
+            values.emplace_back(value);
+            return values.size() < 2;
+        }
+    );
+    /// [sample_selected]
+    EXPECT_EQ(status, utils::encoding::TskvParser::RecordStatus::kReachedEnd);
+    EXPECT_EQ(values, (std::vector<std::string>{"first", "second"}));
+    EXPECT_EQ(parser.GetStreamPosition(), input.data() + input.find("tskv\t", 1));
+}
+
+TEST(TskvParser, IncompleteValueView) {
+    for (const auto* input : {"", "value", "value\\", "value\\t", "\\n\\"}) {
+        utils::encoding::TskvParser parser{input};
+        std::string storage;
+        std::string_view value = "old";
+        EXPECT_EQ(parser.ReadValueView(value, storage), utils::encoding::TskvParser::RecordStatus::kIncomplete);
+        EXPECT_TRUE(value.empty());
+    }
+}
+
+TEST(TskvParser, ValueBoundariesMatchOwningAndSkipping) {
+    using RecordStatus = utils::encoding::TskvParser::RecordStatus;
+    struct ValueCase {
+        std::string input;
+        std::string decoded;
+        std::size_t consumed;
+        std::optional<RecordStatus> status;
+    };
+    const std::vector<ValueCase> cases{
+        {"", "", 0, RecordStatus::kIncomplete},
+        {"plain", "", 0, RecordStatus::kIncomplete},
+        {"prefix\\", "", 0, RecordStatus::kIncomplete},
+        {"prefix\\t", "prefix\t", 8, RecordStatus::kIncomplete},
+        {"prefix\\tunfinished", "prefix\t", 8, RecordStatus::kIncomplete},
+        {"\\x", "\\", 1, RecordStatus::kIncomplete},
+        {"plain\tfollowing", "plain", 6, std::nullopt},
+        {"plain\nfollowing", "plain", 6, RecordStatus::kReachedEnd},
+        {"\\\tfollowing", "\\", 2, std::nullopt},
+        {"\\\nfollowing", "\\", 2, RecordStatus::kReachedEnd},
+        {"\\\\\nfollowing", "\\", 3, RecordStatus::kReachedEnd},
+        {"\\n\\r\\t\\0\\\\\\=\\q\nfollowing", std::string{"\n\r\t\0\\=\\q", 8}, 15, RecordStatus::kReachedEnd},
+        {std::string{"a\0b\tfollowing", 13}, std::string{"a\0b", 3}, 4, std::nullopt},
+    };
+    for (const auto& test : cases) {
+        SCOPED_TRACE(test.input);
+        utils::encoding::TskvParser reader{test.input};
+        utils::encoding::TskvParser viewer{test.input};
+        utils::encoding::TskvParser skipper{test.input};
+        std::string owned_value = "old";
+        std::string storage;
+        std::string_view view = "old";
+        EXPECT_EQ(reader.ReadValue(owned_value), test.status);
+        EXPECT_EQ(owned_value, test.decoded);
+        EXPECT_EQ(viewer.ReadValueView(view, storage), test.status);
+        EXPECT_EQ(view, test.status == RecordStatus::kIncomplete ? std::string_view{} : test.decoded);
+        EXPECT_EQ(skipper.SkipValue(), test.status);
+        const auto* expected_position = test.input.data() + test.consumed;
+        EXPECT_EQ(reader.GetStreamPosition(), expected_position);
+        EXPECT_EQ(viewer.GetStreamPosition(), expected_position);
+        EXPECT_EQ(skipper.GetStreamPosition(), expected_position);
+    }
+}
+
+TEST(TskvParser, SelectionUsesDecodedKeysAndPreservesValueCopies) {
+    const std::string
+        input = "tskv\tignored=large\\tvalue\tselected\\=key=plain\tselected\\=key=with\\tescape\tselected\\=key\n";
+    utils::encoding::TskvParser parser{input};
+    ASSERT_NE(parser.SkipToRecordBegin(), nullptr);
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    EXPECT_EQ(
+        utils::encoding::TskvReadRecordSelected(
+            parser,
+            [&](std::string_view key) {
+                keys.emplace_back(key);
+                return key == "selected=key";
+            },
+            [&](std::string_view key, std::string_view value) {
+                EXPECT_EQ(key, "selected=key");
+                if (values.empty()) {
+                    EXPECT_EQ(value.data(), input.data() + input.find("plain"));
+                }
+                values.emplace_back(value);
+                return true;
+            }
+        ),
+        utils::encoding::TskvParser::RecordStatus::kReachedEnd
+    );
+    EXPECT_EQ(keys, (std::vector<std::string>{"ignored", "selected=key", "selected=key", "selected=key"}));
+    EXPECT_EQ(values, (std::vector<std::string>{"plain", "with\tescape", ""}));
+}
+
+TEST(TskvParser, UnselectedValuesDoNotReachConsumer) {
+    const std::string input = "tskv\tkey=escaped\\nvalue\tkey_only\tlast=\\q\ntskv\tnext=value\n";
+    utils::encoding::TskvParser parser{input};
+    ASSERT_NE(parser.SkipToRecordBegin(), nullptr);
+    std::vector<std::string> keys;
+    EXPECT_EQ(
+        utils::encoding::TskvReadRecordSelected(
+            parser,
+            [&](std::string_view key) {
+                keys.emplace_back(key);
+                return false;
+            },
+            [](std::string_view, std::string_view) {
+                ADD_FAILURE() << "Unselected values must be skipped";
+                return true;
+            }
+        ),
+        utils::encoding::TskvParser::RecordStatus::kReachedEnd
+    );
+    EXPECT_EQ(keys, (std::vector<std::string>{"key", "key_only", "last"}));
+    EXPECT_EQ(parser.GetStreamPosition(), input.data() + input.find("tskv\t", 1));
+}
+
+TEST(TskvParser, IncompleteValuesDoNotReachConsumer) {
+    for (const auto* input : {"key=", "key=plain", "key=value\\", "key=value\\ntruncated"}) {
+        for (const bool selected : {false, true}) {
+            SCOPED_TRACE(input);
+            SCOPED_TRACE(selected);
+            utils::encoding::TskvParser parser{input};
+            EXPECT_EQ(
+                utils::encoding::TskvReadRecordSelected(
+                    parser,
+                    [selected](std::string_view) { return selected; },
+                    [](std::string_view, std::string_view) {
+                        ADD_FAILURE() << "Incomplete values must not reach the consumer";
+                        return true;
+                    }
+                ),
+                utils::encoding::TskvParser::RecordStatus::kIncomplete
+            );
+        }
+    }
+}
+
+TEST(TskvParser, EarlyStop) {
+    using RecordStatus = utils::encoding::TskvParser::RecordStatus;
+    using Tags = std::vector<std::pair<std::string, std::string>>;
+    struct StopCase {
+        std::string input;
+        Tags tags;
+        RecordStatus status;
+        std::vector<std::string_view> remaining;
+    };
+    const std::vector<StopCase> cases{
+        {"first=value\tmiddle=escaped\\nvalue\tlast=end\ntskv\tnext=value\n",
+         {{"first", "value"}, {"middle", "escaped\nvalue"}, {"last", "end"}},
+         RecordStatus::kReachedEnd,
+         {"tskv\tnext=value\n", "tskv\tnext=value\n", "tskv\tnext=value\n"}},
+        {"first=value\tmiddle=escaped\\\tvalue\tlast=end\ntskv\tnext=value\n",
+         {{"first", "value"}, {"middle", "escaped\\"}, {"value", ""}},
+         RecordStatus::kReachedEnd,
+         {"tskv\tnext=value\n", "tskv\tnext=value\n", "tskv\tnext=value\n"}},
+        {"first=value\tmiddle=escaped\\nvalue\tlast=truncated",
+         {{"first", "value"}, {"middle", "escaped\nvalue"}},
+         RecordStatus::kIncomplete,
+         {"middle=escaped\\nvalue\tlast=truncated", "last=truncated", "truncated"}},
+    };
+    for (const auto& test : cases) {
+        for (std::size_t stop_after = 1; stop_after <= 3; ++stop_after) {
+            for (const auto mode : {RecordMode::kAll, RecordMode::kSelected}) {
+                SCOPED_TRACE(test.input);
+                SCOPED_TRACE(stop_after);
+                SCOPED_TRACE(static_cast<int>(mode));
+                utils::encoding::TskvParser parser{test.input};
+                Tags tags;
+                const auto consume = [&](std::string_view key, std::string_view value) {
+                    tags.emplace_back(key, value);
+                    return tags.size() < stop_after;
+                };
+                const auto status =
+                    mode == RecordMode::kAll
+                        ? utils::encoding::TskvReadRecord(parser, consume)
+                        : utils::encoding::TskvReadRecordSelected(
+                              parser,
+                              [](std::string_view) { return true; },
+                              consume
+                          );
+                EXPECT_EQ(status, test.status);
+                EXPECT_EQ(tags, (Tags{test.tags.begin(), test.tags.begin() + std::min(stop_after, test.tags.size())}));
+                EXPECT_EQ(
+                    parser.GetStreamPosition(),
+                    test.input.data() + test.input.size() - test.remaining[stop_after - 1].size()
+                );
+            }
+        }
+    }
+}
 
 INSTANTIATE_TEST_SUITE_P(  //
     SingleLine,

@@ -30,6 +30,10 @@ Int Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<Int>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Int>);
+
 Int FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Int>);

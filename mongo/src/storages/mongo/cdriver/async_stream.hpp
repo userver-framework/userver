@@ -14,8 +14,6 @@ struct AsyncStreamInitiatorData {
     clients::dns::Resolver* dns_resolver;
 
     concurrent::BackgroundTaskStorage bts;
-
-    mongoc_ssl_opt_t ssl_opt;
 };
 
 mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t*, const mongoc_host_list_t*, void*, bson_error_t*) noexcept;

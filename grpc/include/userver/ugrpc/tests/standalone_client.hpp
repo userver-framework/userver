@@ -47,8 +47,7 @@ public:
 
 private:
     utils::statistics::Storage statistics_storage_;
-    utils::statistics::MetricsStorage metrics_storage_;
-    std::vector<utils::statistics::Entry> metrics_storage_registration_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
     utils::WithResourceScopes<ugrpc::impl::StatisticsStorage>
         client_statistics_storage_{std::in_place, statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
     dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};

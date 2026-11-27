@@ -95,6 +95,7 @@ components_manager:
           enabled: false
     http-client:
       core-component: http-client-core
+      allow-url-userinfo: false
       middlewares:
         # http-client-middleware-override:
         #   enabled: true

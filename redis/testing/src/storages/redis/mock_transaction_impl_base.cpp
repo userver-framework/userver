@@ -10,6 +10,13 @@ using utils::AbortWithStacktrace;
 
 // redis commands:
 
+MockTransactionImplBase::ExecResult MockTransactionImplBase::Exec(ExecOptions options) {
+    if (!options.empty()) {
+        AbortWithStacktrace("Conditional EXEC is not mocked. Override MockTransactionImplBase::Exec");
+    }
+    return ExecResult::kExecuted;
+}
+
 RequestAppend MockTransactionImplBase::Append(std::string /*key*/, std::string /*value*/) {
     AbortWithStacktrace("Redis method not mocked");
 }

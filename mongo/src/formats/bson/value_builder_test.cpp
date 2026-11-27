@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include <formats/bson/value_impl.hpp>
 #include <formats/common/value_builder_test.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
@@ -470,6 +473,41 @@ TEST(BsonValueBuilder, EmplaceNocheckTest) {
     EXPECT_EQ(1, value["field1"].As<int>());
     EXPECT_EQ(2, value["field2"].As<int>());
     EXPECT_EQ(91, value["ffffqwe3"].As<int>());
+}
+
+TEST(BsonValueBuilder, EmplaceNocheckMovesParsedSubtree) {
+    auto subtree = std::make_shared<fb::impl::ValueImpl>(nullptr);
+    const std::weak_ptr<fb::impl::ValueImpl> child = subtree->GetOrInsert("nested");
+    *child.lock() = fb::impl::ValueImpl(42);
+
+    fb::ValueBuilder builder;
+    builder.EmplaceNocheck("object", fb::ValueBuilder(std::move(subtree)));
+
+    EXPECT_FALSE(child.expired());
+    EXPECT_EQ(builder.ExtractValue()["object"]["nested"].As<int>(), 42);
+}
+
+TEST(BsonValueBuilder, EmplaceNocheckCopiesLvalue) {
+    fb::ValueBuilder subtree;
+    subtree["nested"] = 42;
+    fb::ValueBuilder builder;
+    builder.EmplaceNocheck("object", subtree);
+    subtree["nested"] = 43;
+
+    EXPECT_EQ(builder.ExtractValue()["object"]["nested"].As<int>(), 42);
+    EXPECT_EQ(subtree.ExtractValue()["nested"].As<int>(), 43);
+}
+
+TEST(BsonValueBuilder, EmplaceNocheckCopiesSharedSubbuilder) {
+    fb::ValueBuilder source;
+    source["object"]["nested"] = 42;
+    auto subtree = source["object"];
+    fb::ValueBuilder builder;
+    builder.EmplaceNocheck("object", std::move(subtree));
+    source["object"]["nested"] = 43;
+
+    EXPECT_EQ(builder.ExtractValue()["object"]["nested"].As<int>(), 42);
+    EXPECT_EQ(source.ExtractValue()["object"]["nested"].As<int>(), 43);
 }
 
 TEST(BsonValueBuilder, GetPathTest) {

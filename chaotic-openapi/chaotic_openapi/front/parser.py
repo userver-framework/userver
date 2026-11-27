@@ -43,7 +43,11 @@ class Parser:
         except pydantic.ValidationError as exc:
             raise errors.convert_error(self._state.full_filepath, '', parser.schema_type(), exc) from None
 
+        first_operation = len(self._state.service.operations)
         self._append_schema(parsed)
+        for operation in self._state.service.operations[first_operation:]:
+            if operation.expected_status_codes is None:
+                operation.expected_status_codes = parsed.x_expected_status_codes
 
     def _guess_parser(self, schema: dict):
         if 'openapi' in schema or 'components' in schema:
@@ -767,6 +771,7 @@ class Parser:
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
                 x_handler_codegen=operation.x_taxi_handler_codegen,
+                expected_status_codes=operation.x_expected_status_codes,
             ),
         )
 
@@ -808,6 +813,7 @@ class Parser:
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
                 x_handler_codegen=operation.x_taxi_handler_codegen,
+                expected_status_codes=operation.x_expected_status_codes,
             ),
         )
 

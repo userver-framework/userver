@@ -73,6 +73,7 @@ public:
         shared_filled_.store(other.shared_filled_.load(), std::memory_order_relaxed);
         shared_ = std::move(other.shared_);
         get_data_ = std::move(other.get_data_);
+        return *this;
     }
 
     /// @brief Get a pointer to the data (may be null). Fetches the data on the

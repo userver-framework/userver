@@ -3,6 +3,7 @@
 #include <userver/chaotic/convert/to.hpp>
 #include <userver/chaotic/validators.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
+#include <userver/formats/parse/may_parse.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
 
@@ -20,6 +21,12 @@ RawType Parse(const Value& value, formats::parse::To<Primitive<RawType, Validato
     auto result = value.template As<RawType>();
     chaotic::Validate<Validators...>(result, value);
     return result;
+}
+
+/// @brief Returns `false` if parsing `RawType` is certain to fail, see @ref formats::parse::MayParseAs.
+template <typename Value, typename RawType, typename... Validators>
+bool MayParseAs(const Value& value, formats::parse::To<Primitive<RawType, Validators...>>) {
+    return formats::parse::MayParseAs<RawType>(value);
 }
 
 template <typename Value, typename RawType, typename... Validators>

@@ -4,7 +4,6 @@
 
 #include <grpcpp/generic/async_generic_service.h>
 
-#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
@@ -35,10 +34,8 @@ ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
     CallOptions call_options,
     GenericOptions generic_options
 ) const {
-    auto method_name = utils::StrCat<grpc::string>("/", call_name);
     return {
         impl::CreateGenericCallParams(*client_data_, call_name, std::move(call_options), std::move(generic_options)),
-        impl::PrepareUnaryCallProxy(&grpc::GenericStub::PrepareUnaryCall, std::move(method_name)),
         request,
     };
 }
@@ -49,10 +46,8 @@ grpc::ByteBuffer GenericClient::UnaryCall(
     CallOptions call_options,
     GenericOptions generic_options
 ) const {
-    auto method_name = utils::StrCat<grpc::string>("/", call_name);
-    return impl::PerformUnaryCall(
+    return impl::PerformUnaryCall<grpc::ByteBuffer>(
         impl::CreateGenericCallParams(*client_data_, call_name, std::move(call_options), std::move(generic_options)),
-        impl::PrepareUnaryCallProxy(&grpc::GenericStub::PrepareUnaryCall, std::move(method_name)),
         request
     );
 }

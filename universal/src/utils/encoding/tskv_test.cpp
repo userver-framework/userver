@@ -14,6 +14,15 @@ using namespace std::string_view_literals;
 
 USERVER_NAMESPACE_BEGIN
 
+TEST(Tskv, KeyEscapingModes) {
+    using utils::encoding::EncodeTskvMode;
+    EXPECT_FALSE(utils::encoding::ShouldKeyBeEscaped("http.url", EncodeTskvMode::kKey));
+    EXPECT_TRUE(utils::encoding::ShouldKeyBeEscaped("http.url", EncodeTskvMode::kKeyReplacePeriod));
+    EXPECT_TRUE(utils::encoding::ShouldKeyBeEscaped("http.url"));
+    EXPECT_TRUE(utils::encoding::ShouldKeyBeEscaped("http.URL", EncodeTskvMode::kKey));
+    EXPECT_TRUE(utils::encoding::ShouldKeyBeEscaped("a.=b", EncodeTskvMode::kKey));
+}
+
 TEST(Tskv, NoEscapeQuote) {
     const auto* str = R"({ "tasks" : [  ] })";
     for (auto mode : {utils::encoding::EncodeTskvMode::kValue, utils::encoding::EncodeTskvMode::kKey}) {

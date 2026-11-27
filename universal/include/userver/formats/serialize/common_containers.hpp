@@ -5,8 +5,10 @@
 /// @ingroup userver_universal userver_formats_serialize
 
 #include <optional>
+#include <ranges>
 #include <type_traits>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/common/type.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
@@ -37,6 +39,9 @@ concept RangeNotMap =
 template <impl::RangeNotMap T, typename Value>
 Value Serialize(const T& value, To<Value>) {
     typename Value::Builder builder(formats::common::Type::kArray);
+    if constexpr (requires { builder.Reserve(std::ranges::size(value)); }) {
+        builder.Reserve(std::ranges::size(value));
+    }
     for (const auto& item : value) {
         // explicit cast for vector<bool> shenanigans
         builder.PushBack(static_cast<const meta::RangeValueType<T>&>(item));
@@ -48,6 +53,9 @@ Value Serialize(const T& value, To<Value>) {
 template <meta::IsUniqueMap T, typename Value>
 Value Serialize(const T& value, To<Value>) {
     typename Value::Builder builder(formats::common::Type::kObject);
+    if constexpr (requires { builder.Reserve(std::ranges::size(value)); }) {
+        builder.Reserve(std::ranges::size(value));
+    }
     for (const auto& [key, value] : value) {
         builder[key] = value;
     }
@@ -56,7 +64,7 @@ Value Serialize(const T& value, To<Value>) {
 
 /// std::optional serialization
 template <typename T, typename Value>
-Value Serialize(const std::optional<T>& value, To<Value>) {
+USERVER_IMPL_NODEBUG_INLINE_FUNC inline Value Serialize(const std::optional<T>& value, To<Value>) {
     if (!value) {
         return {};
     }

@@ -127,6 +127,7 @@ Span::Impl::Impl(
 )
     : name_(std::move(name)),
       is_no_log_span_(IsNoLogSpan(name_)),
+      is_root_span_(parent == nullptr),
       log_level_(is_no_log_span_ ? logging::Level::kNone : logging::Level::kInfo),
       reference_type_(reference_type),
       source_location_(source_location),
@@ -142,6 +143,8 @@ Span::Impl::Impl(
         log_extra_inheritable_ = parent->log_extra_inheritable_;
         local_log_level_ = parent->local_log_level_;
         is_sampled_ = parent->is_sampled_;
+    } else {
+        is_sampled_ = impl::ShouldSampleTrace(trace_id_);
     }
 }
 

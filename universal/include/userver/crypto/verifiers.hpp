@@ -124,7 +124,8 @@ public:
     /// Input encoding
     enum class InForm { kDer, kPem, kSMime };
 
-    /// Constructor from certificate
+    /// Constructor from certificate. Only this certificate is used to verify
+    /// signatures, certificates embedded into the message are ignored.
     CmsVerifier(Certificate certificate);
 
     ~CmsVerifier() override;

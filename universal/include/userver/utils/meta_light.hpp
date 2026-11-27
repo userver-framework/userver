@@ -34,7 +34,8 @@ concept IsCvInstantiationOf = IsInstantiationOf<std::remove_cv_t<T>, Template>;
 /// `signed char` and `unsigned char` are not character types.
 template <typename T>
 concept IsCharacter =
-    std::is_same_v<T, char> || std::is_same_v<T, wchar_t> || std::is_same_v<T, char16_t> || std::is_same_v<T, char32_t>;
+    std::is_same_v<T, char> || std::is_same_v<T, wchar_t> || std::is_same_v<T, char8_t> ||
+    std::is_same_v<T, char16_t> || std::is_same_v<T, char32_t>;
 
 /// Returns `true` if the type is a true integer type (not `*char*` or `bool`)
 /// `signed char` and `unsigned char` are integer types

@@ -43,6 +43,10 @@ RpcCancelledError::RpcCancelledError(std::string_view call_name, std::string_vie
     : RpcError(call_name, fmt::format("cancelled at {}", stage))
 {}
 
+RpcSerializationError::RpcSerializationError(std::string_view call_name, std::string_view reason)
+    : RpcError(call_name, fmt::format("request serialization failed: {}", reason))
+{}
+
 const grpc::Status& ErrorWithStatus::GetStatus() const noexcept { return status_; }
 
 [[noreturn]] void ThrowErrorWithStatus(std::string_view call_name, grpc::Status&& status) {

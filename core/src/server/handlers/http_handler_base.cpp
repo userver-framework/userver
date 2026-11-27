@@ -240,6 +240,9 @@ HttpHandlerBase::~HttpHandlerBase() = default;
 void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const {
     auto& response = request.GetHttpResponse();
     if (IsStreamed(request, context)) {
+        // Don't hold the config snapshot for too long with streaming responses.
+        context.GetInternalContext().ResetConfigSnapshot();
+
         server::http::ResponseBodyStream response_body_stream(response);
         HandleStreamRequest(request, context, response_body_stream);
     } else {
@@ -250,9 +253,6 @@ void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, reque
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
     GetHttpResponseImpl(response).SetSystemHeadersEnd();
-
-    // Don't hold the config snapshot for too long, especially with streaming.
-    context.GetInternalContext().ResetConfigSnapshot();
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
     HandleMaybeStreamRequest(http_request, context);

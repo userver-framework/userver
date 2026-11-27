@@ -1,16 +1,20 @@
 #include <userver/formats/bson/serialize.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <utility>
 
 #include <fmt/format.h>
 
 #include <gmock/gmock.h>
 
 #include <userver/formats/bson.hpp>
+#include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/utest/death_tests.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,6 +23,9 @@ namespace {
 
 namespace fb = formats::bson;
 namespace fj = formats::json;
+
+static_assert(formats::common::impl::HasEmplaceNocheck<fb::ValueBuilder>);
+static_assert(formats::common::impl::HasEmplaceNocheck<fj::ValueBuilder>);
 
 const auto kTimePoint = std::chrono::system_clock::from_time_t(0) + std::chrono::milliseconds{1};
 
@@ -332,6 +339,59 @@ TEST(Convert, FromJson) {
     bb["simple_array"] = kSimpleBsonArray;
     bb["empty_array"] = fb::MakeArray();
     EXPECT_THAT(bson, BsonMatcher(bb.ExtractValue()));
+}
+
+TEST(Convert, DuplicateBsonKeysToJson) {
+    const auto forbidden = fb::MakeDoc("key", 1, "other", 2, "key", 3);
+    EXPECT_THROW(forbidden.ConvertTo<fj::Value>(), fb::ParseException);
+    auto first = fb::MakeDoc("key", 1, "other", 2, "key", 3);
+    first.SetDuplicateFieldsPolicy(fb::Value::DuplicateFieldsPolicy::kUseFirst);
+    EXPECT_EQ(first.ConvertTo<fj::Value>(), fj::MakeObject("key", 1, "other", 2));
+    auto last = fb::MakeDoc("key", 1, "other", 2, "key", 3);
+    last.SetDuplicateFieldsPolicy(fb::Value::DuplicateFieldsPolicy::kUseLast);
+    EXPECT_EQ(last.ConvertTo<fj::Value>(), fj::MakeObject("key", 3, "other", 2));
+}
+
+TEST(ConvertDeathTest, ConversionStackRejectsDuplicateJsonKeys) {
+    fj::ValueBuilder input(formats::common::Type::kObject);
+    input.EmplaceNocheck("key", 1);
+    input.EmplaceNocheck("key", 2);
+    const auto json = input.ExtractValue();
+    UEXPECT_DEBUG_DEATH(
+        static_cast<void>(formats::common::PerformMinimalFormatConversion<fj::Value>(json)),
+        "Duplicate object key"
+    );
+    UEXPECT_DEBUG_DEATH(
+        static_cast<void>(formats::common::PerformMinimalFormatConversion<fb::Value>(json)),
+        "Duplicate object key"
+    );
+}
+
+TEST(Convert, WideNestedBsonToJson) {
+    fb::ValueBuilder input;
+    fj::ValueBuilder expected;
+    for (int i = 0; i < 256; ++i) {
+        const auto key = "key_" + std::to_string(i);
+        input[key] = fb::MakeArray(i, fb::MakeDoc("nested", "value"), nullptr);
+        expected[key] = fj::MakeArray(i, fj::MakeObject("nested", "value"), nullptr);
+    }
+    EXPECT_EQ(input.ExtractValue().ConvertTo<fj::Value>(), expected.ExtractValue());
+}
+
+TEST(Convert, DeepJsonBsonRoundTrip) {
+    constexpr int kDepth = 32;
+    constexpr std::size_t kPayloadSize = 1024;
+    fj::ValueBuilder input;
+    input["payload"] = std::string(kPayloadSize, 'x');
+    input["array"] = fj::MakeArray(fj::MakeObject("value", 42), nullptr, "text");
+    for (int i = 0; i < kDepth; ++i) {
+        fj::ValueBuilder parent;
+        parent["child"] = std::move(input);
+        input = std::move(parent);
+    }
+    const auto json = input.ExtractValue();
+    EXPECT_EQ(json.ConvertTo<fb::Value>().ConvertTo<fj::Value>(), json);
+    EXPECT_EQ(json.As<fb::Value>().As<fj::Value>(), json);
 }
 
 USERVER_NAMESPACE_END

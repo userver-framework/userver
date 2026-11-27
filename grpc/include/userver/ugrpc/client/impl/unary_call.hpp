@@ -1,7 +1,12 @@
 #pragma once
 
+#include <cstddef>
+#include <optional>
+#include <string_view>
+
 #include <google/protobuf/message.h>
 #include <grpcpp/support/async_unary_call.h>
+#include <grpcpp/support/byte_buffer.h>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -19,9 +24,11 @@
 #include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/client/impl/deadline_propagation_detect.hpp>
 #include <userver/ugrpc/client/impl/middleware_hooks.hpp>
-#include <userver/ugrpc/client/impl/prepare_async_call.hpp>
 #include <userver/ugrpc/client/impl/retry_backoff.hpp>
+#include <userver/ugrpc/client/impl/tracing.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/message_serialization.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/status_utils.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/ugrpc/time_utils.hpp>
@@ -46,21 +53,20 @@ void AccountStatistics(ugrpc::impl::RpcStatisticsScope& stats, CompletionStatus 
 
 void SetStatusForSpan(tracing::Span& span, CompletionStatus completion_status) noexcept;
 
+[[noreturn]] void ThrowSerializationError(std::string_view call_name, std::string_view reason);
+
 [[noreturn]] void ThrowSpecialCaseCompletionError(
     std::string_view call_name,
     SpecialCaseCompletionType special_case_completion_type
 );
 
-template <typename Stub, typename Request, typename Response>
+template <typename Request, typename Response>
 class UnaryCall final {
 public:
-    using PrepareUnaryCall = PrepareUnaryCallProxy<Stub, Request, Response>;
-
-    UnaryCall(CallParams&& params, PrepareUnaryCall&& prepare_unary_call, const Request& request)
+    UnaryCall(CallParams&& params, const Request& request)
         : call_options_{std::move(params.call_options)},
           state_{std::move(params)},
           context_{utils::impl::InternalTag{}, state_},
-          prepare_unary_call_{std::move(prepare_unary_call)},
           request_{request}
     {}
 
@@ -96,6 +102,17 @@ public:
 private:
     CompletionStatus InterceptCall() {
         const utils::FastScopeGuard commit_state_guard([this]() noexcept { state_.Commit(); });
+
+        if (engine::current_task::ShouldCancel()) {
+            return HandleTaskCancellation();
+        }
+
+        auto serialize_status = ugrpc::impl::SerializeMessage(request_, request_bytes_);
+        if (!serialize_status.ok()) {
+            HandleAndThrowSerializationError(serialize_status.error_message());
+        }
+        UASSERT(request_bytes_.Valid());
+        state_.SetRequestSizeBytes(request_bytes_.Length());
 
         const auto inherited_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
         const auto deadline = std::min(call_options_.GetDeadline(), inherited_deadline);
@@ -137,20 +154,13 @@ private:
                 return completion_status;
             }
 
+            state_.SetResponseSizeBytes(std::nullopt);
             scope_time.Reset();
 
             engine::InterruptibleSleepFor(delay);
         }
 
-        if (abandoned_.load(std::memory_order_relaxed)) {
-            return utils::unexpected{SpecialCaseCompletionType::kAbandoned};
-        }
-
-        if (impl::IsTaskCancelledByDeadlinePropagation()) {
-            return utils::unexpected{SpecialCaseCompletionType::kTimeoutDeadlinePropagated};
-        }
-
-        return utils::unexpected{SpecialCaseCompletionType::kCancelled};
+        return HandleTaskCancellation();
     }
 
     CompletionStatus PerformAttempt() {
@@ -158,8 +168,11 @@ private:
         // The last attempt completion is awaited in the destructor.
         finish_invocation_.emplace();
 
-        call_ = StartCall();
-        call_->Finish(&response_, &status_, finish_invocation_->GetCompletionTag());
+        response_bytes_.Clear();
+
+        auto call = StartCall();
+        call->Finish(&response_bytes_, &status_, finish_invocation_->GetCompletionTag());
+
         const auto wait_status = finish_invocation_->Wait();
 
         if (ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled == wait_status) {
@@ -177,7 +190,22 @@ private:
                 if (impl::IsRequestCancelledByDeadlinePropagation(status_, state_)) {
                     return utils::unexpected{SpecialCaseCompletionType::kTimeoutDeadlinePropagated};
                 }
-                ugrpc::impl::ClampStatusCodeToValidRange(status_);
+                if (!status_.ok()) {
+                    ugrpc::impl::ClampStatusCodeToValidRange(status_);
+                    return std::move(status_);
+                }
+                if (response_bytes_.Valid()) {
+                    state_.SetResponseSizeBytes(response_bytes_.Length());
+                    const auto
+                        deserialize_status = ugrpc::impl::DeserializeMessage(std::move(response_bytes_), response_);
+                    if (!deserialize_status.ok()) {
+                        return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
+                    }
+                } else {
+                    // Trailers-only OK responses have no message.
+                    state_.SetResponseSizeBytes(0);
+                    response_ = Response{};
+                }
                 return std::move(status_);
 
             case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
@@ -210,8 +238,13 @@ private:
         UINVARIANT(false, "unreachable");  // (gcc 11): control reaches end of non-void function
     }
 
-    std::unique_ptr<grpc::ClientAsyncResponseReader<Response>> StartCall() {
-        auto call = prepare_unary_call_(state_.GetStub(), &state_.GetClientContext(), request_, &state_.GetQueue());
+    std::unique_ptr<grpc::ClientAsyncResponseReader<grpc::ByteBuffer>> StartCall() {
+        auto call = state_.GetGenericStub().PrepareUnaryCall(
+            &state_.GetClientContext(),
+            state_.GetMethodPath(),
+            request_bytes_,
+            &state_.GetQueue()
+        );
         call->StartCall();
         return call;
     }
@@ -228,6 +261,27 @@ private:
                 completion_status.has_value() && completion_status.value().ok() ? ToBaseMessage(&response_) : nullptr
             )
         );
+    }
+
+    [[noreturn]] void HandleAndThrowSerializationError(std::string_view reason) {
+        // Serialization failures are counted as `abandoned-error`
+        state_.GetStatsScope().Flush();
+        impl::SetErrorForSpan(state_.GetSpan(), reason);
+        impl::ThrowSerializationError(state_.GetCallName(), reason);
+    }
+
+    CompletionStatus HandleTaskCancellation() {
+        UASSERT(engine::current_task::ShouldCancel());
+
+        if (abandoned_.load(std::memory_order_relaxed)) {
+            return utils::unexpected{SpecialCaseCompletionType::kAbandoned};
+        }
+
+        if (impl::IsTaskCancelledByDeadlinePropagation()) {
+            return utils::unexpected{SpecialCaseCompletionType::kTimeoutDeadlinePropagated};
+        }
+
+        return utils::unexpected{SpecialCaseCompletionType::kCancelled};
     }
 
     Response HandleCompletion(CompletionStatus& completion_status) {
@@ -247,13 +301,14 @@ private:
     CallState state_;
     CallContext context_;
 
-    PrepareUnaryCall prepare_unary_call_;
     const Request& request_;
+    grpc::ByteBuffer request_bytes_;
 
-    std::unique_ptr<grpc::ClientAsyncResponseReader<Response>> call_;
+    grpc::ByteBuffer response_bytes_;
     Response response_;
     grpc::Status status_;
-    // Must go after `call_`, `response_` and `status_` to await `Finish` completion before destroying vars it needs.
+    // Must go after `response_bytes_`, `response_` and `status_` to await `Finish` completion before
+    // destroying vars it needs.
     std::optional<ugrpc::impl::AsyncMethodInvocation> finish_invocation_;
 
     std::atomic<bool> abandoned_{false};

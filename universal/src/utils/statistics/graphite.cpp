@@ -1,0 +1,78 @@
+#include <userver/utils/statistics/graphite.hpp>
+
+#include <algorithm>
+#include <cctype>
+#include <cstring>
+#include <iterator>
+
+#include <fmt/compile.h>
+#include <fmt/format.h>
+
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/fmt.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace utils::statistics {
+
+namespace {
+
+bool IsGraphitePrintable(char c) noexcept { return std::isalnum(c) || std::strchr(".-_", c); }
+
+void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
+    std::ranges::replace_copy_if(value, std::back_inserter(out), [](char c) { return !IsGraphitePrintable(c); }, '_');
+}
+
+class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
+public:
+    FormatBuilder()
+        : ending_(fmt::format(
+              FMT_COMPILE(" {}\n"),
+              std::chrono::duration_cast<std::chrono::seconds>(utils::datetime::MockNow().time_since_epoch()).count()
+          ))
+    {}
+
+    void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels, const MetricValue& value) override {
+        if (value.IsHistogram()) {
+            // TODO support histogram metrics using 'le', or better yet,
+            //  using Prometheus native histograms.
+            UASSERT_MSG(false, "Histogram metrics are not supported for Graphite yet");
+            return;
+        }
+
+        AppendGraphiteSafe(buf_, path);
+
+        for (const auto& label : labels) {
+            PutLabel(label);
+        }
+
+        fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), value);
+        buf_.append(ending_);
+    }
+
+    std::string Release() { return fmt::to_string(buf_); }
+
+private:
+    void PutLabel(const LabelView& label) {
+        buf_.push_back(';');
+
+        AppendGraphiteSafe(buf_, label.Name());
+        buf_.push_back('=');
+        AppendGraphiteSafe(buf_, label.Value());
+    }
+
+    const std::string ending_;
+    fmt::memory_buffer buf_;
+};
+
+}  // namespace
+
+std::string ToGraphiteFormat(WriterFuncRef writer, const Request& request) {
+    FormatBuilder builder{};
+    VisitMetrics(writer, builder, request);
+    return builder.Release();
+}
+
+}  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

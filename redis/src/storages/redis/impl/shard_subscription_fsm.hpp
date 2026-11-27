@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include <userver/storages/redis/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,6 +37,7 @@ struct Event {
     // Only used for kRebalanceRequested. If false, keeping the current
     // subscription after a failed rebalance is not a valid fallback.
     bool current_server_available{true};
+    std::size_t subscribe_request_id{0};
 };
 
 struct Action {
@@ -61,6 +64,7 @@ struct Action {
 
     Type type;
     ServerId server_id;
+    std::size_t subscribe_request_id{0};
 };
 
 class Fsm {
@@ -105,6 +109,7 @@ private:
     void SetNeedSubscription(bool need_subscription);
 
     void HandleSubscribing(const Event& event);
+    bool HandlePreviousSubscribeReply(const Event& event);
     void HandleSubscribed(const Event& event);
     void HandleUnsubscribing(const Event& event);
     void HandleRebalancingWaitSubscribe(const Event& event);
@@ -127,6 +132,9 @@ private:
     // we're either subscribed on this id or sent a subscription request
     ServerId current_server_id_;
     ServerId rebalancing_server_id_;
+    std::size_t last_subscribe_request_id_{0};
+    std::size_t current_subscribe_request_id_{0};
+    std::size_t rebalancing_subscribe_request_id_{0};
 
     std::chrono::steady_clock::time_point current_server_subscription_tp_;
 

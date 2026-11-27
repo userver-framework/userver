@@ -27,6 +27,7 @@
 #include <storages/redis/impl/topology_holder_base.hpp>
 
 #include "command_control_impl.hpp"
+#include "retry_policy.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -415,9 +416,9 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
             }
             const bool retry_to_master =
                 !master && reply->data.IsNil() && command->control.force_retries_to_master_on_nil_reply;
+            const auto retry_outcome = ClassifyReplyForRetry(*reply);
             const bool retry =
-                (retry_to_master || reply->status != ReplyStatus::kOk || error_ask || error_moved ||
-                 reply->IsUnusableInstanceError() || reply->IsReadonlyError() || reply->data.IsErrorClusterdown()) &&
+                (retry_to_master || retry_outcome == RetryOutcome::kRetryable || error_ask || error_moved) &&
                 !delete_started_;
 
             std::shared_ptr<Redis> moved_to_instance;
@@ -464,7 +465,10 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
                     );
                     new_command->log_extra = std::move(command->log_extra);
                     if (moved_to_instance) {
-                        moved_to_instance->AsyncCommand(new_command);
+                        if (moved_to_instance->AsyncCommand(new_command)) {
+                            return;
+                        }
+                        command->log_extra = std::move(new_command->log_extra);
                     } else {
                         AsyncCommand(
                             SentinelCommand(
@@ -475,8 +479,8 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
                             ),
                             ccommand->instance_idx
                         );
+                        return;
                     }
-                    return;
                 }
             }
 
@@ -607,9 +611,7 @@ bool SentinelImpl::EnqueueCommand(SentinelCommand command) {
 
 size_t SentinelImpl::ShardsCount() const {
     const auto ptr = topology_holder_->GetTopology();
-    const auto res = ptr->GetShardsCount();
-    UASSERT(res != 0);
-    return res;
+    return ptr->GetShardsCount();
 }
 
 size_t SentinelImpl::GetClusterSlotsCalledCounter() { return ClusterTopologyHolder::GetClusterSlotsCalledCounter(); }

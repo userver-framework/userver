@@ -55,6 +55,12 @@ testsuite::RedisControl ParseRedisControl(
     };
 }
 
+testsuite::MysqlControl ParseMysqlControl(const components::ComponentConfig& config) {
+    return testsuite::MysqlControl{
+        .is_tls_enabled = config["testsuite-mysql-is-tls-enabled"].As<bool>(true),
+    };
+}
+
 std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(const components::ComponentConfig& config) {
     const bool is_enabled = config["testsuite-tasks-enabled"].As<bool>(false);
     return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
@@ -90,6 +96,7 @@ TestsuiteSupport::TestsuiteSupport(
       dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config, GetIncreasedTimeout())),
       redis_control_(ParseRedisControl(config, GetIncreasedTimeout())),
+      mysql_control_(ParseMysqlControl(config)),
       testsuite_tasks_(ParseTestsuiteTasks(config)),
       grpc_control_(ParseGrpcControl(config, GetIncreasedTimeout()))
 {}
@@ -107,6 +114,8 @@ testsuite::TestpointControl& TestsuiteSupport::GetTestpointControl() { return te
 const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() { return postgres_control_; }
 
 const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() { return redis_control_; }
+
+const testsuite::MysqlControl& TestsuiteSupport::GetMysqlControl() { return mysql_control_; }
 
 testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() { return *testsuite_tasks_; }
 

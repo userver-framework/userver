@@ -79,6 +79,12 @@ public:
     /// mode that might not be the case.
     bool IsSyncingPipeline() const;
 
+    /// @brief Returns true if the connection is currently in pipeline mode.
+    ///
+    /// When pipeline mode is off, commands must be sent and waited for one at
+    /// a time (no more than one command may be "in flight").
+    bool IsPipelineActive() const;
+
     /// Check that pipeline mode is currently enabled
     void AssertPipelineActive() const;
 
@@ -100,6 +106,10 @@ public:
 
     /// @brief Wrapper for PQsendDescribePrepared
     void SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime&);
+
+    /// @brief Sends `DEALLOCATE <name>` for the given prepared statement name
+    /// via PQsendQueryParams, without waiting for its result.
+    void SendDeallocate(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendQueryPrepared
     void SendPreparedQuery(

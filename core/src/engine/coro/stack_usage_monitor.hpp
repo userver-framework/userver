@@ -34,6 +34,7 @@ public:
     bool IsActive() const noexcept;
 
     static bool DebugCanUseUserfaultfd();
+    bool DebugIsCurrentThreadRegistered() const;
 
 private:
     class Impl;

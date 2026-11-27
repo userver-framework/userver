@@ -1,5 +1,7 @@
 #include <userver/chaotic/io/userver/utils/datetime/time_point_tz.hpp>
 
+#include <chrono>
+
 #include <cctz/time_zone.h>
 #include <fmt/format.h>
 
@@ -22,7 +24,7 @@ TimePointTz Convert(const std::string& str, chaotic::convert::To<TimePointTz>) {
     UINVARIANT(s.size() >= kZeroTimePoint.size(), "Invalid datetime");
     memcpy(s.data(), kZeroTimePoint.data(), kZeroTimePoint.length());
     auto tp_tz = utils::datetime::UtcStringtime(s, utils::datetime::kRfc3339Format);
-    return TimePointTz{tp, -std::chrono::duration_cast<std::chrono::seconds>(tp_tz.time_since_epoch())};
+    return TimePointTz{tp, -std::chrono::floor<std::chrono::seconds>(tp_tz.time_since_epoch())};
 }
 
 std::string Convert(const TimePointTz& tp, chaotic::convert::To<std::string>) {

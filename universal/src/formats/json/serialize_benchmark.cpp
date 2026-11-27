@@ -1,16 +1,24 @@
+#include <cstddef>
+#include <cstdint>
+#include <numeric>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include <benchmark/benchmark.h>
 #include <rapidjson/document.h>
 
 #include <userver/formats/json/impl/types.hpp>
+#include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/variant.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/formats/serialize/to.hpp>
 #include <userver/formats/serialize/variant.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -70,7 +78,7 @@ constexpr std::string_view str_width_json =
       "servlet-class": "org.cofax.cds.CDSServlet",
       "init-param": {
         "configGlossary:installationAt": "Philadelphia, PA",
-        "configGlossary:adminEmail": "ksm@pobox.com",
+        "configGlossary:adminEmail": "example-email",
         "configGlossary:poweredBy": "Cofax",
         "configGlossary:poweredByIcon": "/images/cofax.gif",
         "configGlossary:staticPath": "/content/static",
@@ -1253,6 +1261,198 @@ void JsonArrayToVariantParseBenchmark(benchmark::State& state) {
     }
 }
 BENCHMARK(JsonArrayToVariantParseBenchmark)->Range(16, 4096);
+
+template <bool ObjectContainer, bool StringPayload, bool MovePayload>
+void BenchmarkInlinePayload(benchmark::State& state) {
+    const std::string payload(static_cast<std::size_t>(state.range(0)), 'x');
+    for ([[maybe_unused]] auto _ : state) {
+        auto source = [&] {
+            if constexpr (StringPayload) {
+                return formats::json::ValueBuilder(payload).ExtractValue();
+            } else {
+                return formats::json::MakeObject("string", payload, "array", formats::json::MakeArray(1, 2, 3));
+            }
+        }();
+        auto result = [&] {
+            if constexpr (ObjectContainer && MovePayload) {
+                return formats::json::MakeObject("value", std::move(source));
+            } else if constexpr (ObjectContainer) {
+                return formats::json::MakeObject("value", std::as_const(source));
+            } else if constexpr (MovePayload) {
+                return formats::json::MakeArray(std::move(source));
+            } else {
+                return formats::json::MakeArray(std::as_const(source));
+            }
+        }();
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+void JsonMakeObjectNestedCopy(benchmark::State& state) { BenchmarkInlinePayload<true, false, false>(state); }
+void JsonMakeObjectNestedMove(benchmark::State& state) { BenchmarkInlinePayload<true, false, true>(state); }
+void JsonMakeArrayNestedCopy(benchmark::State& state) { BenchmarkInlinePayload<false, false, false>(state); }
+void JsonMakeArrayNestedMove(benchmark::State& state) { BenchmarkInlinePayload<false, false, true>(state); }
+void JsonMakeObjectStringCopy(benchmark::State& state) { BenchmarkInlinePayload<true, true, false>(state); }
+void JsonMakeObjectStringMove(benchmark::State& state) { BenchmarkInlinePayload<true, true, true>(state); }
+void JsonMakeArrayStringCopy(benchmark::State& state) { BenchmarkInlinePayload<false, true, false>(state); }
+void JsonMakeArrayStringMove(benchmark::State& state) { BenchmarkInlinePayload<false, true, true>(state); }
+
+BENCHMARK(JsonMakeObjectNestedCopy)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeObjectNestedMove)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeArrayNestedCopy)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeArrayNestedMove)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeObjectStringCopy)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeObjectStringMove)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeArrayStringCopy)->Arg(128)->Arg(4096);
+BENCHMARK(JsonMakeArrayStringMove)->Arg(128)->Arg(4096);
+
+template <bool UseGenericSerializer>
+void BenchmarkIntegerRange(benchmark::State& state) {
+    std::vector<std::int64_t> values(static_cast<std::size_t>(state.range(0)));
+    std::iota(values.begin(), values.end(), std::int64_t{0});
+    for ([[maybe_unused]] auto _ : state) {
+        auto result = [&] {
+            if constexpr (UseGenericSerializer) {
+                return Serialize(values, formats::serialize::To<formats::json::Value>{});
+            } else {
+                formats::json::ValueBuilder builder(formats::json::Type::kArray);
+                for (const auto value : values) {
+                    builder.PushBack(value);
+                }
+                return builder.ExtractValue();
+            }
+        }();
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+void JsonSerializeIntegerRangeGrowing(benchmark::State& state) { BenchmarkIntegerRange<false>(state); }
+void JsonSerializeIntegerRangeReserved(benchmark::State& state) { BenchmarkIntegerRange<true>(state); }
+
+BENCHMARK(JsonSerializeIntegerRangeGrowing)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonSerializeIntegerRangeReserved)->Arg(8)->Arg(128)->Arg(1024);
+
+std::vector<std::string> MakeIntegerObjectKeys(std::size_t member_count) {
+    std::vector<std::string> keys;
+    keys.reserve(member_count);
+    for (std::size_t index = 0; index < member_count; ++index) {
+        keys.push_back(std::to_string(index));
+    }
+    return keys;
+}
+
+void JsonBuilderBuildIntegerObject(benchmark::State& state) {
+    const auto member_count = static_cast<std::size_t>(state.range(0));
+    const auto keys = MakeIntegerObjectKeys(member_count);
+    for ([[maybe_unused]] auto _ : state) {
+        formats::json::ValueBuilder object{formats::json::Type::kObject};
+        object.Reserve(member_count);
+        for (std::size_t index = 0; index < member_count; ++index) {
+            object[keys[index]] = static_cast<std::int64_t>(index + 1);
+        }
+        auto result = object.ExtractValue();
+        benchmark::DoNotOptimize(result);
+    }
+    state.SetItemsProcessed(state.iterations() * member_count);
+}
+
+void JsonBuilderCheckedScalarAssignment(benchmark::State& state) {
+    const auto member_count = static_cast<std::size_t>(state.range(0));
+    const auto keys = MakeIntegerObjectKeys(member_count);
+    formats::json::ValueBuilder object{formats::json::Type::kObject};
+    object.Reserve(member_count);
+    for (std::size_t index = 0; index < member_count; ++index) {
+        object.EmplaceNocheck(keys[index], index);
+    }
+
+    for ([[maybe_unused]] auto _ : state) {
+        for (std::size_t index = 0; index < member_count; ++index) {
+            object[keys[index]] = index;
+        }
+        benchmark::DoNotOptimize(object);
+    }
+    state.SetItemsProcessed(state.iterations() * member_count);
+}
+
+void JsonBuilderBuildNestedIntegerObject(benchmark::State& state) {
+    constexpr std::string_view kParentKey = "nested_object_with_a_name_beyond_inline_string_storage";
+    const auto member_count = static_cast<std::size_t>(state.range(0));
+    const auto keys = MakeIntegerObjectKeys(member_count);
+    for ([[maybe_unused]] auto _ : state) {
+        formats::json::ValueBuilder object{formats::json::Type::kObject};
+        object.EmplaceNocheck(kParentKey, formats::json::ValueBuilder{formats::json::Type::kObject});
+        auto parent = object[std::string{kParentKey}];
+        parent.Reserve(member_count);
+        for (std::size_t index = 0; index < member_count; ++index) {
+            parent[keys[index]] = static_cast<std::int64_t>(index + 1);
+        }
+        benchmark::DoNotOptimize(object.ExtractValue());
+    }
+    state.SetItemsProcessed(state.iterations() * member_count);
+}
+
+enum class BuilderOwnershipOperation { kValueCopy, kValueMove, kSharedValueMove, kBuilderMove, kExtractReuse };
+
+template <BuilderOwnershipOperation Operation>
+void BenchmarkBuilderOwnership(benchmark::State& state) {
+    const std::string payload(static_cast<std::size_t>(state.range(0)), 'x');
+    const auto source = formats::json::MakeArray(payload);
+    formats::json::ValueBuilder reusable;
+    for ([[maybe_unused]] auto _ : state) {
+        if constexpr (Operation == BuilderOwnershipOperation::kValueCopy) {
+            formats::json::ValueBuilder result{source};
+            benchmark::DoNotOptimize(result);
+        } else if constexpr (Operation == BuilderOwnershipOperation::kSharedValueMove) {
+            auto shared = source;
+            formats::json::ValueBuilder result{std::move(shared)};
+            benchmark::DoNotOptimize(result);
+        } else if constexpr (Operation == BuilderOwnershipOperation::kValueMove) {
+            state.PauseTiming();
+            auto input = formats::json::MakeArray(payload);
+            state.ResumeTiming();
+            formats::json::ValueBuilder result{std::move(input)};
+            benchmark::DoNotOptimize(result);
+        } else if constexpr (Operation == BuilderOwnershipOperation::kBuilderMove) {
+            state.PauseTiming();
+            formats::json::ValueBuilder input{source};
+            state.ResumeTiming();
+            formats::json::ValueBuilder result{std::move(input)};
+            benchmark::DoNotOptimize(result);
+        } else {
+            state.PauseTiming();
+            reusable = source;
+            state.ResumeTiming();
+            auto result = reusable.ExtractValue();
+            benchmark::DoNotOptimize(result);
+        }
+    }
+    state.SetBytesProcessed(state.iterations() * payload.size());
+}
+
+void JsonBuilderValueCopy(benchmark::State& state) {
+    BenchmarkBuilderOwnership<BuilderOwnershipOperation::kValueCopy>(state);
+}
+void JsonBuilderValueMove(benchmark::State& state) {
+    BenchmarkBuilderOwnership<BuilderOwnershipOperation::kValueMove>(state);
+}
+void JsonBuilderValueSharedMove(benchmark::State& state) {
+    BenchmarkBuilderOwnership<BuilderOwnershipOperation::kSharedValueMove>(state);
+}
+void JsonBuilderMove(benchmark::State& state) {
+    BenchmarkBuilderOwnership<BuilderOwnershipOperation::kBuilderMove>(state);
+}
+void JsonBuilderExtractReuse(benchmark::State& state) {
+    BenchmarkBuilderOwnership<BuilderOwnershipOperation::kExtractReuse>(state);
+}
+
+BENCHMARK(JsonBuilderBuildIntegerObject)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderCheckedScalarAssignment)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderBuildNestedIntegerObject)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderValueCopy)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderValueMove)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderValueSharedMove)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderMove)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK(JsonBuilderExtractReuse)->Arg(8)->Arg(128)->Arg(1024);
 
 }  // namespace
 

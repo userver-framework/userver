@@ -25,7 +25,12 @@ TransactionImpl::TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards
       cmd_args_({"MULTI"})
 {}
 
-RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
+RequestExec TransactionImpl::Exec(const CommandControl& command_control) { return Exec(command_control, {}); }
+
+RequestExec TransactionImpl::Exec(const CommandControl& command_control, ExecOptions options) {
+    for (const auto& condition : options) {
+        UpdateShard(condition.GetKey());
+    }
     if (!shard_) {
         throw EmptyTransactionException("Can't determine shard. Empty transaction?");
     }
@@ -34,9 +39,9 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
         shard_ = *command_control.force_shard_idx;
     }
     client_->CheckShardIdx(*shard_);
-    cmd_args_.Then("EXEC");
+    cmd_args_.Then("EXEC", options);
     auto replies_to_skip = result_promises_.size() + 1;
-    const auto master = master_;
+    const auto master = master_ || !options.empty();
     master_ = false;
     return CreateExecRequest(
         client_->MakeRequest(

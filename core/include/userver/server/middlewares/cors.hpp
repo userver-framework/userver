@@ -26,7 +26,8 @@ namespace server::middlewares {
 class Cors final : public HttpMiddlewareBase {
 public:
     struct Config {
-        /// Allowed origins. Use "*" to allow all origins (not recommended for production)
+        /// Allowed origins. Use "*" to allow all origins (not recommended for production).
+        /// The "*" wildcard can not be combined with `allow_credentials`
         std::vector<std::string> allowed_origins;
 
         /// Allowed HTTP methods

@@ -1003,45 +1003,39 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
         }
     }
 
-    if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
-        auto statement_info = prepared_.GetLeastUsed();
-        UASSERT(statement_info);
-        auto meta_statement_name = std::move(statement_info->meta_statement_name);
-        prepared_.Erase(statement_info->id);
-        DiscardPreparedStatement(meta_statement_name, deadline);
-
-        kPreparedQueriesOverflowAlert.FireAlert(*metrics_);
-    }
+    EvictPreparedStatementIfNeeded(deadline, scope);
 
     scope.Reset(scopes::kPrepare);
     LOG_TRACE() << "Query is not yet prepared";
 
     const std::string meta_statement_name = MakeStatementName(query_id, query);
-    const bool should_prepare = !statement_info;
-    if (should_prepare) {
+    const bool pipeline_active = conn_wrapper_.IsPipelineActive();
+    bool should_describe = true;
+    ResultSet res{nullptr};
+
+    if (!statement_info) {
         conn_wrapper_.SendPrepare(meta_statement_name, statement, params, scope);
+        if (pipeline_active) {
+            conn_wrapper_.SendDescribePrepared(meta_statement_name, scope);
+        }
 
         try {
-            conn_wrapper_.WaitResult(deadline, scope, nullptr);
+            res = conn_wrapper_.WaitResult(deadline, scope, nullptr);
+            should_describe = !pipeline_active;
             LOG_DEBUG() << "Prepare successfully sent";
-        } catch (const DuplicatePreparedStatement& e) {
-            // As we have a pretty unique hash for a statement, we can safely use
-            // it. This situation might happen when `SendPrepare` times out and we
-            // erase the statement from `prepared_` map.
+        } catch (const DuplicatePreparedStatement&) {
             LOG_DEBUG()
                 << "Statement was already prepared, there was possibly a "
                    "timeout while preparing, see log "
                    "above.";
             ++stats_.duplicate_prepared_statements;
 
-            // Mark query as already sent
             prepared_.Put(query_id, {query_id, query, meta_statement_name, ResultSet{nullptr}});
 
             if (GetConnectionState() == ConnectionState::kTranError) {
-                // Transaction failed, need to throw
                 throw;
             }
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
             span.AddTag(tracing::kErrorFlag, true);
             throw;
         }
@@ -1049,8 +1043,11 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
         LOG_DEBUG() << "Don't send prepare, already sent";
     }
 
-    conn_wrapper_.SendDescribePrepared(meta_statement_name, scope);
-    auto res = conn_wrapper_.WaitResult(deadline, scope, nullptr);
+    if (should_describe) {
+        conn_wrapper_.SendDescribePrepared(meta_statement_name, scope);
+        res = conn_wrapper_.WaitResult(deadline, scope, nullptr);
+    }
+
     if (!res.pimpl_) {
         throw CommandError("WaitResult() returned nullptr");
     }
@@ -1070,6 +1067,30 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
     return *statement_info;
 }
 
+void ConnectionImpl::EvictPreparedStatementIfNeeded(engine::Deadline deadline, tracing::ScopeTime& scope) {
+    if (prepared_.GetSize() < settings_.max_prepared_cache_size) {
+        return;
+    }
+
+    auto* statement_info = prepared_.GetLeastUsed();
+    UASSERT(statement_info);
+    auto meta_statement_name = std::move(statement_info->meta_statement_name);
+    prepared_.Erase(statement_info->id);
+
+    kPreparedQueriesOverflowAlert.FireAlert(*metrics_);
+
+    // not supported for odyssey
+    // https://github.com/yandex/odyssey/blob/b32651842002b87e8b1ce1e400fb43e0f97fc1da/sources/xplan.c#L755
+    if (IsTransactionPooler()) {
+        return;
+    }
+
+    conn_wrapper_.SendDeallocate(meta_statement_name, scope);
+    if (!conn_wrapper_.IsPipelineActive()) {
+        conn_wrapper_.WaitResult(deadline, scope, nullptr);
+    }
+}
+
 void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
     // do not try to do anything in transaction as it may already be broken
     if (is_discard_prepared_pending_ && !IsInTransaction()) {
@@ -1078,16 +1099,6 @@ void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
         ExecuteCommandNoPrepare("DEALLOCATE ALL", deadline);
         is_discard_prepared_pending_ = false;
     }
-}
-
-void ConnectionImpl::DiscardPreparedStatement(std::string_view meta_statement_name, engine::Deadline deadline) {
-    // not supported for odyssey
-    // https://github.com/yandex/odyssey/blob/b32651842002b87e8b1ce1e400fb43e0f97fc1da/sources/xplan.c#L755
-    if (IsTransactionPooler()) {
-        return;
-    }
-    LOG_DEBUG() << "Discarding prepared statement " << meta_statement_name;
-    ExecuteCommandNoPrepare("DEALLOCATE " + conn_wrapper_.EscapeIdentifier(meta_statement_name), deadline);
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(const Query& query, engine::Deadline deadline, logging::Level span_log_level) {

@@ -38,19 +38,13 @@ CpuRelax::CpuRelax(std::size_t every, tracing::ScopeTime* scope)
       every_iterations_(every)
 {}
 
-void CpuRelax::Relax() {
-    if (every_iterations_ == 0) {
-        return;
+void CpuRelax::DoRelax() {
+    pause_.Pause();
+    LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations", every_iterations_);
+    if (engine::current_task::IsTaskProcessorThread()) {
+        engine::Yield();
     }
-    if (++iterations_ == every_iterations_) {
-        iterations_ = 0;
-        pause_.Pause();
-        LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations", every_iterations_);
-        if (engine::current_task::IsTaskProcessorThread()) {
-            engine::Yield();
-        }
-        pause_.Unpause();
-    }
+    pause_.Unpause();
 }
 
 StreamingCpuRelax::StreamingCpuRelax(std::uint64_t check_time_after_bytes, tracing::ScopeTime* scope)

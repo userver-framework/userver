@@ -25,11 +25,8 @@ A tool for automatically generating changelogs from git commits using LLM analys
   pass's suggested line.
 - **Breaking-change migration guides**: breaking changes carry both a `changelog_line` (what changed)
   and a separate `migration_guide` (how to adapt), rendered as two parts in the changelog.
-- **Doxygen-style code references**: the LLM is instructed to format all code references in
-  `changelog_line` and `migration_guide` using Doxygen syntax — `@ref` for userver entities and
-  files (e.g. `@ref userver::components::ComponentBase`, `@ref userver/core/component.hpp`),
-  backticks for inline identifiers (e.g. `config.yaml`, `some_variable`), and triple backticks for
-  multi-line code blocks. Markdown links `[text](url)` are also acceptable for external resources.
+- **Shared writing rules**: both LLM prompts load [changelog-entry.md](changelog-entry.md),
+  the same rules PR authors follow for changelog text, migration guides, and Doxygen references.
 - **Reliability**: per-commit state persistence (separate state files for the main and external
   passes), retryable errors, an internal resume loop, and request-level backoff (honoring
   `Retry-After`, jitter, capped backoff) make a single invocation survive transient LLM failures

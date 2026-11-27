@@ -15,22 +15,35 @@ else:
     from gen_gdb_printers_tests import generate_test_script
 
 gdb_executable = 'gdb'
+objdump_executable = os.environ.get('OBJDUMP_BIN')
+objcopy_executable = os.environ.get('OBJCOPY_BIN')
 try:
     import yatest.common as yc
 
     gdb_executable = yc.gdb_path()
+    if not objdump_executable or not objcopy_executable:
+        try:
+            resources = yc.global_resources()
+        except yc.NoRuntimeFormed:
+            pass
+        else:
+            clang_root = resources['CLANG_RESOURCE_GLOBAL']
+            objdump_executable = objdump_executable or os.path.join(clang_root, 'bin', 'llvm-objdump')
+            objcopy_executable = objcopy_executable or os.path.join(clang_root, 'bin', 'llvm-objcopy')
 except ImportError:
     pass
 if gdb_exe := os.environ.get('GDB_BIN'):
     gdb_executable = gdb_exe
+objdump_executable = objdump_executable or 'objdump'
+objcopy_executable = objcopy_executable or 'objcopy'
 
 
 def get_paths_from_env(env_var):
     return list(filter(len, re.split(r':\s*', os.environ.get(env_var, ''))))
 
 
-def run_objcopy(*args: str):
-    command = ['objcopy', *args]
+def run_binutils(executable: str, *args: str):
+    command = [executable, *args]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise AssertionError(
@@ -38,6 +51,7 @@ def run_objcopy(*args: str):
             f'stdout:\n{result.stdout}\n'
             f'stderr:\n{result.stderr}'
         )
+    return result.stdout
 
 
 test_sources = get_paths_from_env('TEST_SOURCES')
@@ -90,6 +104,24 @@ if gdb_init_script:
     assert os.path.exists(gdb_init_script), f'GDB initialization script {gdb_init_script} does not exist'
 
 
+def _check_gdb_scripts_section(test_program: str) -> None:
+    sections = run_binutils(objdump_executable, '-h', test_program)
+    if not re.search(r'^[ \t]*\d+[ \t]+\.debug_gdb_scripts[ \t]+', sections, re.MULTILINE):
+        objdump_version = run_binutils(objdump_executable, '--version')
+        raise AssertionError(
+            f'ELF binary {test_program} does not contain .debug_gdb_scripts. '
+            'Link userver-gdb-scripts-section as a whole archive and retain the section during linker garbage collection. '
+            f'objdump version: {objdump_version}'
+        )
+
+
+def test_missing_gdb_scripts_section_shows_linker_hint(tmp_path):
+    program = str(tmp_path / '.debug_gdb_scripts')
+    run_binutils(objcopy_executable, '--only-section=.shstrtab', sys.executable, program)
+    with pytest.raises(AssertionError, match='Link userver-gdb-scripts-section as a whole archive'):
+        _check_gdb_scripts_section(program)
+
+
 @pytest.mark.parametrize(
     'test_key,test_coredump,split_debug',
     [(key, False, False) for key in test_params]
@@ -107,15 +139,7 @@ def test_gdb_printers(
     split_debug: bool,
 ):
     test_program, test_source = test_params[test_key]
-    cmd = ['objdump', '-h', '-j', '.debug_gdb_scripts', test_program]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    if res.returncode != 0 or '.debug_gdb_scripts' not in res.stdout:
-        objdump_version = subprocess.run(['objdump', '--version'], capture_output=True, check=False)
-        raise AssertionError(
-            f'ELF binary {test_program} does not contain .debug_gdb_scripts. '
-            'Link userver-gdb-scripts-section as a whole archive and retain the section during linker garbage collection. '
-            f'objdump version: {objdump_version.stdout!r}'
-        )
+    _check_gdb_scripts_section(test_program)
 
     if is_release_build and test_key not in test_programs_in_release:
         pytest.skip(f'Test {test_key} is skipped in release build')
@@ -128,8 +152,9 @@ def test_gdb_printers(
         split_debug_file = f'{split_program}.debug'
         shutil.copy2(test_program, split_program)
         os.chmod(split_program, stat.S_IMODE(os.stat(split_program).st_mode) | stat.S_IWUSR)
-        run_objcopy('--only-keep-debug', split_program, split_debug_file)
-        run_objcopy(
+        run_binutils(objcopy_executable, '--only-keep-debug', split_program, split_debug_file)
+        run_binutils(
+            objcopy_executable,
             '--strip-debug',
             '--remove-section=.gnu_debuglink',
             f'--add-gnu-debuglink={split_debug_file}',

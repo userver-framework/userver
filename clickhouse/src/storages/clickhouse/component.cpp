@@ -1,5 +1,8 @@
 #include <userver/storages/clickhouse/component.hpp>
 
+#include <optional>
+#include <string>
+
 #include <userver/clients/dns/component.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -26,7 +29,10 @@ ClickHouse::ClickHouse(const ComponentConfig& config, const ComponentContext& co
 {
     const auto& secdist = context.FindComponent<Secdist>().Get();
     const auto& settings_multi = secdist.Get<storages::clickhouse::impl::ClickhouseSettingsMulti>();
-    const auto& settings = settings_multi.Get(storages::clickhouse::impl::GetSecdistAlias(config));
+    const auto settings = settings_multi.Get(
+        storages::clickhouse::impl::GetSecdistAlias(config),
+        config["dbname"].As<std::optional<std::string>>()
+    );
 
     cluster_ = std::make_shared<storages::clickhouse::Cluster>(dns_.GetResolver(), settings, config);
 

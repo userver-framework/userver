@@ -1,6 +1,18 @@
 components_manager:
     components:
         slow-component:
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-url: $mockserver/testpoint
+            testpoint-timeout: 10s
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+        dns-client:
+            fs-task-processor: main-task-processor
         server:
             listener:
                 port: 8089

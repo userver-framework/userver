@@ -1,5 +1,8 @@
 #include <chrono>
+#include <cstdlib>
+
 #include <thread>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -92,6 +95,31 @@ UTEST_F(YdbExecute, ExecuteDataQuery) {
     EXPECT_EQ(result_parser.ColumnParser("value_str").GetOptionalString(), "value2");
     EXPECT_EQ(result_parser.ColumnParser("value_int").GetOptionalInt32(), 2);
     ASSERT_FALSE(result_parser.TryNextRow());
+}
+
+UTEST_F(YdbExecute, SnapshotKeepsConnectionAcrossRouting) {
+    auto& client = GetTableClient();
+    CreateTable("snapshot_data", false);
+    client.ExecuteQuery(ydb::Query{"UPSERT INTO snapshot_data (key, value_str) VALUES ('key', 'home');"});
+
+    ydb::impl::DriverSettings driver_settings;
+    driver_settings.endpoint = std::getenv("YDB_ENDPOINT");
+    driver_settings.database = std::string{GetDatabasePath()} + "/missing_snapshot_database";
+    auto driver = std::make_shared<ydb::impl::Driver>("snapshot_target", std::move(driver_settings));
+    ydb::impl::TableSettings table_settings;
+    table_settings.sync_start = false;
+    ydb::TableClient target(table_settings, {}, dynamic_config::GetDefaultSource(), std::move(driver));
+    const auto home = client.GetSnapshot();
+    const utils::FastScopeGuard restore_route([&client]() noexcept { client.SwitchConnectionTo(client); });
+    const ydb::Query select{"SELECT value_str FROM snapshot_data WHERE key = 'key';"};
+
+    client.SwitchConnectionTo(target);
+    const auto routed = client.GetSnapshot();
+    EXPECT_THROW(client.ExecuteQuery(select), ydb::YdbResponseError);
+    EXPECT_EQ(home->ExecuteQuery(select).GetSingleCursor().GetFirstRow().Get<std::string>(0), "home");
+    client.SwitchConnectionTo(client);
+    EXPECT_EQ(client.ExecuteQuery(select).GetSingleCursor().GetFirstRow().Get<std::string>(0), "home");
+    EXPECT_THROW(routed->ExecuteQuery(select), ydb::YdbResponseError);
 }
 
 using MyTypes = testing::Types<ExecuteDataQuery, ExecuteQuery>;
@@ -442,8 +470,6 @@ TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
 }
 
 UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
-    const utils::statistics::Storage storage;
-
     CreateTable("test_table", true);
     auto transaction = GetTableClient().Begin("test_transaction");
 
@@ -529,6 +555,43 @@ UTEST_F(YdbExecute, RetryTxRollback) {
     ASSERT_EQ(response.GetCursorCount(), 1);
     auto cursor = response.GetSingleCursor();
     ASSERT_EQ(cursor.size(), 0);
+}
+
+UTEST_F(YdbExecute, RetryTxReadWriteRetriesConflict) {
+    CreateTable("test_table", true);
+    const ydb::Query read_query{
+        "SELECT value_int FROM test_table WHERE key = 'key1';",
+        ydb::Query::Name{"retry_rw_read"},
+    };
+    const ydb::Query write_query{
+        "DECLARE $value AS Int32; UPSERT INTO test_table (key, value_int) VALUES ('key1', $value);",
+        ydb::Query::Name{"retry_rw_write"},
+    };
+    std::size_t attempts = 0;
+    GetTableClient().RetryTx(
+        "retry_rw",
+        ydb::RetryTxSettings{.retries = 1},
+        [this, &attempts, &read_query, &write_query](ydb::TxActor& tx) {
+            ++attempts;
+            auto response = tx.Execute(read_query);
+            auto cursor = response.GetSingleCursor();
+            auto row = std::move(cursor).GetSingleRow();
+            const auto value = row.Get<std::optional<std::int32_t>>("value_int").value();
+            if (attempts == 1) {
+                GetTableClient().ExecuteQuery(ydb::Query{
+                    "UPSERT INTO test_table (key, value_int) VALUES ('key1', 100);",
+                });
+            }
+            tx.Execute(write_query, "$value", value + 1);
+            return ydb::TxAction::kCommit;
+        }
+    );
+    EXPECT_EQ(attempts, 2);
+    auto response = GetTableClient().ExecuteQuery(read_query);
+    auto cursor = response.GetSingleCursor();
+    auto row = std::move(cursor).GetSingleRow();
+    EXPECT_EQ(row.Get<std::optional<std::int32_t>>("value_int"), 101);
+    EXPECT_FALSE(GetMetrics().SingleMetricOptional("ydb.by-query.total", {{"ydb_query", "Begin"}}).has_value());
 }
 
 TYPED_UTEST(YdbExecuteTpl, PrepareQueryError) {

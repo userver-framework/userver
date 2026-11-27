@@ -29,6 +29,10 @@ dynamic_config::Source FindDynamicConfigSource(const components::ComponentContex
     return context.FindComponent<components::DynamicConfig>().GetSource();
 }
 
+dynamic_config::NoblockSubscriber FindDynamicConfigNoblockSubscriber(const components::ComponentContext& context) {
+    return dynamic_config::NoblockSubscriber{context.FindComponent<components::DynamicConfig>()};
+}
+
 bool IsDumpSupportEnabled(const components::ComponentConfig& config) {
     const bool dump_support_enabled = config.HasMember(dump::kDump);
     if (dump_support_enabled) {

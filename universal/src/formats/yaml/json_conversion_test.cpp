@@ -8,6 +8,7 @@
 
 #include <userver/formats/json.hpp>
 #include <userver/formats/yaml.hpp>
+#include <userver/utest/death_tests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -183,6 +184,24 @@ TEST(Convert, FromJson) {
     auto json = formats::parse::Parse(yaml, formats::parse::To<fj::Value>{});
 
     EXPECT_EQ(json, expected_json);
+}
+
+TEST(Convert, WideNestedJsonYamlRoundTrip) {
+    fj::ValueBuilder input;
+    for (int i = 0; i < 256; ++i) {
+        input["key_" + std::to_string(i)] = fj::MakeArray(i, fj::MakeObject("nested", "value"), nullptr);
+    }
+    const auto json = input.ExtractValue();
+    const auto yaml = json.As<fy::Value>();
+    EXPECT_EQ(yaml.As<fj::Value>(), json);
+}
+
+TEST(ConvertDeathTest, JsonToYamlRejectsDuplicateKeys) {
+    fj::ValueBuilder input(formats::common::Type::kObject);
+    input.EmplaceNocheck("key", 1);
+    input.EmplaceNocheck("key", 2);
+    const auto json = input.ExtractValue();
+    UEXPECT_DEBUG_DEATH(static_cast<void>(json.As<fy::Value>()), "Duplicate object key");
 }
 
 USERVER_NAMESPACE_END

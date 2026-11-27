@@ -48,6 +48,7 @@ public:
     /// @returns the response on success
     /// @throws ugrpc::client::RpcError on an RPC error
     /// @throws ugrpc::client::RpcCancelledError on task cancellation
+    /// @throws ugrpc::client::RpcSerializationError if the request cannot be serialized
     Response Get() { return impl_->Get(); }
 
     /// @brief Cancel call
@@ -66,16 +67,9 @@ public:
 
     /// @cond
     // For internal use only
-    template <typename Stub, typename Request>
-    ResponseFuture(
-        impl::CallParams&& params,
-        impl::PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-        const Request& request
-    )
-        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<
-              Stub,
-              Request,
-              Response>>(std::move(params), std::move(prepare_unary_call), request)}
+    template <typename Request>
+    ResponseFuture(impl::CallParams&& params, const Request& request)
+        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<Request, Response>>(std::move(params), request)}
     {}
     /// @endcond
 

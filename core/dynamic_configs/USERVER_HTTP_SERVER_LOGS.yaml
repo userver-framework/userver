@@ -4,7 +4,7 @@ description: |
     The key is the low cardinality request path. Query parameters are not included.
     Path parameters are included in their raw form as written in the handler config.
     Example of key: `/v1/orders/{order_id}`.
-    The value is an object containing `request_body_size_log_limit` and `response_body_size_log_limit`.
+    The value contains optional size limits and independent JSON masking policies for requests and responses.
 schema:
     type: object
     description: |
@@ -12,7 +12,7 @@ schema:
         The key is the low cardinality request path. Query parameters are not included.
         Path parameters are included in their raw form as written in the handler config.
         Example of key: `/v1/orders/{order_id}`.
-        The value is an object containing `request_body_size_log_limit` and `response_body_size_log_limit`.
+        The value contains optional size limits and independent JSON masking policies for requests and responses.
     example:
         /v1/orders/{order_id}:
             request_body_size_log_limit: 128
@@ -20,6 +20,11 @@ schema:
         /v1/profile:
             request_body_size_log_limit: 0
             response_body_size_log_limit: 512
+            json_response_body_masking:
+                list_mode: whitelist
+                paths:
+                  - [status]
+                  - [user, id]
     additionalProperties:
         type: object
         additionalProperties: false
@@ -34,3 +39,63 @@ schema:
                 minimum: 0
                 description: |-
                     Maximum response body size in bytes.
+
+            json_request_body_masking:
+                $ref: '#/definitions/BodyMasking'
+            json_response_body_masking:
+                $ref: '#/definitions/BodyMasking'
+    definitions:
+        BodyMasking:
+            type: object
+            additionalProperties: false
+            required:
+              - paths
+            description: |
+                Generated handlers skip masking for operations recognized as binary-only by their
+                Swagger/OpenAPI schema. Otherwise, setting a rule explicitly opts the body into JSON
+                processing, including typed responses and framework errors without a schema-defined object.
+                Handwritten handlers must opt in explicitly.
+
+                Runs after View::GetRequestBodyForLogging() for requests, or
+                View::GetResponseForLogging()/View::GetNonSchemaResponseForLogging() for responses.
+
+                Rules process the hook's output, so even a dynamic whitelist cannot restore
+                data that the hook has masked or removed.
+
+                Masking stops at the effective body log limit. The UTF-8-safe prefix may be incomplete JSON.
+                Its ...(truncated, total N bytes) suffix also fits within the limit; N is the byte size
+                after custom hooks, before JSON masking. Very small limits may truncate the suffix itself.
+                Non-JSON hook output produces an error marker.
+            properties:
+                list_mode:
+                    type: string
+                    enum:
+                      - blacklist
+                      - whitelist
+                    default: blacklist
+                    description: |
+                        Blacklist masks selected subtrees; whitelist preserves only selected subtrees.
+                        An empty blacklist preserves everything; an empty whitelist masks the root.
+                paths:
+                    type: array
+                    description: |
+                        Each path is an array of object member names, called segments.
+                        For example, ["users", "phone"] has segments "users" and "phone".
+                        An empty path [] selects the root.
+
+                        Array elements need no extra segment: ["users", "phone"] selects "phone"
+                        in every object of {"users": [{"phone": "123"}, {"phone": "456"}]}.
+
+                        The segment '*' matches any object member name. For example,
+                        ["users", "*", "phone"] selects users.alice.phone and users.bob.phone.
+
+                        A named segment overrides '*' at the same level. With paths
+                        ["users", "alice", "id"] and ["users", "*", "phone"], users.alice.id and
+                        users.bob.phone are selected, but users.alice.phone is not: after choosing
+                        "alice", matching never returns to the '*' branch, even if "id" is absent.
+
+                        Masked scalars become "...", objects "{...}", and arrays "[...]".
+                    items:
+                        type: array
+                        items:
+                            type: string

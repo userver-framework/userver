@@ -22,6 +22,15 @@ properties:
     config-url:
         type: string
         description: HTTP URL to request configs via POST request
+    fallback-config-urls:
+        type: array
+        description: |
+            HTTP URLs to request configs from, in order, if the request to 'config-url'
+            fails with a network error, timeout or 5xx. Each URL gets its own 'http-retries'
+        defaultDescription: '[]'
+        items:
+            type: string
+            description: HTTP URL of the fallback dynamic configs service
     configs-stage-filepath:
         type: string
         description: |

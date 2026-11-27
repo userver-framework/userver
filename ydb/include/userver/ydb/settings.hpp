@@ -79,6 +79,7 @@ struct RetryTxSettings final {
     bool is_idempotent{false};
 
     /// Settings for a get session request.
+    /// Uses the component's get-session-timeout unless explicitly overridden.
     GetSessionSettings get_session_settings{};
 
     /// Settings for a commit transaction.

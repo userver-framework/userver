@@ -16,6 +16,6 @@ userver_venv_setup(REQUIREMENTS ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt PYT
 add_test(
     NAME "${PROJECT_NAME}-pytest"
     COMMAND "${netcat_venv}" -m pytest testsuite "--test-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
-            "-c /dev/null" # Do not search for pytest.ini
+            -c /dev/null # Do not search for pytest.ini
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

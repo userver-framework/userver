@@ -228,13 +228,14 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     ///
     /// Headers holder **must** be released if `rd_kafka_producev` succeeded.
 
+    rd_kafka_resp_err_t enqueue_error{RD_KAFKA_RESP_ERR__MSG_TIMED_OUT};
     while (!deadline.IsReached() && !engine::current_task::ShouldCancel()) {
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
         // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
-        const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
+        enqueue_error = rd_kafka_producev(
             producer_.GetHandle(),
             RD_KAFKA_V_TOPIC(topic_name.c_str()),
             RD_KAFKA_V_KEY(key.data(), key.size()),
@@ -254,18 +255,19 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
             [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
             [[maybe_unused]] const auto waiter_ptr = waiter.release();
-        } else if (enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-            LOG_LIMITED_WARNING("Kafka local queue is full");
-            /// waiting for a while for the queue to clear up
-            engine::Yield();
-            continue;
-        } else {
-            LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
-            waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
+            return wait_handle;
         }
-        break;
+        if (enqueue_error != RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+            LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
+            break;
+        }
+
+        LOG_LIMITED_WARNING("Kafka local queue is full");
+        HandleEvents("local queue is full");
+        engine::Yield();
     }
 
+    waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
     return wait_handle;
 }
 

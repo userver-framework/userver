@@ -11,6 +11,8 @@ class MockClientBase;
 
 class MockTransaction final : public Transaction {
 public:
+    using Transaction::Exec;
+
     MockTransaction(
         std::shared_ptr<MockClientBase> client,
         std::unique_ptr<MockTransactionImplBase> impl,
@@ -20,6 +22,8 @@ public:
     ~MockTransaction() override;
 
     RequestExec Exec(const CommandControl& command_control) override;
+
+    RequestExec Exec(const CommandControl& command_control, ExecOptions options) override;
 
     // redis commands:
 
@@ -372,6 +376,8 @@ public:
     // end of redis commands
 
 private:
+    using ExecResult = MockTransactionImplBase::ExecResult;
+
     class ResultPromise;
     class MockRequestExecDataImpl;
 
@@ -383,7 +389,7 @@ private:
     template <typename Result, typename ReplyType>
     Request<Result, ReplyType> AddSubrequest(Request<Result, ReplyType>&& subrequest);
 
-    RequestExec CreateMockExecRequest();
+    RequestExec CreateMockExecRequest(ExecResult result);
 
     std::shared_ptr<MockClientBase> client_;
     const CheckShards check_shards_;

@@ -19,12 +19,6 @@
 
 #include "http_status.hpp"
 
-// TODO remove extra include.
-#include <userver/compiler/impl/lifetime.hpp>
-#include <userver/concurrent/queue.hpp>
-#include <userver/concurrent/striped_counter.hpp>
-#include <userver/utils/fast_pimpl.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
@@ -115,6 +109,16 @@ public:
     /// @returns true if the status was set. Returns false if headers
     /// were already sent for stream'ed response and the new status was not set.
     bool SetStatus(HttpStatus status) noexcept;
+
+    /// @brief Set the throttle reason in tracing and try to set the response headers.
+    /// The `X-YaTaxi-Ratelimited-By` header is controlled by the server's
+    /// `allow-set-response-ratelimited-by` static option and is disabled by default.
+    /// Set the option to true to enable the header. The option does not affect
+    /// the `X-YaTaxi-Ratelimit-Reason` header.
+    /// Header updates follow the restrictions of @ref server::http::HttpResponse::SetHeader.
+    /// After headers are committed, they remain unchanged, but the current span,
+    /// if any, is still tagged with the throttle reason.
+    void SetThrottleReason(std::string log_reason, std::string http_header_reason);
 
     /// @brief Remove all headers from response, except system headers.
     /// @returns true if the headers were cleared. Returns false if headers
@@ -208,9 +212,12 @@ private:
 
     bool is_stream_body_{false};
     bool system_headers_ended_ = false;
+    bool allow_set_response_ratelimited_by_ = false;
     engine::SingleConsumerEvent headers_end_{engine::SingleConsumerEvent::NoAutoReset()};
 };
 
+/// @brief Compatibility wrapper for @ref server::http::HttpResponse::SetThrottleReason.
+[[deprecated("Use HttpResponse::SetThrottleReason instead")]]
 void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason, std::string http_header_reason);
 
 }  // namespace server::http

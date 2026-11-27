@@ -14,6 +14,7 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
+#include <userver/ugrpc/impl/message_serialization.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
@@ -120,7 +121,12 @@ public:
           serialized_initial_request_(serialized_initial_request),
           service_(service),
           service_method_(service_method)
-    {}
+    {
+        if constexpr (IsSingleRequestMethod(CallTraits::kRpcType)) {
+            UASSERT(serialized_initial_request_.Valid());
+            state_.latest_request_size_bytes = serialized_initial_request_.Length();
+        }
+    }
 
     void ProcessCall() {
         auto scope_time = state_.GetSpan().CreateScopeTime("pre_call");
@@ -177,7 +183,7 @@ private:
     void DeserializeInitialRequest() {
         if constexpr (IsSingleRequestMethod(CallTraits::kRpcType)) {
             initial_request_.emplace();
-            status_ = impl::DeserializeMessage(std::move(serialized_initial_request_), *initial_request_);
+            status_ = ugrpc::impl::DeserializeMessage(std::move(serialized_initial_request_), *initial_request_);
         }
     }
 

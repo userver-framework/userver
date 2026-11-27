@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include <google/protobuf/message.h>
@@ -22,8 +23,9 @@ USERVER_NAMESPACE_BEGIN
 namespace protobuf::json {
 
 /// @brief Converts protobuf @a message to JSON `ValueBuilder`.
-/// @throws PrintError if conversion has failed
+///
 /// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// @throws PrintError if conversion has failed
 /// @note If protobuf enum value has multiple aliases (`allow_alias` enum option is on) then the first alias in the
 ///       definition order is outputted.
 /// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
@@ -36,8 +38,9 @@ namespace protobuf::json {
 );
 
 /// @brief Converts protobuf @a message to JSON `Value`.
-/// @throws PrintError if conversion has failed
+///
 /// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// @throws PrintError if conversion has failed
 /// @note If protobuf enum value has multiple aliases (`allow_alias` enum option is on) then the first alias in the
 ///       definition order is outputted.
 /// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
@@ -51,10 +54,11 @@ namespace protobuf::json {
     return protobuf::json::MessageToJsonBuilder(message, options).ExtractValue();
 }
 
-/// @brief Converts @a json to protobuf @a message .
-/// @throws ParseError if conversion has failed
-/// @throws MemberMissingException is @a json holds nothing
+/// @brief Converts @a json to protobuf @a message.
+///
 /// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// @throws ParseError if conversion has failed
+/// @throws MemberMissingException if @a json holds nothing
 /// @note If conversion fails, @a message is left in a valid but unspecified state.
 /// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
@@ -67,19 +71,46 @@ void JsonToMessage(
 );
 
 /// @brief Converts @a json to protobuf message of type `T`.
+///
+/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
 /// @tparam T protobuf message type
 /// @throws ParseError if conversion has failed
-/// @throws MemberMissingException is @a json holds nothing
-/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// @throws MemberMissingException if @a json holds nothing
 /// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
 ///          should not be relied upon.
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
 template <typename T>
-requires(std::is_base_of_v<::google::protobuf::Message, T> || !std::is_same_v<::google::protobuf::Message, T>)
+requires(std::is_base_of_v<::google::protobuf::Message, T> && !std::is_same_v<::google::protobuf::Message, T>)
 [[nodiscard]] T JsonToMessage(const formats::json::Value& json, const ParseOptions& options = {}) {
     T message;
     protobuf::json::JsonToMessage(json, message, options);
+    return message;
+}
+
+/// @brief Parses @a json_string into protobuf @a message.
+///
+/// Equivalent to calling @ref formats::json::FromString followed by @ref JsonToMessage.
+/// @throws formats::json::ParseException if @a json_string is not a valid JSON document
+/// @throws ParseError if conversion has failed
+/// @note If conversion fails, @a message is left in a valid but unspecified state.
+void JsonStringToMessage(
+    std::string_view json_string,
+    ::google::protobuf::Message& message,
+    const ParseOptions& options = {}
+);
+
+/// @brief Parses @a json_string into a protobuf message of type `T`.
+///
+/// Equivalent to calling @ref formats::json::FromString followed by @ref JsonToMessage.
+/// @tparam T protobuf message type
+/// @throws formats::json::ParseException if @a json_string is not a valid JSON document
+/// @throws ParseError if conversion has failed
+template <typename T>
+requires(std::is_base_of_v<::google::protobuf::Message, T> && !std::is_same_v<::google::protobuf::Message, T>)
+[[nodiscard]] T JsonStringToMessage(std::string_view json_string, const ParseOptions& options = {}) {
+    T message;
+    protobuf::json::JsonStringToMessage(json_string, message, options);
     return message;
 }
 

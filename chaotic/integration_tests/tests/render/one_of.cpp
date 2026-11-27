@@ -6,6 +6,7 @@
 #include <userver/chaotic/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/parse/may_parse.hpp>
 
 #include <schemas/one_of.hpp>
 #include <schemas/one_of_sax_parsers.hpp>
@@ -120,6 +121,52 @@ TEST(Simple, OneOfWithDiscriminatorSax) {
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 
     EXPECT_EQ(TestDomSerializer(obj), json);
+}
+
+TEST(Simple, MayParseAsObject) {
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::ObjectRequired>(formats::json::MakeObject("id", 1)));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::ObjectRequired>(formats::json::MakeObject("name", "x")));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::ObjectRequired>(formats::json::MakeObject("id", 1, "unknown", 1)));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::ObjectRequired>(formats::json::ValueBuilder(1).ExtractValue()));
+}
+
+TEST(Simple, MayParseAsObjectWithEnumField) {
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::ObjectWithKind>(formats::json::MakeObject("kind", "first")));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::ObjectWithKind>(formats::json::MakeObject("kind", "third")));
+
+    const auto with_optional_kind = [](int optional_kind) {
+        return formats::json::MakeObject("kind", "first", "optional_kind", optional_kind);
+    };
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::ObjectWithKind>(with_optional_kind(2)));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::ObjectWithKind>(with_optional_kind(3)));
+}
+
+TEST(Simple, MayParseAsEnum) {
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::StringKind>(formats::json::ValueBuilder("first").ExtractValue()));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::StringKind>(formats::json::ValueBuilder("third").ExtractValue()));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::StringKind>(formats::json::ValueBuilder(1).ExtractValue()));
+
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::IntKind>(formats::json::ValueBuilder(1).ExtractValue()));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::IntKind>(formats::json::ValueBuilder(3).ExtractValue()));
+    EXPECT_TRUE(formats::parse::MayParseAs<ns::IntKind>(formats::json::ValueBuilder(2.0).ExtractValue()));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::IntKind>(formats::json::ValueBuilder(1.5).ExtractValue()));
+    EXPECT_FALSE(formats::parse::MayParseAs<ns::IntKind>(formats::json::ValueBuilder("first").ExtractValue()));
+}
+
+TEST(Simple, OneOfPrechecked) {
+    const auto parse = [](const formats::json::Value& oneof) {
+        return formats::json::MakeObject("oneof", oneof).As<ns::ObjectOneOfPrechecked>().oneof.value();
+    };
+
+    EXPECT_TRUE(std::holds_alternative<ns::ObjectRequired>(parse(formats::json::MakeObject("id", 1))));
+    EXPECT_TRUE(std::holds_alternative<ns::ObjectFoo>(parse(formats::json::MakeObject("foo", 2))));
+    EXPECT_TRUE(std::holds_alternative<ns::StringKind>(parse(formats::json::ValueBuilder("second").ExtractValue())));
+    EXPECT_TRUE(std::holds_alternative<ns::IntKind>(parse(formats::json::ValueBuilder(2).ExtractValue())));
+    UEXPECT_THROW_MSG(
+        parse(formats::json::MakeObject("bar", 1)),
+        formats::json::ParseException,
+        "Unknown property 'bar'"
+    );
 }
 
 USERVER_NAMESPACE_END

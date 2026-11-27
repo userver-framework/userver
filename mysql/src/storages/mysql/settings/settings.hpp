@@ -6,6 +6,8 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/testsuite/mysql_control.hpp>
+#include <userver/utils/optional_ref.hpp>
 #include <userver/utils/strong_typedef.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -27,7 +29,8 @@ enum class IpMode { kIpV4, kIpV6, kAny };
 
 struct ConnectionSettings final {
     std::size_t statements_cache_size;
-    /// Whether to verify server TLS/SSL certificate.
+    /// Whether to require TLS for connections. Server certificate verification
+    /// follows libmariadb defaults when enabled and is disabled otherwise.
     bool use_secure_connection;
     // TODO : implement compression somehow
     bool use_compression;
@@ -53,7 +56,8 @@ struct PoolSettings final {
     static PoolSettings Create(
         const components::ComponentConfig& config,
         const EndpointInfo& endpoint_info,
-        const AuthSettings& auth
+        const AuthSettings& auth,
+        utils::OptionalRef<const testsuite::MysqlControl> testsuite_mysql_control
     );
 };
 

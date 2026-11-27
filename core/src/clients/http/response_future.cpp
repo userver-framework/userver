@@ -54,7 +54,9 @@ ResponseFuture::ResponseFuture(
     }
 }
 
-ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept : cancellation_policy_(other.cancellation_policy_) {
+ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept
+    : was_deadline_propagated_(other.was_deadline_propagated_), cancellation_policy_(other.cancellation_policy_)
+{
     std::swap(future_, other.future_);
     std::swap(deadline_, other.deadline_);
     std::swap(request_state_, other.request_state_);

@@ -3,6 +3,7 @@
 /// @file userver/utils/encoding/tskv_parser.hpp
 /// @brief @copybrief utils::encoding::TskvParser
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -70,10 +71,30 @@ public:
     /// @throws std::bad_alloc only if `std::string` allocation throws
     std::optional<RecordStatus> ReadValue(std::string& result);
 
+    /// @brief Parses a value without copying it when it contains no escapes.
+    /// @param result view of the parsed value; empty on an incomplete value
+    /// @param storage scratch buffer used only when decoding escapes
+    /// @note The view borrows either the parser's input or `storage`. The
+    /// corresponding buffer must remain alive and unchanged while using the
+    /// view. Reusing `storage` for another escaped value invalidates its views.
+    /// Copy the value to a string if it must outlive the buffer.
+    /// @pre `storage` does not overlap the parser's input.
+    /// @note Uses the same escape, EOF and stream-position rules as
+    /// @ref utils::encoding::TskvParser::ReadValue.
+    /// @throws std::bad_alloc only if scratch buffer allocation throws
+    std::optional<RecordStatus> ReadValueView(std::string_view& result, std::string& storage);
+
+    /// @brief Skips one value with the same escape and EOF handling as
+    /// @ref utils::encoding::TskvParser::ReadValue, without materializing it.
+    /// @note Does not allocate memory.
+    std::optional<RecordStatus> SkipValue() noexcept;
+
     /// @returns pointer to the data that will be read by the next operation
     const char* GetStreamPosition() const noexcept;
 
 private:
+    std::optional<RecordStatus> ReadValueFrom(std::string& result, std::size_t value_end);
+
     std::string_view in_;
 };
 

@@ -43,6 +43,43 @@ components::ComponentList MakeNoLoggingComponentList() {
 
 }  // namespace
 
+TEST_F(ComponentList, FallbackDuringConfigParsingGoesToFile) {
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const auto log_path = temp_root.GetPath() + "/log.txt";
+    const auto config = fmt::format(
+        R"(
+components_manager:
+  coro_pool:
+    initial_size: 50
+    max_size: 500
+  default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
+  event_thread_pool:
+    threads: 1
+  task_processors:
+    main-task-processor:
+      worker_threads: 1
+  components:
+    logging:
+      fs-task-processor: main-task-processor
+      loggers:
+        default:
+          file_path: $default-logger-path
+          file_path#fallback: {}
+)",
+        log_path
+    );
+    const auto component_list =
+        components::ComponentList()
+            .Append<os_signals::ProcessorComponent>()
+            .Append<components::Logging>()
+            .Append<components::StatisticsStorage>();
+
+    UASSERT_NO_THROW(components::RunOnce(components::InMemoryConfig{config}, component_list));
+
+    EXPECT_THAT(fs::blocking::ReadFileContents(log_path), testing::HasSubstr("using fallback value for 'file_path'"));
+}
+
 TEST_F(ComponentList, NoLogging) {
     UEXPECT_THROW_MSG(
         components::RunOnce(components::InMemoryConfig{std::string{kNoLoggingConfig}}, MakeNoLoggingComponentList()),

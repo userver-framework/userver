@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <library/cpp/threading/future/core/future.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
 #include <ydb-cpp-sdk/client/table/table.h>

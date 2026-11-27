@@ -50,6 +50,10 @@ std::unique_lock<engine::SingleWaitingTaskMutex> ResponderBase::TakeMutexIfBidir
     return {};
 }
 
+void ResponderBase::SetRequestSizeBytes(std::size_t size) noexcept { state_.latest_request_size_bytes = size; }
+
+void ResponderBase::SetResponseSizeBytes(std::size_t size) noexcept { state_.latest_response_size_bytes = size; }
+
 void ResponderBase::ApplyRequestHook(google::protobuf::Message& request) {
     auto lock = TakeMutexIfBidirectional();
     grpc::Status status;

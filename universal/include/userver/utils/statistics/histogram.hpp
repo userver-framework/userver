@@ -51,7 +51,7 @@ struct BoundsBlock;
 /// ## Usage of Histogram
 ///
 /// Usage example:
-/// @snippet core/src/utils/statistics/histogram_test.cpp  sample
+/// @snippet universal/src/utils/statistics/histogram_test.cpp  sample
 ///
 /// Contents of a Histogram are read using utils::statistics::HistogramView.
 /// This can be useful for writing custom metric serialization formats or
@@ -61,7 +61,7 @@ struct BoundsBlock;
 /// utils::statistics::HistogramAggregator.
 ///
 /// Histogram can be used in utils::statistics::MetricTag:
-/// @snippet core/src/utils/statistics/histogram_test.cpp  metric tag
+/// @snippet core/src/utils/statistics/metrics_storage_test.cpp  metric tag
 class Histogram final {
 public:
     /// @brief Sets upper bounds for each non-"infinite" bucket. The lowest bound is
@@ -73,8 +73,15 @@ public:
     /// Copies an existing histogram.
     explicit Histogram(HistogramView other);
 
+    /// @brief Transfers ownership of the bucket buffer.
+    ///
+    /// @ref utils::statistics::HistogramView instances already taken from @a other remain valid and refer to that
+    /// buffer, now owned by this object.
     Histogram(Histogram&&) noexcept;
     Histogram(const Histogram&);
+
+    /// Views already taken from the left-hand side become invalid: its previous buffer is destroyed.
+    /// @see utils::statistics::Histogram::Histogram(Histogram&&)
     Histogram& operator=(Histogram&&) noexcept;
     Histogram& operator=(const Histogram&);
     ~Histogram();

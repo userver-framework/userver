@@ -1,15 +1,26 @@
 #include <userver/utest/utest.hpp>
 
-#include <cstdint>
+#include <array>
 #include <ranges>
+#include <system_error>
+#include <utility>
+#include <vector>
+
+#include <fmt/format.h>
 
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/io/exception.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
+#include <userver/utils/async.hpp>
+
+#include <engine/io/tests/net_listener.hpp>
 
 using namespace std::chrono_literals;
 
@@ -58,14 +69,6 @@ protected:
 
     const utest::HttpServerMock& GetServer() { return http_server_; }
 
-    // Server accepts connections asynchronously, so the count may lag behind the client
-    void WaitForConnectionsOpenedCount(std::uint64_t expected) {
-        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-        while (GetServer().GetConnectionsOpenedCount() < expected && !deadline.IsReached()) {
-            engine::Yield();
-        }
-    }
-
 private:
     const std::shared_ptr<clients::http::Client> http_client_ = utest::CreateHttpClient();
     const std::shared_ptr<ResponseQueue> queue_ = ResponseQueue::Create();
@@ -77,6 +80,19 @@ void SetTaskInheritedDeadline(std::chrono::milliseconds ms) {
     server::request::TaskInheritedData data;
     data.deadline = engine::Deadline::FromDuration(ms);
     server::request::kTaskInheritedData.Set(std::move(data));
+}
+
+void WaitForPeerClose(engine::io::Socket& socket, engine::Deadline deadline) {
+    constexpr auto kReadBufferSize = 4096;
+    std::array<char, kReadBufferSize> buffer{};
+    try {
+        while (socket.RecvSome(buffer.data(), buffer.size(), deadline) != 0) {
+        }
+    } catch (const engine::io::IoSystemError& ex) {
+        if (ex.Code() != std::errc::connection_reset) {
+            throw;
+        }
+    }
 }
 
 }  // namespace
@@ -93,6 +109,19 @@ UTEST_F(HttpClientDeadline, DeadlineIsUsedByClient) {
 
     auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
     UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+}
+
+UTEST_F(HttpClientDeadline, MoveConstructorPreservesInheritedDeadline) {
+    constexpr auto kInheritedTimeout = 100ms;
+    auto request = GetClient().CreateRequest().get(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    SetTaskInheritedDeadline(kInheritedTimeout);
+    auto original = request.async_perform();
+    ASSERT_FALSE(original.IsReady());
+
+    auto moved = std::move(original);
+    UEXPECT_THROW((void)moved.Get(), clients::http::CancelException);
+    EXPECT_TRUE(server::request::kTaskInheritedData.Get().deadline_signal.IsExpired());
+    PushResponseCode(200);
 }
 
 UTEST_F(HttpClientDeadline, DeadlineIsUsedByClientOldConnection) {
@@ -121,15 +150,27 @@ UTEST_F(HttpClientDeadline, ConnectionIsReused) {
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsBrokenAfterTimeout) {
-    constexpr std::uint64_t kRequestsCount = 3;
+    constexpr auto kRequestTimeout = 10ms;
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    engine::io::tests::TcpListener listener;
+    auto server = utils::Async("check-timed-out-connections", [&listener, deadline] {
+        constexpr auto kConnectionsToCheck = 3;
+        for ([[maybe_unused]] const auto _ : std::views::iota(0, kConnectionsToCheck)) {
+            auto socket = listener.socket.Accept(deadline);
+            WaitForPeerClose(socket, deadline);
+        }
+    });
 
-    for (const auto request_index : std::views::iota(std::uint64_t{0}, kRequestsCount)) {
-        auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(10ms);
-        UEXPECT_THROW((void)request.perform(), clients::http::TimeoutException);
-        WaitForConnectionsOpenedCount(request_index + 1);
+    // Retain futures so cancellation on destruction cannot produce the EOF being tested.
+    std::vector<clients::http::ResponseFuture> responses;
+    const auto url = fmt::format("http://[::1]:{}/", listener.Port());
+    while (!server.IsFinished() && !deadline.IsReached()) {
+        auto request = GetClient().CreateRequest().get(url).timeout(kRequestTimeout);
+        responses.push_back(request.async_perform());
+        UASSERT_THROW(responses.back().Get(), clients::http::TimeoutException);
     }
 
-    EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), kRequestsCount);
+    UEXPECT_NO_THROW(server.Get());
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {

@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <userver/logging/format.hpp>
 #include <userver/logging/fwd.hpp>
@@ -18,6 +19,7 @@ namespace impl {
 
 class TagWriter;
 class LoggerBase;
+
 void LogRaw(TextLogger& logger, Level level, std::string_view message);
 
 }  // namespace impl

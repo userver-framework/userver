@@ -51,7 +51,7 @@ async def _assert_connection_dead(sock: AsyncioSocket) -> None:
 class Server:
     def __init__(self, sock: AsyncioSocket):
         self._sock = sock
-        self._sockets = []
+        self._sockets: list[AsyncioSocket] = []
 
     async def accept(self) -> AsyncioSocket:
         logger.debug(f'Accepting connections on {self._sock.getsockname()}')

@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/writer.hpp
 /// @brief @copybrief utils::statistics::Writer
+/// @ingroup userver_universal
 
 #include <atomic>
 #include <string_view>
@@ -40,30 +41,30 @@ concept HasWriterSupport = std::is_arithmetic_v<Metric> || requires(Writer& writ
 ///
 /// Usage is quite straightforward:
 ///
-/// @snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+/// @snippet core/src/utils/statistics/storage_test.cpp  Writer basic sample
 ///
 /// The above sample would produce the following metrics:
 ///
-/// @snippet core/src/utils/statistics/pretty_format_test.cpp  metrics pretty
+/// @snippet core/src/utils/statistics/storage_test.cpp  metrics pretty
 ///
 /// The Writer can be customized for writing custom metric types by providing a
 /// `void DumpMetric(utils::statistics::Writer& writer, const CustomMetric& value)`
 /// function:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic
+/// @snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric basic
 ///
 /// DumpMetric functions nest well, labels are propagated to the nested
 /// DumpMetric:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric nested
+/// @snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric nested
 ///
 /// To use the above writers register the metric writer in
 /// @ref utils::statistics::Storage component:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric RegisterWriter
+/// @snippet core/src/utils/statistics/storage_test.cpp  DumpMetric RegisterWriter
 ///
 /// The above metrics in Graphite format would look like:
-/// @snippet core/src/utils/statistics/writer_test.cpp  metrics graphite
+/// @snippet core/src/utils/statistics/storage_test.cpp  metrics graphite
 ///
 /// The Writer is usable by the utils::statistics::MetricTag. For example, for
 /// the following structure:
@@ -72,12 +73,17 @@ concept HasWriterSupport = std::is_arithmetic_v<Metric> || requires(Writer& writ
 /// The DumpMetric function may look like:
 /// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 ///
-/// For information on metrics testing in testsuite refer to
-/// @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".
+/// A writer and its children share mutable path and label state. Destroy a child before writing through its parent
+/// or creating a sibling. Use a nested block to delimit the child's lifetime when necessary. Writers are neither
+/// copyable nor movable; store a child in a local variable before passing it as `Writer&`.
 ///
-/// For metrics testing in unit-tests see utils::statistics::Snapshot.
+/// Emit each metric, identified by its path and labels, once per collection. Writing a metric again does not replace
+/// its previously exported value. Compute the final value before exporting it.
 ///
 /// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
+///
+/// For metrics testing in testsuite see @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".
+/// For metrics testing in unit tests see @ref utils::statistics::Snapshot.
 class Writer final {
 public:
     /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
@@ -91,10 +97,13 @@ public:
 
     ~Writer();
 
-    /// Returns a Writer with a ('.' + path) appended
+    /// Returns a child writer with `path` appended, separated by a dot. Dots in `path` are separators too:
+    /// `writer["a.b"]` and `writer["a"]["b"]` produce the same path. Output formats handle escaping; do not replace
+    /// dots with underscores manually. The path's contents are copied during the call.
+    /// See @ref utils::statistics::Writer for child lifetime restrictions.
     [[nodiscard]] Writer operator[](std::string_view path) &;
 
-    /// Returns a Writer with a ('.' + path) appended
+    /// @overload
     [[nodiscard]] Writer operator[](std::string_view path) &&;
 
     /// Write metric value to metrics builder via using DumpMetric
@@ -118,7 +127,9 @@ public:
         }
     }
 
-    /// Write metric value with labels to metrics builder
+    /// Writes a metric value with additional labels. Labels are inherited by all metrics exported by the value's
+    /// `DumpMetric`. Label strings are borrowed and must remain valid until this synchronous call returns, including
+    /// any nested exports.
     template <class T>
     void ValueWithLabels(const T& value, LabelsSpan labels) {
         auto new_writer = MakeChild();
@@ -126,13 +137,13 @@ public:
         new_writer = value;
     }
 
-    /// Write metric value with labels to metrics builder
+    /// @overload
     template <class T>
     void ValueWithLabels(const T& value, std::initializer_list<LabelView> il) {
         ValueWithLabels(value, LabelsSpan{il});
     }
 
-    /// Write metric value with label to metrics builder
+    /// @overload
     template <class T>
     void ValueWithLabels(const T& value, const LabelView& label) {
         ValueWithLabels(value, LabelsSpan{&label, &label + 1});
@@ -227,14 +238,19 @@ void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
 /// attach extra labels; `request.prefix` is a match filter, not a path to write
 /// under.
 ///
-/// @ref utils::statistics::Storage::VisitMetrics uses this function to dump
-/// Writer-based metrics. It is used to implement formats such as:
+/// This function dumps Writer-based metrics. It is used to implement formats such as:
 /// - @ref utils::statistics::ToPrometheusFormat "Prometheus"
 /// - @ref utils::statistics::ToGraphiteFormat "Graphite"
 /// - @ref utils::statistics::ToJsonFormat "JSON"
 /// - @ref utils::statistics::ToPrettyFormat "pretty format"
 /// - @ref utils::statistics::ToSolomonFormat "Solomon"
 /// - @ref utils::statistics::GetPortabilityWarnings "portability info"
+///
+/// To define a custom output format, implement @ref utils::statistics::BaseFormatBuilder:
+/// @snippet universal/src/utils/statistics/writer_test.cpp  VisitMetrics custom format
+///
+/// Collect metrics using the custom format builder:
+/// @snippet universal/src/utils/statistics/writer_test.cpp  VisitMetrics custom format usage
 ///
 /// @param func writes metrics to the provided @ref Writer
 /// @param out receives each written metric via @ref BaseFormatBuilder::HandleMetric

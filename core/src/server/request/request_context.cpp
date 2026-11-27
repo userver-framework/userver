@@ -43,6 +43,7 @@ public:
 #endif
 
     impl::InternalRequestContext& GetInternalContext() noexcept;
+    const impl::InternalRequestContext& GetInternalContext() const noexcept;
 
 private:
     utils::AnyStorage<StorageContext> storage_context_;
@@ -111,11 +112,19 @@ void RequestContext::Impl::EraseAnyData(std::string_view name) noexcept {
 
 impl::InternalRequestContext& RequestContext::Impl::GetInternalContext() noexcept { return internal_context_; }
 
+const impl::InternalRequestContext& RequestContext::Impl::GetInternalContext() const noexcept {
+    return internal_context_;
+}
+
 RequestContext::RequestContext() = default;
 
 RequestContext::RequestContext(RequestContext&&) noexcept = default;
 
 RequestContext::~RequestContext() = default;
+
+const dynamic_config::Snapshot& RequestContext::GetInitialDynamicConfig() const {
+    return impl_->GetInternalContext().GetConfigSnapshot();
+}
 
 utils::AnyStorage<StorageContext>& RequestContext::GetStorageContext() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return impl_->GetStorageContext();

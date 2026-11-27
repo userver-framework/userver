@@ -1,0 +1,10 @@
+* @userver-framework/userver-maintainers
+
+/core/ @antonyzhilin @antoshkka 
+/mongo/ @antoshkka @oigolovanova
+/postgresql/ @antoshkka @arudenko02 @oigolovanova
+/redis/ @antoshkka
+/grpc/ @antonyzhilin @kpavlov00
+/clickhouse/ @antoshkka
+/rabbitmq/ @antoshkka
+/ydb/ @antonyzhilin @kpavlov00

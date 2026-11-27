@@ -13,16 +13,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-template <typename Stub, typename Request, typename Response>
+template <typename Request, typename Response>
 class AsyncUnaryCallAdapter final : public ResponseFutureImplBase<Response> {
 public:
-    AsyncUnaryCallAdapter(
-        CallParams&& params,
-        PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-        const Request& request
-    )
+    AsyncUnaryCallAdapter(CallParams&& params, const Request& request)
         : request_{request},
-          unary_call_{std::move(params), std::move(prepare_unary_call), request_},
+          unary_call_{std::move(params), request_},
           perform_task_{utils::CriticalAsync(
               "async-unary-call-perform",
               [this] {
@@ -69,7 +65,7 @@ public:
 
 private:
     Request request_;
-    UnaryCall<Stub, Request, Response> unary_call_;
+    UnaryCall<Request, Response> unary_call_;
     engine::TaskWithResult<Response> perform_task_;
     engine::TaskCancellationToken cancellation_token_;
 };

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <deque>
+#include <exception>
 #include <vector>
 
 #include <fmt/format.h>
@@ -273,6 +274,35 @@ UTEST_F(ProducerTest, FullQueueBulk) {
         messages.emplace_back(fmt::format("test-msg-{}", send));
     }
     UEXPECT_NO_THROW(producer.Send(topic, "test-key", messages));
+}
+
+UTEST_F(ProducerTest, FullQueueBulkDeadline) {
+    constexpr std::uint32_t kMaxQueueMessages{1};
+    constexpr std::size_t kMessagesCount{kMaxQueueMessages + 2};
+
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.delivery_timeout = std::chrono::milliseconds{1500};
+    producer_configuration.queue_buffering_max = std::chrono::milliseconds{1000};
+    producer_configuration.queue_buffering_max_messages = kMaxQueueMessages;
+
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
+    const std::string topic = GenerateTopic();
+
+    std::vector<std::string> messages;
+    messages.reserve(kMessagesCount);
+    for (std::size_t send{0}; send < kMessagesCount; ++send) {
+        messages.emplace_back(fmt::format("test-msg-{}", send));
+    }
+
+    try {
+        producer.Send(topic, "test-key", messages);
+        ADD_FAILURE() << "Expected kafka::BulkSendException";
+    } catch (const kafka::BulkSendException& e) {
+        const auto& exceptions = e.GetExceptions();
+        const auto last_exception_it = exceptions.find(kMessagesCount - 1);
+        ASSERT_NE(last_exception_it, exceptions.end());
+        UEXPECT_THROW(std::rethrow_exception(last_exception_it->second), kafka::SendException);
+    }
 }
 
 UTEST_F(ProducerTest, SendCancel) {

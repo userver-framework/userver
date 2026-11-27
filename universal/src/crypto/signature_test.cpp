@@ -181,6 +181,55 @@ TjHpHTeC67wPly53kPortX0A7pmS8vwzk/MhJU3GTECLi2ZYIbcRq/xZltmT27ad
 UtDIEU4gcJRnxv0O5w/XZA==
 -----END PRIVATE KEY-----)"};
 
+constexpr std::string_view kOtherCert{R"(-----BEGIN CERTIFICATE-----
+MIIDETCCAfmgAwIBAgIUZ1PrMMfRbMIKr+5uIA+oaUtLiPUwDQYJKoZIhvcNAQEL
+BQAwFzEVMBMGA1UEAwwMT3RoZXIgU2lnbmVyMCAXDTI2MDkyOTE4MTMwM1oYDzIx
+MjYwOTA1MTgxMzAzWjAXMRUwEwYDVQQDDAxPdGhlciBTaWduZXIwggEiMA0GCSqG
+SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDGg55inK7NKeTi5FBmzLDuLHf9VA7AhnNb
+4nKX3iTEMlJXSsdifyR30R+qSoL8R+MRd5K2JMAMks+b8D4X57oNfcaG62Lp2fQa
+KXSvY+eu36h0JYFdkdGFojwNYMvyh6T4T0yBClOPAGD3WvUL+Qb2PADsLCvUGXZQ
+8rdwVtoyNxttJx7xoMClMN23X1A0m26q9cexj/HkwBzhN+Sx45R9B5qUQUHmusfa
+CuFAdhJbnqwJNpDRw7Tkvq2Xaw26Z3dpEyj4dYSvQCOdS23eF1M5ipIeR1oq7nnu
+yEz8Vlh0cdf9CwDTIVk4pEdwJsCKjXjUjkmLIMUVA+4N4hzAZDS9AgMBAAGjUzBR
+MB0GA1UdDgQWBBRrWV6DV8+vCoSzdTfTcEgBI801JTAfBgNVHSMEGDAWgBRrWV6D
+V8+vCoSzdTfTcEgBI801JTAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUA
+A4IBAQAholvNJtUbdIZEdfsc8CSb7o6Ey1wjJeBjjJSDpvGnM2IvZ38tV6dAHAzY
+IW02t1sbl17/3Oj51MzV+VYDFZhovbxoqbzu6yweQYMYk75P4BnY60aFrKjF9cNu
+AyR2bCDIbe4b8qenm52MvngZ3ByfeOT4i1KGGBPXPl7aydo1YSvxjBayKaeHY5hp
+qisdsf5tPoevuWnQySg+9Q/dJ+H+9+3PFghFuAKooaJqMmOa3jGE/Xo/t5nemkgZ
+CKzRDatfH4tuB8W/uqPvtpotsAHcO5RxQW7WJBOVGtTYQTs/RiBVIllsxzyps5ug
+4Wkt5fGB5h9DBX89FG7RDuTfYcH5
+-----END CERTIFICATE-----)"};
+
+constexpr std::string_view kOtherPrivKey{R"(-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDGg55inK7NKeTi
+5FBmzLDuLHf9VA7AhnNb4nKX3iTEMlJXSsdifyR30R+qSoL8R+MRd5K2JMAMks+b
+8D4X57oNfcaG62Lp2fQaKXSvY+eu36h0JYFdkdGFojwNYMvyh6T4T0yBClOPAGD3
+WvUL+Qb2PADsLCvUGXZQ8rdwVtoyNxttJx7xoMClMN23X1A0m26q9cexj/HkwBzh
+N+Sx45R9B5qUQUHmusfaCuFAdhJbnqwJNpDRw7Tkvq2Xaw26Z3dpEyj4dYSvQCOd
+S23eF1M5ipIeR1oq7nnuyEz8Vlh0cdf9CwDTIVk4pEdwJsCKjXjUjkmLIMUVA+4N
+4hzAZDS9AgMBAAECggEAWINYTETrhgwvg+FkXinXnCMUz047E6n/ZtFl4gRJZXfA
+ki6ED418T7ZdhZsao21UODYWIwPo49JUIoYw0YzfvuM9cWwkGvw1JLMmVYvYwnb0
+T/FnKLb7crffSeHGnhnQO210Qbc+ga0cDz6ts4xyh7lCegvJ8RT3VembVEpNmQSC
+oJ77uBLqoSX93tgrObFX5MUSv7BHucQn5X1M9lGvxlWx8YWboaOLbxVcR4wOLR4E
+fWFBb8KsyxfZG/Cozw6jEnW459q2slr0RCYuAyBdbWgls4geTK8ELWkmPWaRpFXY
+Hpy0SRA4d4CP5OYdckFdQFxFgt42NxbrPxp/WjrPSwKBgQDzpZ1CPNx1bdpTDROS
+uvUpoPX9pTAvYijuUHZ6yYWQDBZtKd8i58ZjsC49i38+Fad0HGsI98AuqJ6mOI93
+sHnqeBs75SQzdRO9Fw/VvI5ZVXgR16WlFmXWWs/Ab7Gc6qucjfK5VmRiTL7iB2UN
+3frNK9JyhNXPQuSWEhN1FtL4zwKBgQDQlDVyGNR6NTVJNhbuIPkuEC4cdAwwKIXq
+5ZDcy0oOKlOzrgLG/0b6PLL5lG7QO63Q8/NK50oiiTsekPdphP+TEqnvdAwteE6j
++IZmda2SyL9AeGlQ/cMRytPOMVLrsAujlMsms9V+gQq57HtmN2sJhfv9uCDNm05E
+bNtyJnMEswKBgQDHY0DOc//2GXARhyH9cgIvjwnACO7l1+6nGDHdSg2DVGEF9L4m
+UoaIDiXJN99pb08aNidhr14W0OcEIEVILaOXvbKL0XlOowEEPVs4DpZvhQI9l7x2
+3V15jdd2I/G1+FV4SLHZ+lksGKIdVu/b6UzVmoceMJbIhnWKWkCSEZuVAQKBgDri
+fKw3glT2DJMcqCCWQoLUoo/52y8FYblNEjajVcbmADdr2vDfROSEmmqHkzlKf+nL
+1VXCMlXJtF0OxCqQF68nx74IXx+/JUR5d0gZ1OTps8S5udHZsmalgmJl3mkXjFGk
+Qi4s+wr511NiBfx3jMplfxzEDM6/F7uNl+6EGFitAoGBAISzGV5FzW96Zsd77WzK
+nvfBGInAe7NrN6YpshybDku6z/ExaH95XDBFanrOge+3TDpJFsOQUxbKAf9FJ2n2
+fPJRHSjmqo5mS9qdMoQs5HSk7+P7247OaI7pIm6XKhAM8mnK4VuUxMTVS+DrQyEv
+eu4RoIb99lGexYsTcE2cOgvl
+-----END PRIVATE KEY-----)"};
+
 enum class TestFlags {
     kNone = 0,
     kSkipDigestOps = 1,
@@ -320,6 +369,51 @@ TEST(Crypto, SignatureCMSVerify) {
         {crypto::CmsVerifier::Flags::kNoSignerCertVerify},
         crypto::CmsVerifier::InForm::kDer
     ));
+}
+
+// The verifier is pinned to kSomeCert; a message signed by an unrelated key,
+// carrying its own certificate inside the CMS structure, must be rejected.
+TEST(Crypto, SignatureCMSVerifyRejectsForeignSigner) {
+    using Signer = crypto::CmsSigner;
+    using SFlags = Signer::Flags;
+
+    using Verifier = crypto::CmsVerifier;
+    using VFlags = Verifier::Flags;
+
+    const Signer foreign_signer{
+        crypto::Certificate::LoadFromString(kOtherCert),
+        crypto::PrivateKey::LoadFromString(kOtherPrivKey)
+    };
+    const Verifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
+
+    const auto sign_and_verify = [foreign_signer, verifier](Signer::OutForm out_form, Verifier::InForm in_form) {
+        const auto signed_data = foreign_signer.Sign({"test data"}, {SFlags::kBinary, SFlags::kText}, out_form);
+        verifier.Verify({signed_data}, {VFlags::kNoSignerCertVerify}, in_form);
+    };
+    EXPECT_THROW(sign_and_verify(Signer::OutForm::kSMime, Verifier::InForm::kSMime), crypto::VerificationError);
+    EXPECT_THROW(sign_and_verify(Signer::OutForm::kPem, Verifier::InForm::kPem), crypto::VerificationError);
+    EXPECT_THROW(sign_and_verify(Signer::OutForm::kDer, Verifier::InForm::kDer), crypto::VerificationError);
+}
+
+// A message that embeds the pinned certificate itself still verifies.
+TEST(Crypto, SignatureCMSVerifyEmbeddedOwnCert) {
+    using Signer = crypto::CmsSigner;
+    using SFlags = Signer::Flags;
+
+    using Verifier = crypto::CmsVerifier;
+    using VFlags = Verifier::Flags;
+
+    const Signer
+        signer{crypto::Certificate::LoadFromString(kSomeCert), crypto::PrivateKey::LoadFromString(kSomePrivKey)};
+    const Verifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
+
+    const auto sign_and_verify = [signer, verifier](Signer::OutForm out_form, Verifier::InForm in_form) {
+        const auto signed_data = signer.Sign({"test data"}, {SFlags::kBinary, SFlags::kText}, out_form);
+        verifier.Verify({signed_data}, {VFlags::kNoSignerCertVerify}, in_form);
+    };
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kSMime, Verifier::InForm::kSMime));
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kPem, Verifier::InForm::kPem));
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kDer, Verifier::InForm::kDer));
 }
 
 TEST(Crypto, SignatureRs1) {

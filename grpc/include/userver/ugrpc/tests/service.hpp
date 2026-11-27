@@ -96,8 +96,7 @@ private:
     server::ServiceConfig MakeServiceConfig();
 
     utils::statistics::Storage statistics_storage_;
-    utils::statistics::MetricsStorage metrics_storage_;
-    std::vector<utils::statistics::Entry> metrics_storage_registration_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
     dynamic_config::StorageMock config_storage_;
     std::optional<std::string> unix_socket_path_;
     utils::WithResourceScopes<server::Server> server_;
