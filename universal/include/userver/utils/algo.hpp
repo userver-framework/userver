@@ -15,7 +15,9 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/checked_pointer.hpp>
+#include <userver/utils/optional_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,8 +57,25 @@ auto* FindOrNullptr(Container& container, const Key& key) {
     }
 }
 
+/// @brief Wraps the result of @ref utils::FindOrNullptr in @ref utils::OptionalRef,
+/// or returns an empty reference if the value was not found.
+/// The reference follows the lifetime and invalidation rules of the container.
+/// Only lvalue containers are accepted, including const containers.
+template <typename Container, typename Key>
+auto FindOptionalRef(Container& container USERVER_IMPL_LIFETIME_BOUND, const Key& key) {
+    auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);
+    using Result = utils::OptionalRef<std::remove_reference_t<decltype(*ptr)>>;
+    return ptr ? Result{*ptr} : Result{};
+}
+
+/// @overload
+/// Rejects temporary containers to avoid dangling references.
+template <typename Container, typename Key>
+auto FindOptionalRef(const Container&&, const Key&) = delete;
+
 /// @brief Returns default value if no key in associative container, otherwise
 /// returns a copy of the stored value.
+/// @warning Copies the stored value. Use @ref utils::FindOptionalRef to avoid copying.
 template <typename Container, typename Key, typename Default>
 auto FindOrDefault(Container& container, const Key& key, Default&& def) {
     const auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);
@@ -66,6 +85,7 @@ auto FindOrDefault(Container& container, const Key& key, Default&& def) {
 
 /// @brief Returns default value if no key in associative container, otherwise
 /// returns a copy of the stored value.
+/// @warning Copies the stored value. Use @ref utils::FindOptionalRef to avoid copying.
 template <typename Container, typename Key>
 auto FindOrDefault(Container& container, const Key& key) {
     const auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);
@@ -75,6 +95,7 @@ auto FindOrDefault(Container& container, const Key& key) {
 
 /// @brief Returns std::nullopt if no key in associative container, otherwise
 /// returns std::optional with a copy of value
+/// @warning Copies the stored value. Use @ref utils::FindOptionalRef to avoid copying.
 template <typename Container, typename Key>
 auto FindOptional(Container& container, const Key& key) {
     const auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);

@@ -2,11 +2,14 @@
 
 #include <initializer_list>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "overloaded_address_operator_test.hpp"
@@ -60,6 +63,49 @@ TEST(UtilsAlgo, FindOrNullptrSetAddressof) {
     const std::set<utils::OverloadedAddressOperator> s{{.payload = 1}};
     const auto ptr = utils::FindOrNullptr(s, utils::OverloadedAddressOperator{.payload = 1});
     ASSERT_TRUE(ptr);
+}
+
+namespace {
+
+template <typename Container>
+concept CanFindOptionalRef = requires(Container&& container) {
+    utils::FindOptionalRef(std::forward<Container>(container), 1);
+};
+
+using FindOptionalRefMap = std::map<int, int>;
+
+static_assert(CanFindOptionalRef<FindOptionalRefMap&>);
+static_assert(CanFindOptionalRef<const FindOptionalRefMap&>);
+static_assert(!CanFindOptionalRef<FindOptionalRefMap>);
+static_assert(!CanFindOptionalRef<const FindOptionalRefMap>);
+
+}  // namespace
+
+TEST(UtilsAlgo, FindOptionalRefMaps) {
+    std::map<std::string, std::unique_ptr<int>> values;
+    values.emplace("key", std::make_unique<int>(1));
+
+    EXPECT_FALSE(utils::FindOptionalRef(values, "missing"));
+    const auto found = utils::FindOptionalRef(values, "key");
+    ASSERT_TRUE(found);
+    EXPECT_EQ(&*found, &values.at("key"));
+    *found = std::make_unique<int>(42);
+    EXPECT_EQ(*values.at("key"), 42);
+
+    const auto& const_values = values;
+    const auto const_found = utils::FindOptionalRef(const_values, "key");
+    static_assert(std::is_same_v<decltype(const_found), const utils::OptionalRef<const std::unique_ptr<int>>>);
+    ASSERT_TRUE(const_found);
+    EXPECT_EQ(&*const_found, &values.at("key"));
+}
+
+TEST(UtilsAlgo, FindOptionalRefSets) {
+    std::unordered_set<std::string> values{"key"};
+    EXPECT_FALSE(utils::FindOptionalRef(values, "missing"));
+    const auto found = utils::FindOptionalRef(values, "key");
+    static_assert(std::is_same_v<decltype(found), const utils::OptionalRef<const std::string>>);
+    ASSERT_TRUE(found);
+    EXPECT_EQ(&*found, &*values.find("key"));
 }
 
 TEST(UtilsAlgo, FindOrDefaultMaps) {
