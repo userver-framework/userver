@@ -202,8 +202,6 @@ std::size_t Value::GetSize() const {
 
 bool Value::operator==(const Value& other) const { return impl::AreEqual(&GetNative(), &other.GetNative()); }
 
-bool Value::IsMissing() const noexcept { return holder_ && !value_ptr_; }
-
 bool Value::IsNull() const noexcept { return !IsMissing() && (!holder_ || GetNative().IsNull()); }
 
 bool Value::IsBool() const noexcept { return !IsMissing() && GetNative().IsBool(); }
@@ -500,12 +498,16 @@ bool Value::IsRoot() const noexcept { return holder_.Get() == value_ptr_; }
 bool Value::IsUniqueReference() const { return holder_.IsUnique(); }
 
 const impl::Value& Value::GetNative() const {
-    EnsureNotMissing();
+    if (!value_ptr_ || !holder_) [[unlikely]] {
+        EnsureNotMissing();
+    }
     return *value_ptr_;
 }
 
 impl::Value& Value::GetNative() {
-    EnsureNotMissing();
+    if (!value_ptr_ || !holder_) [[unlikely]] {
+        EnsureNotMissing();
+    }
     if (value_ptr_->IsNull() && holder_.IsSharedNull()) {
         *this = Value{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)};
     }

@@ -41,8 +41,6 @@ const VersionedValuePtr& VersionedValuePtr::SharedNull() {
     return holder.storage.value;
 }
 
-VersionedValuePtr::operator bool() const { return !!data_; }
-
 bool VersionedValuePtr::IsUnique() const { return data_.use_count() == 1; }
 
 bool VersionedValuePtr::IsSharedNull() const { return data_ && data_->is_shared_null; }

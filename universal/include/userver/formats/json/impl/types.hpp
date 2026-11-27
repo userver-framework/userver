@@ -48,7 +48,7 @@ public:
 
     ~VersionedValuePtr();
 
-    explicit operator bool() const;
+    explicit operator bool() const noexcept { return !!data_; }
     bool IsUnique() const;
     bool IsSharedNull() const;
 

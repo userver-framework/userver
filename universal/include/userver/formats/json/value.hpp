@@ -136,7 +136,7 @@ public:
 
     /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
     /// `true` any attempt to get the actual value or iterate over *this will
-    bool IsMissing() const noexcept;
+    bool IsMissing() const noexcept { return holder_ && !value_ptr_; }
 
     /// @brief Returns true if *this holds a null (Type::kNull).
     bool IsNull() const noexcept;
