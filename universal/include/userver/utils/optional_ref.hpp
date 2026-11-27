@@ -9,8 +9,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <boost/optional/optional_fwd.hpp>
-
 #include <userver/utils/assert.hpp>
 #include <userver/utils/meta_light.hpp>
 
@@ -52,17 +50,6 @@ public:
 
     template <typename U>
     constexpr explicit OptionalRef(const std::optional<U>&&) noexcept {
-        static_assert(!sizeof(U), "Forming a reference to a temporary");
-    }
-
-    template <typename U>
-    constexpr explicit OptionalRef(const boost::optional<U>& other) noexcept : data_(GetPointer(other)) {}
-
-    template <typename U>
-    constexpr explicit OptionalRef(boost::optional<U>& other) noexcept : data_(GetPointer(other)) {}
-
-    template <typename U>
-    constexpr explicit OptionalRef(const boost::optional<U>&&) noexcept {
         static_assert(!sizeof(U), "Forming a reference to a temporary");
     }
 
