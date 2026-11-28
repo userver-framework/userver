@@ -94,6 +94,12 @@ public:
     // Can be called only once
     Producer GetBodyProducer();
 
+    // Drains a body that the handler streamed into the HTTP/1.1 queue because
+    // the stream id was not yet assigned at `SetStreamBody()` time (h2c
+    // upgrade) into the response data, so that it can be sent buffered.
+    // Returns false if there was no such queue.
+    bool BufferHttp1StreamedBody();
+
     /// @brief Set the end of system headers.
     /// All headers written before this call are considered system; after - user.
     /// User headers can't overwrite system headers.

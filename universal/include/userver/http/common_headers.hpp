@@ -197,6 +197,8 @@ inline constexpr PredefinedHeader kScheme{":scheme"};
 inline constexpr PredefinedHeader kAuthority{":authority"};
 inline constexpr PredefinedHeader kPath{":path"};
 inline constexpr PredefinedHeader kStatus{":status"};
+/// @brief The extended CONNECT pseudo-header of RFC 8441.
+inline constexpr PredefinedHeader kProtocol{":protocol"};
 }  // namespace k2
 
 }  // namespace http::headers

@@ -47,6 +47,8 @@ public:
     /// @cond
     HttpRequestBuilder& SetIsFinal(bool is_final);
 
+    HttpRequestBuilder& SetWebsocketExtendedConnect(bool is_websocket_extended_connect);
+
     HttpRequestBuilder& SetFormDataArgs(
         utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash>&& form_data_args
     );

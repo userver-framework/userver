@@ -45,6 +45,10 @@ components_manager:
             task_processor: main-task-processor
             max-remote-payload: 100000
             fragment-size: 10
+        plain-handler:  # Unused here; exercised by the HTTP/2.0 variant of this service.
+            path: /plain
+            method: GET
+            task_processor: main-task-processor
 
         testsuite-support:
 

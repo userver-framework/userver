@@ -5,9 +5,9 @@ USERVER_NAMESPACE_BEGIN
 namespace server::http {
 
 class Http2Session;
-class HttpResponse;
+class HttpRequest;
 
-void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& session);
+void WriteHttp2ResponseToSocket(HttpRequest& request, Http2Session& session);
 
 }  // namespace server::http
 
