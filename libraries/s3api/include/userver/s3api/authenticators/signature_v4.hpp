@@ -35,6 +35,8 @@ public:
 
     /// @note `expires` is an absolute unix timestamp of the moment the presigned URL stops being valid.
     /// It is converted to the `X-Amz-Expires` duration relative to the current time.
+    /// @note The URL signs `Host` and every other non-empty header of @a request except `Content-Length`
+    /// (`Content-Type`, `x-amz-*`, ...), so the client using it must send them with the same values.
     std::unordered_map<std::string, std::string> Sign(const Request& request, std::time_t expires) const override;
 
 private:

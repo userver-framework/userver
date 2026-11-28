@@ -189,6 +189,8 @@ public:
         std::string_view protocol = "https://"
     ) const = 0;
 
+    /// @brief Generates a presigned URL to upload an object at @a path with `PUT`.
+    /// @note The URL is signed for @a content_type, so the uploader must send the same `Content-Type`.
     virtual std::string GenerateUploadUrlVirtualHostAddressing(
         std::string_view data,
         std::string_view content_type,
