@@ -104,6 +104,7 @@ public:
     {}
 
     void WriteHttpResponse() {
+        const bool buffered_h1_stream = response_.BufferHttp1StreamedBody();
         const auto& data = response_.GetData();
 
         auto headers = GetHeaders();
@@ -117,7 +118,7 @@ public:
 
         const auto stream_id = response_.GetStreamId().value();
         auto& stream = http2_session_.GetStreamChecked(Stream::Id{stream_id});
-        stream.SetStreaming(response_.IsBodyStreamed() && data.empty());
+        stream.SetStreaming(response_.IsBodyStreamed() && !buffered_h1_stream && data.empty());
 
         std::size_t bytes = headers.GetSize();
         nghttp2_data_provider* provider{nullptr};
