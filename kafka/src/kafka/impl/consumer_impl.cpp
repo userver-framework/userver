@@ -827,6 +827,63 @@ void ConsumerImpl::Seek(
     SeekToOffset(topic, partition_id, static_cast<std::int64_t>(offset), timeout);
 }
 
+void ConsumerImpl::SeekToTimestamp(
+    utils::zstring_view topic,
+    std::uint32_t partition_id,
+    std::chrono::system_clock::time_point timestamp,
+    std::chrono::milliseconds timeout
+) const {
+    if (timestamp < std::chrono::system_clock::time_point{}) {
+        throw SeekInvalidArgumentException("Timestamp must be at or after the Unix epoch");
+    }
+    if (partition_id > std::numeric_limits<std::int32_t>::max()) {
+        throw SeekInvalidArgumentException("Partition ID must fit in a signed 32-bit integer");
+    }
+    if (timeout.count() <= 0 || timeout.count() > std::numeric_limits<std::int32_t>::max()) {
+        throw SeekInvalidArgumentException("Timeout must be positive and at most std::int32_t::max() milliseconds");
+    }
+
+    const auto deadline = engine::Deadline::FromDuration(timeout);
+    TopicPartitionsListHolder partitions{rd_kafka_topic_partition_list_new(1)};
+    auto* partition = rd_kafka_topic_partition_list_add(
+        partitions.GetHandle(),
+        topic.c_str(),
+        static_cast<std::int32_t>(partition_id)
+    );
+    partition->offset = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
+    auto error = rd_kafka_offsets_for_times(
+        consumer_.GetHandle(), partitions.GetHandle(), std::max(0, ToRdKafkaTimeout(deadline))
+    );
+    if (error == RD_KAFKA_RESP_ERR_NO_ERROR) {
+        error = partition->err;
+    }
+    if (error == RD_KAFKA_RESP_ERR_NO_ERROR && partition->offset == RD_KAFKA_OFFSET_END) {
+        // Resolve the end now: a symbolic end is resolved asynchronously and could skip records
+        // produced after SeekToTimestamp returns.
+        std::int64_t low_offset{};
+        error = rd_kafka_query_watermark_offsets(
+            consumer_.GetHandle(),
+            topic.c_str(),
+            static_cast<std::int32_t>(partition_id),
+            &low_offset,
+            &partition->offset,
+            std::max(0, ToRdKafkaTimeout(deadline))
+        );
+    }
+    if (error != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        throw SeekException(
+            fmt::format(
+                "Failed to resolve timestamp offset for topic '{}' partition {}: {}",
+                topic,
+                partition_id,
+                rd_kafka_err2str(error)
+            )
+        );
+    }
+
+    SeekToOffset(topic, partition_id, partition->offset, deadline);
+}
+
 void ConsumerImpl::MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const {
     if (params.empty()) {
         return;
@@ -851,7 +908,18 @@ void ConsumerImpl::SeekToOffset(
         throw SeekInvalidArgumentException(fmt::format("Timeout value have to be > 0. value: {}ms", timeout.count()));
     }
 
-    const auto deadline = engine::Deadline::FromDuration(timeout);
+    SeekToOffset(topic, partition_id, offset, engine::Deadline::FromDuration(timeout));
+}
+
+void ConsumerImpl::SeekToOffset(
+    utils::zstring_view topic,
+    std::uint32_t partition_id,
+    std::int64_t offset,
+    engine::Deadline deadline
+) const {
+    if (deadline.IsReached()) {
+        throw SeekException("Timed out before seeking to offset");
+    }
 
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
     rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(

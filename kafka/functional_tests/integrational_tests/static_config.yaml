@@ -32,6 +32,8 @@ components_manager:
         kafka-consumer:
             group_id: test-group
             topics:
+              - test-topic-seek-1000
+              - test-topic-seek-3000
               - test-topic-send
               - test-topic-consume-1
               - test-topic-consume-2

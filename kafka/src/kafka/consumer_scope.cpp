@@ -42,6 +42,15 @@ void ConsumerScope::Seek(
     consumer_.Seek(topic, partition_id, offset, timeout);
 }
 
+void ConsumerScope::SeekToTimestamp(
+    utils::zstring_view topic,
+    std::uint32_t partition_id,
+    std::chrono::system_clock::time_point timestamp,
+    std::chrono::milliseconds timeout
+) const {
+    consumer_.SeekToTimestamp(topic, partition_id, timestamp, timeout);
+}
+
 void ConsumerScope::SeekToBeginning(
     utils::zstring_view topic,
     std::uint32_t partition_id,
