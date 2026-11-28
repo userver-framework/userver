@@ -161,6 +161,25 @@ class Http2Client:
             timeout,
         )
 
+    async def trace(
+        self,
+        path,
+        params={},
+        headers={},
+        data=None,
+        json={},
+        timeout=DEFAULT_TIMEOUT,
+    ) -> httpx.Response:
+        return await self._request(
+            'TRACE',
+            path,
+            params,
+            headers,
+            data,
+            json,
+            timeout,
+        )
+
     async def _request(
         self,
         method,

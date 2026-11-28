@@ -29,6 +29,8 @@ clients::http::HttpMethod ConvertHttpMethod(llhttp_method method) {
             return clients::http::HttpMethod::kPatch;
         case HTTP_OPTIONS:
             return clients::http::HttpMethod::kOptions;
+        case HTTP_TRACE:
+            return clients::http::HttpMethod::kTrace;
         default:
             ADD_FAILURE() << "Unknown HTTP method " << method;
             return clients::http::HttpMethod::kGet;

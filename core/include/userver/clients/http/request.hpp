@@ -59,7 +59,7 @@ class RequestBackend;
 }  // namespace impl
 
 /// @brief HTTP request method
-enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
+enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions, kTrace };
 
 /// @brief Convert HTTP method enum value to string
 std::string_view ToStringView(HttpMethod method);
