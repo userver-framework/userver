@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/coroutine2/protected_fixedsize_stack.hpp>
+#include <coroutines/coroutine.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
