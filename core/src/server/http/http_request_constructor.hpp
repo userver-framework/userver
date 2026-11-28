@@ -28,7 +28,6 @@ public:
         kRequestTooLarge,
         kParseArgsError,
         kParseCookiesError,
-        kParseMultipartFormDataError,
     };
 
     using Config = server::request::HttpRequestConfig;
