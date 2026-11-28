@@ -3,15 +3,15 @@ import dataclasses
 from chaotic.back.cpp import types as cpp_types
 from chaotic_openapi.back.cpp.common import types as common_types
 from chaotic_openapi.back.cpp.common.types import Body
-from chaotic_openapi.back.cpp.common.types import HttpDigestSecurity
 from chaotic_openapi.back.cpp.common.types import map_method
 from chaotic_openapi.back.cpp.common.types import Operation
 from chaotic_openapi.back.cpp.common.types import Parameter
 from chaotic_openapi.back.cpp.common.types import Response
+from chaotic_openapi.back.cpp.common.types import Security
 
 __all__ = [
     'Body',
-    'HttpDigestSecurity',
+    'Security',
     'map_method',
     'Operation',
     'Parameter',
@@ -33,16 +33,13 @@ class ClientSpec(common_types.SpecBase):
     # Types which can be referred to
     schemas: dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
 
-    def digest_scheme_names(self) -> list[str]:
-        names = {
-            op.security.auth_type
-            for op in self.operations
-            if op.client_generate and isinstance(op.security, HttpDigestSecurity)
-        }
-        return sorted(names)
-
-    def uses_digest_security(self) -> bool:
-        return bool(self.digest_scheme_names())
+    def security_schemes(self) -> list[Security]:
+        """Security schemes of the generated operations, one per scheme name"""
+        schemes: dict[str, Security] = {}
+        for op in self.operations:
+            if op.client_generate and op.security is not None:
+                schemes.setdefault(op.security.auth_type, op.security)
+        return [schemes[name] for name in sorted(schemes)]
 
     def has_multiple_content_type_request(self) -> bool:
         for op in self.operations:

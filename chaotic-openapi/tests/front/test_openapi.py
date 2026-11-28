@@ -162,6 +162,7 @@ def test_openapi_security(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth',
                                     description='',
+                                    scopes=['read'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='https://example.com/api/oauth/dialog',
@@ -201,6 +202,7 @@ def test_openapi_security(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth',
                                     description='',
+                                    scopes=['write'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='https://example.com/api/oauth/dialog',
@@ -240,6 +242,7 @@ def test_openapi_security(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth',
                                     description='',
+                                    scopes=['write', 'read'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='https://example.com/api/oauth/dialog',
@@ -346,6 +349,77 @@ def test_openapi_security_rejects_invalid_reference(simple_parser):
             },
             'paths': {'/': {'get': {'responses': {}, 'security': [{'digestAlias': []}]}}},
         })
+
+
+_PERMISSIONS_SCHEME = {'type': 'apiKey', 'name': 'X-Permissions', 'in': 'header'}
+
+
+def _scoped_doc(version: str, scheme: dict, scopes: list[str], scheme_name: str = 'permissions') -> dict:
+    schemes = {'permissions': scheme}
+    if scheme_name != 'permissions':
+        schemes[scheme_name] = {'$ref': '#/components/securitySchemes/permissions'}
+    return {
+        'openapi': version,
+        'info': {'title': '', 'version': '1.0'},
+        'components': {'securitySchemes': schemes},
+        'paths': {'/': {'get': {'responses': {}, 'security': [{scheme_name: scopes}]}}},
+    }
+
+
+def _requirement_scopes(service: model.Service) -> list[str]:
+    (operation,) = service.operations
+    (requirement,) = operation.security_requirements.or_items
+    (security,) = requirement.and_items
+    return security.scopes
+
+
+def test_openapi_30_rejects_roles_for_non_oauth_scheme(simple_parser):
+    with pytest.raises(error.BaseError, match=r'"permissions" the array must be empty.*OpenAPI 3.1'):
+        simple_parser(_scoped_doc('3.0.3', _PERMISSIONS_SCHEME, ['accounts:manage']))
+
+
+@pytest.mark.parametrize('version', ['3.1.0', '3.2.0'])
+def test_openapi_31_allows_roles_for_any_scheme(simple_parser, version):
+    service = simple_parser(_scoped_doc(version, _PERMISSIONS_SCHEME, ['accounts:manage']))
+    assert _requirement_scopes(service) == ['accounts:manage']
+
+
+def test_openapi_declared_scopes(simple_parser):
+    scheme = {**_PERMISSIONS_SCHEME, 'x-usrv-scopes': {'accounts:manage': 'Manage accounts', 'accounts:read': '-'}}
+    service = simple_parser(_scoped_doc('3.1.0', scheme, ['accounts:manage']))
+    assert service.security['<inline>#/components/securitySchemes/permissions'] == model.ApiKeySecurity(
+        name='permissions',
+        description='',
+        api_key_name='X-Permissions',
+        in_=model.SecurityIn.header,
+    )
+    assert _requirement_scopes(service) == ['accounts:manage']
+
+
+@pytest.mark.parametrize('scheme_name', ['permissions', 'permissionsAlias'])
+def test_openapi_rejects_undeclared_scopes(simple_parser, scheme_name):
+    scheme = {**_PERMISSIONS_SCHEME, 'x-usrv-scopes': {'accounts:read': '-'}}
+    with pytest.raises(error.BaseError, match=r"requires undeclared scopes \['accounts:manage'\]"):
+        simple_parser(_scoped_doc('3.1.0', scheme, ['accounts:manage'], scheme_name))
+
+
+def test_openapi_rejects_undeclared_oauth_scopes(simple_parser):
+    scheme = {
+        'type': 'oauth2',
+        'flows': {'clientCredentials': {'tokenUrl': 'https://example.com/token', 'scopes': {'read': '-'}}},
+    }
+    with pytest.raises(error.BaseError, match=r"requires undeclared scopes \['write'\]"):
+        simple_parser(_scoped_doc('3.0.0', scheme, ['read', 'write']))
+
+
+def test_openapi_rejects_extension_scopes_for_oauth(simple_parser):
+    scheme = {
+        'type': 'oauth2',
+        'flows': {'clientCredentials': {'tokenUrl': 'https://example.com/token', 'scopes': {}}},
+        'x-usrv-scopes': {'read': '-'},
+    }
+    with pytest.raises(error.BaseError, match=r'"x-usrv-scopes" is not supported for oauth2'):
+        simple_parser(_scoped_doc('3.0.0', scheme, []))
 
 
 def test_openapi_parameters(simple_parser):

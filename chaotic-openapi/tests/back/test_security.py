@@ -98,8 +98,8 @@ def test_two_ops_different_digest_schemes():
     auth_types = {op.security.auth_type for op in spec.operations}  # type: ignore[union-attr]
     assert auth_types == {'adminDigest', 'userDigest'}
 
-    assert spec.uses_digest_security()
-    assert spec.digest_scheme_names() == ['adminDigest', 'userDigest']
+    assert [scheme.auth_type for scheme in spec.security_schemes()] == ['adminDigest', 'userDigest']
+    assert {scheme.default_auth_provider() for scheme in spec.security_schemes()} == {'chaotic-digest-auth-provider'}
 
 
 def test_and_security_rejected():
@@ -154,19 +154,74 @@ def test_anonymous_security_requirement_is_unsecured():
     assert _single_op_security(_openapi_with_scheme('digestAuth', _DIGEST_SCHEME, op_security=[{}])) is None
 
 
-def test_http_basic_rejected():
-    """http/basic raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*http/basic.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('basicAuth', _BASIC_SCHEME))
+@pytest.mark.parametrize(
+    'scheme_def, kind',
+    [
+        pytest.param(_BASIC_SCHEME, 'http/basic', id='http-basic'),
+        pytest.param(_BEARER_SCHEME, 'http/bearer', id='http-bearer'),
+        pytest.param({'type': 'http', 'scheme': 'HOBA'}, 'http/hoba', id='http-unknown'),
+        pytest.param(_APIKEY_SCHEME, 'apiKey "X-Api-Key" in header', id='apikey'),
+        pytest.param(
+            {
+                'type': 'oauth2',
+                'flows': {'clientCredentials': {'tokenUrl': 'https://example.com/token', 'scopes': {}}},
+            },
+            'oauth2',
+            id='oauth2',
+        ),
+        pytest.param(
+            {'type': 'openIdConnect', 'openIdConnectUrl': 'https://example.com/.well-known'},
+            'openIdConnect',
+            id='openid-connect',
+        ),
+    ],
+)
+def test_provided_security_generates(scheme_def, kind):
+    """Every scheme translates, the generated client applies it with an auth provider."""
+    sec = _single_op_security(_openapi_with_scheme('otherAuth', scheme_def))
+    assert sec == common_types.Security(auth_type='otherAuth', kind=kind)
 
 
-def test_http_bearer_rejected():
-    """http/bearer raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*http/bearer.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('bearerAuth', _BEARER_SCHEME))
+def test_kind_is_escaped_for_cpp():
+    sec = _single_op_security(_openapi_with_scheme('keyAuth', _APIKEY_SCHEME))
+    assert sec.cpp_kind() == 'apiKey \\"X-Api-Key\\" in header'
 
 
-def test_apikey_rejected():
-    """apiKey raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*apiKey.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('apiKeyAuth', _APIKEY_SCHEME))
+def test_only_digest_has_default_auth_provider():
+    spec = _make_translator(_openapi_with_scheme('bearerAuth', _BEARER_SCHEME)).spec()
+    assert [scheme.auth_type for scheme in spec.security_schemes()] == ['bearerAuth']
+    assert spec.security_schemes()[0].default_auth_provider() is None
+
+
+def test_security_schemes_of_client_operations_only():
+    doc = _openapi_with_scheme('bearerAuth', _BEARER_SCHEME)
+    for operation in doc['paths']['/test'].values():
+        operation['x-usrv-client-codegen'] = False
+    spec = _make_translator(doc).spec()
+    assert spec.security_schemes() == []
+
+
+def test_security_scopes_initializer():
+    scheme = {**_BEARER_SCHEME, 'x-usrv-scopes': {'read:items': '', 'a"b': ''}}
+    doc = _openapi_with_scheme('bearerAuth', scheme, op_security=[{'bearerAuth': ['read:items', 'a"b']}])
+    doc['openapi'] = '3.1.0'
+    op = _make_translator(doc).spec().operations[0]
+    assert op.security_scopes_initializer() == '"read:items", "a\\"b"'
+
+
+def test_swagger_basic_security_generates():
+    doc = {
+        'swagger': '2.0',
+        'info': {'title': '', 'version': '1.0'},
+        'securityDefinitions': {'basicAuth': {'type': 'basic'}},
+        'paths': {'/test': {'get': {'responses': {}, 'security': [{'basicAuth': []}]}}},
+    }
+    sec = _single_op_security(doc)
+    assert sec == common_types.Security(auth_type='basicAuth', kind='http/basic')
+
+
+def test_security_scopes_translated():
+    doc = _openapi_with_scheme('myDigest', _DIGEST_SCHEME, op_security=[{'myDigest': ['admin']}])
+    doc['openapi'] = '3.1.0'
+    sec = _single_op_security(doc)
+    assert sec == common_types.HttpDigestSecurity(auth_type='myDigest', scopes=['admin'])
