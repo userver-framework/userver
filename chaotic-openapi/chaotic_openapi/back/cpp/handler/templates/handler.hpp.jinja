@@ -15,15 +15,21 @@ namespace impl {
 inline constexpr std::string_view kHandlerName = "{{ component_name(op) }}";
 }
 
-using Handler = {{ userver }}::chaotic::openapi::server::BaseHandler<
+/// @brief The handler, logging bodies and rendering undeclared errors with Policy,
+/// see chaotic::openapi::server::DefaultHandlerPolicy
+template <typename Policy = {{ userver }}::chaotic::openapi::server::DefaultHandlerPolicy>
+using HandlerFor = {{ userver }}::chaotic::openapi::server::BaseHandler<
     impl::kHandlerName,
     {% if op.iter_error_responses() | list %}ErrorResponseBase{% else %}void{% endif %},
     Request,
     Response,
     HandlerTag,
-    View
-    {%- if op.has_any_hidden_query_parameters() %}, HiddenQueryArguments{% endif %}
+    View,
+    {% if op.has_any_hidden_query_parameters() %}HiddenQueryArguments{% else %}void{% endif %},
+    Policy
 >;
+
+using Handler = HandlerFor<>;
 
 }  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}
 
